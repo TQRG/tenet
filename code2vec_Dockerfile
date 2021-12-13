@@ -1,0 +1,13 @@
+FROM ubuntu:20.04
+
+ENV TZ=Europe
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Installing dependencies
+RUN apt update \
+  && apt -y upgrade \
+  && apt install -y git curl python3-pip
+
+ADD ./* /code2vec_vp/
+WORKDIR /code2vec_vp
+RUN pip install -r requirements.txt

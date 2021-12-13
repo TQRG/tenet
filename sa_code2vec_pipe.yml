@@ -1,0 +1,56 @@
+prepare:
+  codeql:
+    input: 'raw'
+    cells:
+      - plugin:
+          label: 'separate'
+          name: 'separate'
+      - plugin:
+          label: 'codeql_extract_labels'
+          name: 'codeql_extract_labels_patch'
+          args: 
+            report: 'reports/cwe-079.patch.json'
+      - plugin:
+          label: 'match_location'
+          name: 'match_location_patch'
+          args: 
+            offset: 6
+            diff_dataset: "/home/epicosy/SecurityAware/workdir/prepare/labels/xss_advisories.raw.labels.csv"
+      - plugin:
+          label: 'function_boundary'
+          name: 'function_boundary_patch'
+          args:
+            output_fn: "/etc/securityaware/transforms/outputFnBoundary.js"
+      - plugin:
+          label: 'codeql_extract_labels'
+          name: 'codeql_extract_labels_vuln'
+          args: 
+            report: 'reports/cwe-079.vuln.json'
+      - plugin:
+          label: 'match_location'
+          name: 'match_location_vuln'
+          args: 
+            offset: 6
+            diff_dataset: "/home/epicosy/SecurityAware/workdir/prepare/labels/xss_advisories.raw.labels.csv"
+      - plugin:
+          label: 'function_boundary'
+          name: 'function_boundary_vuln'
+          args: 
+            output_fn: "/etc/securityaware/transforms/outputFnBoundary.js"
+      - plugin:
+          label: 'match_location'
+          name: 'parent_functions'
+          args: 
+            negate: true
+            add_proj: false
+            offset: 6
+            diff_dataset: "/home/epicosy/SecurityAware/workdir/codeql/function_boundary/xss_advisories.raw.function_boundary_patch.csv"
+  astminer:
+    input: 'raw'
+    cells:
+      - container: 
+          image: astminer:last
+          name: astminer
+          cmds:
+            - "export NODE_OPTIONS=\"--max-old-space-size=4096\""
+            - "java -jar -Xms4g -Xmx4g build/shadow/astminer.jar codebert /data/files /data xss_advisories.raw.parent_functions.csv 0"
