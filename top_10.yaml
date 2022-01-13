@@ -1,0 +1,130 @@
+nodes:
+  - plugin:
+      name: github_collector
+      kwargs:
+        token: **CHANGE_TO_OWN_TOKEN**
+  - plugin:
+      name: filter
+  - plugin:
+      name: labeler
+  - container:
+      name: codeql
+      image: codeql
+      cmds:
+        - "mkdir -p {p1} {p2}"
+        - "codeql database create --threads=4 {p1} --language=javascript --source-root={p3} 2>&1"
+        - "codeql database analyze {p1} /codeql-home/codeql-repo/javascript/ql/src/Security/CWE-079 /codeql-home/codeql-repo/javascript/ql/src/Security/CWE-400 /codeql-home/codeql-repo/javascript/ql/src/Security/CWE-022 --format=sarif-latest --output={p4} --threads=4 2>&1"
+      output: "{p4}"
+  - plugin:
+      name: codeql_extract_labels
+  - plugin:
+      name: match_location
+      kwargs:
+        offset: 6
+  - plugin:
+      name: function_boundary
+      kwargs:
+        output_fn: "/etc/securityaware/transforms/outputFnBoundary.js"
+  - container:
+      image: astminer:last
+      name: astminer
+      cmds:
+        - "cp {p1} {p2}"
+        - "mkdir -p {p3}"
+        - "export NODE_OPTIONS=\"--max-old-space-size=4096\""
+        - "java -jar -Xms4g -Xmx4g build/shadow/astminer.jar codebert {p2} {p3} {p4} 0"
+      output: "{p3}/data/path_contexts.c2s"
+  - plugin:
+      name: compare
+  - plugin:
+      name: plot_matrix
+
+layers:
+  dataset:
+    - raw:
+        node: github_collector
+        sources: [files_path, dataset]
+    - filtered:
+        node: filter
+  diff:
+    - labels:
+        node: labeler
+        sources: [dataset]
+        kwargs:
+          multi_label: true
+          file_size_limit: 8192
+    - raw_func_bounds:
+        node: function_boundary
+        sources: [dataset_path]
+        sinks:
+          raw: 
+            files_path: files_path
+    - astminer_diff:
+        node: astminer
+        placeholders:
+          p4: "top_10.raw_func_bounds.csv"
+        sinks:
+          raw_func_bounds:
+            dataset_path: p1
+          raw:
+            files_path: p2
+          astminer_diff:
+            path: p3
+        sources: [path, output]
+  static:
+    - codeql:
+        node: codeql
+        placeholders:
+          p1: "/data/codeql/db"
+          p2: "/data/codeql/reports"
+          p3: "/data/raw/files"
+          p4: "/data/codeql/reports/top_10.json"
+        sources: [p4]
+    - codeql_extract_labels:
+        node: codeql_extract_labels
+        sinks:
+          codeql: 
+            p4: report
+    - match_location:
+        node: match_location
+        sinks: 
+          labels: 
+            dataset: diff_dataset
+    - function_boundary:
+        node: function_boundary
+        sources: [dataset_path]
+        sinks:
+          raw: 
+            files_path: files_path
+    - astminer_static:
+        node: astminer
+        placeholders:
+          p4: "top_10.function_boundary.csv"
+        sinks:
+          function_boundary:
+            dataset_path: p1
+          raw:
+            files_path: p2
+          astminer_static:
+            path: p3
+        sources: [path, output]
+  evaluate:
+    - compare_diff_static:
+        node: compare
+        sources: [orig, pred, labels]
+        sinks:
+          raw:
+            dataset: diff_dataset
+          astminer_diff:
+            output: diff_funcs
+          astminer_static:
+            output: static_funcs
+    - plot_matrix:
+        node: plot_matrix
+        sinks:
+          compare_diff_static:
+            orig: orig
+            pred: pred
+            labels: labels
+
+workflow: [dataset, diff, static, evaluate]
