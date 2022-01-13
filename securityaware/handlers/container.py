@@ -1,23 +1,23 @@
+import re
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 
-from cement import Handler
 from docker.errors import APIError, NotFound
 from docker.models.containers import Container
-from docker.models.volumes import Volume
 
 from securityaware.data.output import CommandData
 from securityaware.core.exc import SecurityAwareError, CommandError
-from securityaware.core.interfaces import HandlersInterface
+from securityaware.data.schema import ContainerCommand
+from securityaware.handlers.node import NodeHandler
 from securityaware.utils.misc import str_to_tarfile
 
 
-class ContainerHandler(HandlersInterface, Handler):
+class ContainerHandler(NodeHandler):
     class Meta:
         label = 'container'
 
-    def get(self, name: str):
+    def __getitem__(self, name: str):
         try:
             return self.app.docker.containers.get(name)
         except NotFound as nf:
@@ -25,28 +25,160 @@ class ContainerHandler(HandlersInterface, Handler):
 
             return None
 
+    def find_output(self):
+        """
+            Returns the output path.
+        """
+        match = re.findall("\{(p\d+)\}", self.node.output)
+
+        if match:
+            output = self.node.output.format(**{m: self.edge.placeholders[m] for m in match})
+            self.app.log.info(f"Parsed output entry: {output}")
+
+            if output.startswith(self.app.bind):
+                output = output.replace(self.app.bind, str(self.app.workdir))
+
+            self.output = Path(output)
+            # Update as well the connectors
+            if self.app.connectors.has_source(self.edge.name, attr='output'):
+                self.set('output', self.output, skip=False)
+            return self.output.exists()
+        return False
+
+    def parse(self):
+        """
+            Inserts the placeholders in the commands
+        """
+        # parse placeholders from the sinks
+        if self.edge.name in self.app.connectors.sinks:
+            for _, sink in self.app.connectors.sinks[self.edge.name].items():
+                for placeholder, value in sink.get_placeholders().items():
+                    if value is None:
+                        self.app.log.error(f"Placeholder {placeholder} is None.")
+                        exit(1)
+
+                    self.edge.placeholders.update({placeholder: value})
+
+        # init placeholder sources
+        if self.edge.sources:
+            for p in self.edge.sources:
+                if p in self.edge.placeholders:
+                    value = self.edge.placeholders[p]
+
+                    if isinstance(value, str) and value.startswith(self.app.bind):
+                        value = value.replace(self.app.bind, str(self.app.workdir))
+
+                    self.set(p, value)
+
+        for cmd in self.node.cmds:
+            if self.edge.placeholders:
+                # TODO: allow placeholders to have varied names
+                for p in re.findall("\{(p\d+)\}", cmd.org):
+                    if p not in self.edge.placeholders:
+                        raise ValueError(f"Missing placeholder {p}")
+
+                    cmd.placeholders[p] = str(self.edge.placeholders[p]).replace(str(self.app.workdir), self.app.bind)
+
+                if not cmd.placeholders:
+                    cmd.parsed = cmd.org
+                else:
+                    cmd.parsed = cmd.org.format(**cmd.placeholders)
+            else:
+                cmd.parsed = cmd.org
+
     def start(self, container_id: str):
-        container = self.get(container_id)
+        """
+            Starts specified container if it is not running
+        """
+        container = self[container_id]
 
         # Start containers if these are not running
         if container and container.status != 'running':
             self.app.log.info(f"Starting {container.name} benchmark container.")
             container.start()
 
-    def run_cmds(self, container_id: str, cmds: List[str]) -> bool:
+    def execute_cmd(self, cmd: ContainerCommand) -> bool:
+        """
+            Looks locally for files or directories in placeholders to decide whether the command will be re-executed.
+        """
+        for placeholder, value in cmd.placeholders.items():
+            path = Path(value.replace(self.app.bind, str(self.app.workdir)))
+
+            # if placeholder is a path that does not exist, run cmd
+            if not path.exists():
+                self.app.log.warning(f"path {path} for placeholder {placeholder} not found")
+                return False
+
+            # if placeholder is a directory that is empty, run cmd
+            if path.is_dir() and len(list(path.iterdir())) == 0:
+                self.app.log.warning(f"path {path} for placeholder {placeholder} is empty")
+                return False
+
+        self.app.log.warning(f"Paths for placeholders {list(cmd.placeholders.keys())} found.\n\tSkipping \"{cmd}\"")
+        # TODO: find a better way for doing this
+        cmd.skip = True
+        return True
+
+    def run_cmds(self, container_id: str, cmds: List[ContainerCommand]) -> bool:
+        """
+            Run commands inside the specified container.
+        """
         for cmd in cmds:
-            cmd_data = self.__call__(container_id, cmd_str=cmd, raise_err=False)
+            if cmd.placeholders and self.execute_cmd(cmd) and cmd.skip:
+                continue
+
+            cmd_data = self.__call__(container_id, cmd_str=str(cmd), raise_err=False)
 
             if cmd_data.error or cmd_data.return_code != 0:
                 self.app.log.error(cmd_data.error)
                 return False
 
-            self.app.log.info(cmd_data.output)
+            if cmd_data.output:
+                self.app.log.info(cmd_data.output)
 
         return True
 
-    def create(self, image: str, name: str, bind: str) -> str:
-        binds = {bind: {'bind': "/data", 'mode': 'rw'}}
+    def run(self) -> bool:
+        """
+            Executes container node.
+
+            :return: whether the command executions passed or failed as a bool.
+        """
+
+        container_name = self.app.workdir.name + '_' + self.edge.name
+        container = self[container_name]
+
+        if not container:
+            self.app.log.warning(f"Container {container_name} not found.")
+
+            # TODO: Fix this, folder set to the layer name (astminer container inside layer gets codeql folder)
+            self.create(self.node.image, container_name)
+            container = self[container_name]
+
+            if not container:
+                self.app.log.warning(f"Container {container_name} created but not found.")
+                return False
+
+        self.start(container_name)
+        exec_status = self.run_cmds(container.id, self.node.cmds)
+        self.app.log.info("Done")
+
+        if container and container.status == "running":
+            self.app.log.warning(f"Stopping running container {container.name}")
+            container.stop()
+
+        return exec_status
+
+    def create(self, image: str, name: str) -> str:
+        """
+            Creates container from specified image
+
+            :param image: name of the image
+            :param name: name of the container
+
+            :return: str with the id of the container
+        """
+        binds = {str(self.app.workdir): {'bind': self.app.bind, 'mode': 'rw'}}
         host_config = self.app.docker.api.create_host_config(binds=binds)
         output = self.app.docker.api.create_container(image, name=name, volumes=["/data"], host_config=host_config,
                                                       tty=True, detach=True)
@@ -115,7 +247,10 @@ class ContainerHandler(HandlersInterface, Handler):
 
         cmd_data.end = datetime.now()
         cmd_data.duration = (cmd_data.end - cmd_data.start).total_seconds()
-        cmd_data.output = '\n'.join(out)
+
+        if not self.app.pargs.verbose:
+            cmd_data.output = '\n'.join(out)
+
         cmd_data.error = '\n'.join(err)
         cmd_data.exit_status = self.app.docker.api.exec_inspect(exec_id)['ExitCode']
 

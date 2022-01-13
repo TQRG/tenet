@@ -59,6 +59,11 @@ class Entry:
     b_file: Path
     label: str
 
+    def to_dict(self):
+        return {"a_proj": self.a_proj, "b_proj": self.b_proj, "a_file": self.a_file, "b_file": self.b_file,
+                "label": self.label, "a_path": self.diff_block.a_path, "b_path": self.diff_block.b_path,
+                "start": self.diff_block.start}
+
     def __str__(self):
         return f"{self.a_proj},{self.b_proj},{self.diff_block.start},{self.diff_block.a_path}," \
                f"{self.diff_block.b_path},{self.a_file},{self.b_file},{self.label}"

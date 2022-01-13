@@ -24,12 +24,6 @@ securityaware:
 ### The output handler label
   output_handler: jinja2
 
-### output path
-  workdir: /home/epicosy/SecurityAware/workdir
-
-### GitHub token
-  token: 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
-
 ### Project extensions:
   proj_ext:
     - ".js"
@@ -59,10 +53,13 @@ log.colorlog:
 # max_files: 4
 
 
-plugin.codeql:
+plugin.github_collector:
   enabled: true
 
-plugin.separate:
+plugin.compare:
+  enabled: true
+
+plugin.filter:
   enabled: true
 
 plugin.codeql_extract_labels:
@@ -72,4 +69,10 @@ plugin.function_boundary:
   enabled: true
 
 plugin.match_location:
+  enabled: true
+
+plugin.labeler:
+  enabled: true
+
+plugin.plot_matrix:
   enabled: true

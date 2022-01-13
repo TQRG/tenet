@@ -1,28 +1,41 @@
+import time
+
+import pandas as pd
 import requests
 import ast
-import time
-import pandas as pd
 
 from pathlib import Path
-from cement import Handler
-from github import Github, GithubException
+from typing import Union
 
+from securityaware.handlers.plugin import PluginHandler
 from securityaware.core.diff_labeller.parser import DiffParser
-from securityaware.core.interfaces import HandlersInterface
 from securityaware.core.diff_labeller.misc import check_or_create_dir, safe_write
 from securityaware.data.runner import Task, Runner
 from securityaware.handlers.runner import ThreadPoolWorker
+from github import Github, GithubException
 
 
-class DatasetHandler(HandlersInterface, Handler):
+class GithubCollector(PluginHandler):
+    """
+        Github collector plugin
+    """
+
     class Meta:
-        label = 'dataset'
+        label = "github_collector"
 
-    def __call__(self, out_dir: Path, dataset: Path):
-        check_or_create_dir(out_dir)
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.token = None
 
-        files_dir = out_dir / 'files'
-        diff_dir = out_dir / 'diffs'
+    def run(self, dataset: pd.DataFrame, token: str = None) -> Union[pd.DataFrame, None]:
+        """
+            runs the plugin
+        """
+        self.token = token
+        files_dir = Path(self.path, 'files')
+        diff_dir = Path(self.path, 'diffs')
+        self.set('files_path', files_dir)
+        self.set('dataset', self.output)
 
         # Save diff texts as files in the directory
         check_or_create_dir(files_dir)
@@ -30,16 +43,16 @@ class DatasetHandler(HandlersInterface, Handler):
 
         runner_data = Runner()
         threads = self.app.get_config('local_threads')
-        dataframe = pd.read_csv(dataset)
+
         # Filter focus where commits==1
-        dataframe = dataframe[dataframe["commits"] == 1]
+        dataset = dataset[dataset["commits"] == 1]
         # Select columns: repo, sha_list, parents
         # Ensure no duplicates
-        dataframe = dataframe[["repo", "sha_list", "parents", "cwe_id"]].drop_duplicates().reset_index(drop=True)
+        dataset = dataset[["repo", "sha_list", "parents", "cwe_id"]].drop_duplicates().reset_index(drop=True)
         tasks = []
-        total = len(dataframe)
+        total = len(dataset)
 
-        for i, proj in dataframe.iterrows():
+        for i, proj in dataset.iterrows():
             self.app.log.info(f"Creating task for repo {proj['repo']}. {i}/{total}")
             task = Task()
             task['id'] = i
@@ -57,14 +70,20 @@ class DatasetHandler(HandlersInterface, Handler):
         while worker.is_alive():
             time.sleep(1)
 
-        return runner_data
+        diffs = {i + j: diff.to_dict() for i, res in enumerate(runner_data.finished) for j, diff in
+                 enumerate(res['result']) if 'result' in res and res['result']}
+
+        if diffs:
+            return pd.DataFrame.from_dict(diffs, orient='index')
+
+        return None
 
     def parse_diffs_task(self, task: Task):
         return self.parse_diffs(repo=task['repo'], fix_sha=task['fix_sha'], parent_sha=task['parent_sha'],
                                 diff_dir=task['diff_dir'], label=task['label'])
 
     def parse_diffs(self, repo: str, diff_dir: Path, fix_sha: str, parent_sha: str, label: str):
-        git_api = Github(self.app.get_config('token'))
+        git_api = Github(self.token)
         repo = git_api.get_repo(repo)
         repo_path = repo.full_name.replace("/", "_")
 
@@ -111,3 +130,7 @@ class DatasetHandler(HandlersInterface, Handler):
                     diff_parser.parse(extensions=self.app.get_config('proj_ext'))
 
                     return diff_parser(files_dir=diff_dir.parent / 'files', label=label)
+
+
+def load(app):
+    app.handler.register(GithubCollector)

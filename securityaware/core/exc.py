@@ -12,3 +12,8 @@ class SecurityAwareWarning(Exception):
 class CommandError(Exception):
     """Command error"""
     pass
+
+
+class Skip(Exception):
+    """Skip node execution exception"""
+    pass

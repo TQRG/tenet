@@ -20,29 +20,28 @@ class MatchLocation(PluginHandler):
         super().__init__(**kw)
         self.diff_dataset = None
 
-    def run(self, node: dict, cell: dict, dataset: pd.DataFrame, files_path: Path, diff_dataset: str = "",
-            offset: int = 1, negate: bool = False, add_proj: bool = True, **kwargs) -> Union[pd.DataFrame, None]:
+    def run(self, dataset: pd.DataFrame, offset: int = 1, negate: bool = False,
+            add_proj: bool = True, **kwargs) -> Union[pd.DataFrame, None]:
         """
             Matches the location of the alerts with the diff dataset
 
             :param node: context
-            :param cell: context of the current plugin that's executed
             :param dataset: data from the previous cell
-            :param files_path: path to the files from the previous cell
             :param negate: looks for locations that do not match
             :param add_proj: adds the project name to the file path
             :param offset: considers locations with the offset (locs = [start_line + i for i in range(offset)])
         """
+
         if dataset is None:
             return None
 
-        diff_dataset_path = Path(diff_dataset)
+        diff_dataset_path = Path(self.get('diff_dataset'))
 
         if not diff_dataset_path.exists():
-            self.app.log.error(f"Diff dataset {diff_dataset} not found")
+            self.app.log.error(f"Diff dataset {diff_dataset_path} not found")
             return
 
-        self.diff_dataset = self.load_dataset(diff_dataset_path, terminate=True)
+        self.diff_dataset = pd.read_csv(str(diff_dataset_path))
 
         if self.diff_dataset.empty:
             self.app.log.error(f"Diff dataset is empty")
@@ -83,3 +82,7 @@ class MatchLocation(PluginHandler):
             return True
 
         return False
+
+
+def load(app):
+    app.handler.register(MatchLocation)

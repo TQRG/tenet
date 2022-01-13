@@ -6,6 +6,13 @@ from os import urandom
 from pathlib import Path
 
 
+def random_id(size: int = 2):
+    """
+        Generates random id of specified size.
+    """
+    return b2a_hex(urandom(size)).decode()
+
+
 def str_to_tarfile(data: str, tar_info_name: str) -> Path:
     random = b2a_hex(urandom(2)).decode()
     dest_path = Path('/tmp', random + ".tar")

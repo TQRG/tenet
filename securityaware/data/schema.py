@@ -1,61 +1,298 @@
-from dataclasses import dataclass, field
-from typing import Dict, List, AnyStr
+import re
 
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List, AnyStr, Any, Tuple, Union
 from schema import Schema, And, Use, Optional, Or
 
+from securityaware.utils.misc import random_id
+
+_container = Schema(
+    And({'name': str, 'image': str, 'output': str,
+         'cmds': Schema(And([str], Use(lambda cmds: [ContainerCommand(org=cmd) for cmd in cmds])))},
+        Use(lambda c: Container(**c))))
+
+_plugin = Schema(
+    And({'name': str, Optional('kwargs', default={}): dict},
+        Use(lambda p: Plugin(**p))))
+
+_edges = Schema(
+    And([{str: {'node': str, Optional('sinks', default={}): dict, Optional('sources', default=[]): list,
+                Optional('placeholders', default={}): dict, Optional('kwargs', default={}): dict}}],
+        Use(lambda els: {k: Edge(name=k, **v) for el in els for k, v in el.items()}))
+)
+
+_layers = Schema(And({str: _edges}, Use(lambda l: {k: Layer(edges=v) for k, v in l.items()})))
+
+_nodes = Schema(
+    And(
+        [Or({'container': _container}, {'plugin': _plugin})],
+        Use(lambda n: {v.name: v for el in n for k, v in el.items()})
+    )
+)
+
 
 @dataclass
-class Cell:
+class Connector:
     """
-        Basic operation unit
+        Data class representing edge connections
+    """
+    source: str
+    sink: str
+    id: str = random_id()
+    links: Dict[str, str] = field(default_factory=lambda: {})
+    attrs: Dict[str, Any] = field(default_factory=lambda: {})
+
+    def get_placeholders(self):
+        """
+            Looks for placeholders in the attributes and returns them with their associated values.
+        """
+        matches = {}
+
+        for source_attr, sink_attr in self.links.items():
+            if re.search("(p\d+)", sink_attr):
+                matches[sink_attr] = self.attrs[source_attr]
+
+        return matches
+
+    def __getitem__(self, key: str):
+        for source_attr, sink_attr in self.links.items():
+            if key == sink_attr:
+                return self.attrs[source_attr]
+
+        raise ValueError(f'Key {key} for sink {self.sink} not found in links. Set it in {self.source} source.')
+
+    def __setitem__(self, key: str, value: Any):
+        if key in self.attrs:
+            self.attrs[key] = value
+
+    def is_init(self) -> bool:
+        """
+            Attributes exist and are instantiated
+        """
+
+        for attr, value in self.attrs.items():
+            if value is not None:
+                if isinstance(value, (str, Path)):
+                    if Path(value).exists():
+                        continue
+                    return False
+            else:
+                return False
+
+        return True
+
+    """
+    def match(self, attr: str, kind: Any = None):
+        if kind and hasattr(self, attr):
+            return isinstance(getattr(self, attr), kind)
+        return hasattr(self, attr)
+    """
+
+
+@dataclass
+class Edge:
+    """
+        Data object representing connections between nodes
     """
     name: str
-    force: bool
+    node: str
+    sinks: dict = field(default_factory=lambda: {})
+    sources: list = field(default_factory=lambda: [])
+    placeholders: dict = field(default_factory=lambda: {})
+    kwargs: dict = field(default_factory=lambda: {})
+
+    @property
+    def connectors(self):
+        cons = {}
+        cons.update(self.sinks)
+        # cons.update({l: k for k, v in self.sources.items() for l in v})
+
+        return cons
 
 
 @dataclass
-class Plugin(Cell):
+class Plugin:
     """
         Code extensions
     """
-    label: str
-    args: dict = field(default_factory=lambda: {})
+    name: str
+    kwargs: dict = field(default_factory=lambda: {})
 
 
 @dataclass
-class Container(Cell):
+class ContainerCommand:
+    """
+        Data object representing the container command.
+    """
+    org: str
+    parsed: str = None
+    skip: bool = True
+    placeholders: dict = field(default_factory=lambda: {})
+
+    def __str__(self):
+        return self.parsed
+
+
+@dataclass
+class Container:
     """
         Docker container
     """
+    name: str
     image: str
-    cmds: List[AnyStr]
+    cmds: List[ContainerCommand]
+    output: str
+
+    def get_placeholders(self, skip: bool = True):
+        """
+            Looks up for and returns the placeholders in the commands.
+        """
+        matches = []
+
+        for cmd in self.cmds:
+            match = re.findall("\{(p\d+)\}", cmd.org)
+
+            if match:
+                cmd.skip = skip
+                matches.extend(match)
+
+        return set(matches)
 
 
 @dataclass
 class Layer:
+    edges: Dict[str, Edge]
+
+    def traverse(self, nodes: Dict[str, Union[Plugin, Container]]):
+        return [(nodes[edge.node], edge) for edge in self.edges.values()]
+
+
+@dataclass
+class Connectors:
     """
-        Sequential set of plugins/containers
+        Maps sources and sinks through connectors
     """
-    input: str
-    cells: List[Cell]
+    sinks: Dict[str, Dict[str, Connector]] = field(default_factory=lambda: {})
+    sources: Dict[str, Dict[str, Connector]] = field(default_factory=lambda: {})
+
+    def __getitem__(self, sink_key: Tuple[str, str]):
+        sink, key = sink_key
+
+        for connector in self.sinks[sink].values():
+            if key in connector.links.values():
+                return connector[key]
+
+    def __setitem__(self, source_attr: Tuple[str, str], value: Any):
+        source, attr = source_attr
+
+        for name, connector in self.sources[source].items():
+            connector[attr] = value
+
+    def has_values(self, source: str) -> bool:
+        """
+            Look if the number of instantiated sinks is equal to the number of sinks
+        """
+        return len(self.sources[source]) == len([con for _, con in self.sources[source].items() if con.is_init()])
+
+    def has_sink(self, node: str):
+        """
+            Checks whether the node is a sink
+        """
+        return node in self.sinks
+
+    def has_source(self, node: str, attr: str = None):
+        """
+            Checks whether the node is a source
+        """
+        if attr:
+            for connector in self.sources[node].values():
+                if attr in connector.attrs:
+                    return True
+            return False
+        return node in self.sources
 
 
 @dataclass
 class Pipeline:
-    prepare: Dict[str, Cell]
-    model: dict
+    """
+        Data object representing the pipeline
+    """
+    layers: dict
+    nodes: dict
+    workflow: list
 
-    @property
-    def nodes(self):
-        nodes = {}
+    def unpack(self):
+        return {name: edge for _, layer in self.layers.items() for name, edge in layer.edges.items()}
 
-        if self.prepare:
-            nodes['prepare'] = self.prepare
+    def match(self, placeholders: list, sink_attrs: list):
+        """
+            Checks whether the placeholders match sink attributes.
+        """
+        for attr in sink_attrs:
+            print(attr)
+            if attr not in placeholders:
+                return False
+        return True
 
-        if self.model:
-            nodes['model'] = self.model
+    def link(self, node_handlers: dict) -> Connectors:
+        """
+            creates the respective connectors
+        """
+        connectors = Connectors()
+        sources = {}
 
-        return nodes
+        for _, edge in self.unpack().items():
+            if edge.sources:
+                if edge.name not in connectors.sources:
+                    connectors.sources[edge.name] = {}
+
+                # If node has attributes, init connector with the value of the attributes
+                sources[edge.name] = {
+                    attr: getattr(node_handlers[edge.name], attr) if getattr(node_handlers[edge.name], attr,
+                                                                             None) else None
+                    for attr in edge.sources}
+
+            for source, links in edge.sinks.items():
+                if source == edge.name:
+                    if isinstance(self.nodes[edge.node], Container):
+                        placeholders = self.nodes[edge.node].get_placeholders(skip=False)
+
+                        if not self.match(placeholders, list(links.values())):
+                            raise ValueError(f"Placeholders are not matching attributes in the container commands.")
+                    else:
+                        raise ValueError(f"Plugin {source} cannot reference itself.")
+
+                if source not in sources:
+                    raise ValueError(f"source {source} must be defined before sink {edge.name}")
+
+                if source in sources:
+                    connector = Connector(source=source, sink=edge.name, attrs=sources[source], links=links)
+                    connectors.sources[source][edge.name] = connector
+
+                    if edge.name not in connectors.sinks:
+                        connectors.sinks[edge.name] = {}
+
+                    connectors.sinks[edge.name][source] = connector
+
+        return connectors
+
+    def walk(self):
+        """
+            Walks the edges and returns list with the traversal. Initializes edge connectors.
+        """
+        # TODO: traversal include parallel execution
+        traversal = []
+
+        for el in self.workflow:
+            if el in self.layers:
+                traversal.extend(self.layers[el].traverse(self.nodes))
+            elif el in self.nodes:
+                traversal.append((self.nodes[el], None))
+            else:
+                raise ValueError(f"{el} not found.")
+
+        return traversal
 
 
 def parse_pipeline(yaml: dict) -> Pipeline:
@@ -65,17 +302,6 @@ def parse_pipeline(yaml: dict) -> Pipeline:
         :param yaml: dictionary from the yaml file
         :return: Pipeline object
     """
-    container = Schema(And({'name': str, 'image': str, Optional('force', default=False): bool, 'cmds': [str]},
-                           Use(lambda c: Container(**c))))
-    plugin = Schema(And({'label': str, 'name': str, Optional('force', default=False): bool,
-                         Optional('args', default={}): dict}, Use(lambda p: Plugin(**p))))
-    layers = Schema(
-        And(
-            {str: {
-                'input': str,
-                'cells': And([Or({'container': container}, {'plugin': plugin})],
-                             Use(lambda cells: [v for c in cells for k, v in c.items()]))
-            }}, Use(lambda l: {k: Layer(**v) for k, v in l.items()})))
 
-    return Schema(And({'prepare': layers, Optional('model', default=None): dict},
+    return Schema(And({'nodes': _nodes, 'layers': _layers, 'workflow': list},
                       Use(lambda pipe: Pipeline(**pipe)))).validate(yaml)

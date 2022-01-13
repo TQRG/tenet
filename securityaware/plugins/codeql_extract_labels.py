@@ -5,6 +5,7 @@ import pandas as pd
 import jq
 import json
 
+
 from securityaware.handlers.plugin import PluginHandler
 
 
@@ -15,18 +16,16 @@ class CodeQLExtractLabelsHandler(PluginHandler):
     class Meta:
         label = "codeql_extract_labels"
 
-    def run(self, node: dict, cell: dict, dataset: pd.DataFrame, files_path: Path,
-            report: str = "") -> Union[pd.DataFrame, None]:
+    def run(self, dataset: pd.DataFrame, **kwargs) -> Union[pd.DataFrame, None]:
         """
             extracts the labels from the CodeQL's reports
         """
-
-        report_file = cell['path'] / report
+        report_file = Path(self.get('report'))
 
         if not report_file.exists():
             return None
 
-        results_path = cell['path'] / 'results'
+        results_path = Path(self.path, 'results')
 
         if not results_path.exists():
             results_path.mkdir()
@@ -60,3 +59,6 @@ class CodeQLExtractLabelsHandler(PluginHandler):
 
         return None
 
+
+def load(app):
+    app.handler.register(CodeQLExtractLabelsHandler)

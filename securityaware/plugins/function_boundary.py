@@ -28,17 +28,16 @@ class FunctionBoundaryHandler(PluginHandler):
         self.output_fn = None
         self.code_dir = None
 
-    def run(self, node: dict, cell: dict, dataset: pd.DataFrame, files_path: Path, output_fn: str = "",
+    def run(self, dataset: pd.DataFrame, output_fn: str = "",
             **kwargs) -> Union[pd.DataFrame, None]:
         """
-
             :param node: context
-            :param cell: context of the current plugin that's executed
             :param dataset: data from the previous cell
             :param files_path: path to the files from the previous cell
             :param output_fn: `outputFnBoundary.js` file location.
         """
         self.output_fn = Path(output_fn)
+        self.set('dataset_path', self.output)
 
         if not self.output_fn.exists():
             self.app.log.error(f"Transform JS file {output_fn} not found")
@@ -52,10 +51,11 @@ class FunctionBoundaryHandler(PluginHandler):
 
         dataset.rename(columns={"fpath": "file_path"}, inplace=True)
         tasks = []
+        files_path = self.get('files_path')
 
         for (project, file_path), rows in dataset.groupby(['project', 'file_path']):
             # self.app.log.info(f"Creating task for record. {index}/{total}")
-            code_path = files_path / f"{project}/{file_path}"
+            code_path = Path(files_path, f"{project}/{file_path}")
 
             if code_path.exists():
                 task = Task()
@@ -118,3 +118,7 @@ class FunctionBoundaryHandler(PluginHandler):
                     fn_bounds.append(fn_bound)
 
         return fn_bounds
+
+
+def load(app):
+    app.handler.register(FunctionBoundaryHandler)

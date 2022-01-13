@@ -6,17 +6,10 @@ from .controllers.base import Base
 from .controllers.dataset import Dataset
 from .controllers.model import Model
 from securityaware.core.interfaces import HandlersInterface
-from securityaware.handlers.dataset import DatasetHandler
-from securityaware.handlers.label import LabelHandler
-from securityaware.plugins.separate import SeparateHandler
-from securityaware.plugins.match_location import MatchLocation
-from securityaware.plugins.codeql_extract_labels import CodeQLExtractLabelsHandler
-from securityaware.plugins.function_boundary import FunctionBoundaryHandler
-from securityaware.handlers.rearrange import RearrangeHandler
 from securityaware.handlers.container import ContainerHandler
 from securityaware.handlers.sampling import SamplingHandler
 from securityaware.handlers.command import CommandHandler
-from securityaware.handlers.prepare import PrepareHandler
+from securityaware.handlers.workflow import WorkflowHandler
 
 
 class SecurityAware(App):
@@ -55,9 +48,8 @@ class SecurityAware(App):
 
         # register handlers
         handlers = [
-            Base, DatasetHandler, Dataset, RearrangeHandler, ContainerHandler, SamplingHandler, CommandHandler,
-            Model, PrepareHandler, LabelHandler, SeparateHandler, CodeQLExtractLabelsHandler, FunctionBoundaryHandler,
-            MatchLocation
+            Base, Dataset, ContainerHandler, SamplingHandler, CommandHandler,
+            Model, WorkflowHandler
         ]
 
     def get_config(self, key: str):
@@ -67,13 +59,15 @@ class SecurityAware(App):
 
         return None
 
-    def get_plugin_handler(self, name: str):
+    def get_plugin_handler(self, name: str, setup: bool = True):
         """
             Gets the handler associated to the plugin
 
             :param name: label of the plugin
+            :param setup: setup of the plugin
             :return: handler for the plugin
         """
+
         try:
             if name not in self.plugin.get_enabled_plugins():
                 self.log.error(f"Plugin {name} not enabled.")
@@ -86,7 +80,7 @@ class SecurityAware(App):
             if name not in [el.Meta.label for el in self.handler.list('handlers')]:
                 return self.handler.resolve('handlers', name)
 
-            return self.handler.get('handlers', name, setup=True)
+            return self.handler.get('handlers', name, setup=setup)
         except InterfaceError as ie:
             self.log.error(str(ie))
             exit(1)

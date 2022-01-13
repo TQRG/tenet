@@ -25,12 +25,16 @@ class Dataset(Controller):
     @ex(
         help='Gets the project commits in the dataset',
         arguments=[(['-o', '--output'], {'help': 'The output directory for the projects.', 'action': 'store',
-                                         'required': False}),
+                                         'required': True}),
                    (['-d', '--dataset'], {'help': 'Path to the input dataset.', 'action': 'store', 'required': True})
                    ]
     )
     def download(self):
-        out_dir = Path(self.app.pargs.output) if self.app.pargs.output else self.app.workdir / 'raw'
+        out_dir = Path(self.app.pargs.output)
+
+        if not out_dir.exists():
+            out_dir.mkdir(parents=True, exist_ok=True)
+
         dataset_path = Path(self.app.pargs.dataset)
         dataset_handler = self.app.handler.get('handlers', 'dataset', setup=True)
         results = dataset_handler(out_dir, dataset=dataset_path)
@@ -47,7 +51,7 @@ class Dataset(Controller):
         help='Label and transform the raw commit files into inline diffs.',
         arguments=[
             (['-o', '--output'], {'help': 'The output directory for the inline diffs.', 'action': 'store',
-                                  'required': False}),
+                                  'required': True}),
             (['-d', '--dataset'], {'help': 'Path to the input dataset.', 'action': 'store', 'required': True}),
             (['-ml', '--multi_label'], {'help': 'Flag that enables multi-labeling.', 'action': 'store_true'}),
             (['-fsl', '--file_size_limit'], {'help': 'Filters files with a size greater than the specified.',
@@ -58,7 +62,11 @@ class Dataset(Controller):
         """
             inline: /etc/securityaware/xss_advisories_inline.csv
         """
-        out_dir = Path(self.app.pargs.output) if self.app.pargs.output else self.app.workdir / 'labels'
+        out_dir = Path(self.app.pargs.output)
+
+        if not out_dir.exists():
+            out_dir.mkdir(parents=True, exist_ok=True)
+
         dataset_path = Path(self.app.pargs.dataset)
         label_handler = self.app.handler.get('handlers', 'label', setup=True)
 
@@ -87,21 +95,21 @@ class Dataset(Controller):
     @ex(
         help='Rearrange/refactor JS functions.',
         arguments=[(['-tf', '--transform_file'], {'help': 'Transform file', 'required': True}),
-                   (['-id', '--inline_dataset'], {'help': 'Path to the inline dataset', 'required': True}),
-                   (['-od', '--out_dataset'], {'help': 'Path to output the resulting dataset', 'required': True}),
+                   (['-d', '--dataset'], {'help': 'Path to the inline dataset', 'required': True}),
+                   (['-o', '--out_dir'], {'help': 'Path to output the resulting dataset', 'required': True}),
                    (['-cd', '--code_dir'], {'help': 'Path to the directory with the code files', 'required': True})],
     )
     def rearrange(self):
         """
            rearrange: /etc/securityaware/xss_advisories_rearrange.csv
         """
+        out_dir = Path(self.app.pargs.out_dir)
+
+        if not out_dir.exists():
+            out_dir.mkdir(parents=True, exist_ok=True)
+
         rearrange_handler = self.app.handler.get('handlers', 'rearrange', setup=True)
-        output_fn_path = Path()
-
-        if not output_fn_path.exists():
-            return None
-
-        results = rearrange_handler(csv_in=Path(self.app.pargs.inline_dataset),
+        results = rearrange_handler(csv_in=Path(self.app.pargs.dataset),
                                     output_fn=self.app.pargs.transform_file,
                                     code_dir=Path(self.app.pargs.code_dir))
         fn_bounds = []
@@ -117,7 +125,8 @@ class Dataset(Controller):
         df = df.drop_duplicates(ignore_index=True)
         df = df.reset_index().rename(columns={'index': 'func_id'})
         df["n_mut"] = [0] * df.shape[0]
-        df.to_csv(self.app.pargs.out_dataset, index=False)
+        out_dataset = out_dir / (Path(self.app.pargs.dataset).stem + '.func.csv')
+        df.to_csv(out_dataset, index=False)
 
     @ex(
         help='Transform JS functions.',
