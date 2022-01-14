@@ -1,0 +1,19 @@
+FROM ubuntu:20.04
+
+ENV TZ=Europe
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Installing dependencies
+RUN apt update \
+  && apt -y upgrade \
+  && apt install -y git curl wget python3-pip
+
+WORKDIR /codeql-home
+RUN apt install -y unzip
+RUN wget -O codeql.zip https://github.com/github/codeql-cli-binaries/releases/download/v2.7.0/codeql-linux64.zip
+RUN unzip -a codeql.zip
+RUN git clone https://github.com/github/codeql codeql-repo
+ENV PATH "/codeql-home/codeql:${PATH}"
+RUN apt install -y jq
+ADD labels.sh /usr/local/bin
+
