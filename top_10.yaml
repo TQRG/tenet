@@ -46,18 +46,20 @@ layers:
         sources: [files_path, dataset]
     - filtered:
         node: filter
+        sources: [dataset]
+        kwargs:
+          file_size: 8192
   diff:
     - labels:
         node: labeler
         sources: [dataset]
         kwargs:
           multi_label: true
-          file_size_limit: 8192
     - raw_func_bounds:
         node: function_boundary
         sources: [dataset_path]
         sinks:
-          raw: 
+          raw:
             files_path: files_path
     - astminer_diff:
         node: astminer
@@ -83,18 +85,20 @@ layers:
     - codeql_extract_labels:
         node: codeql_extract_labels
         sinks:
-          codeql: 
+          codeql:
             p4: report
     - match_location:
         node: match_location
-        sinks: 
-          labels: 
+        sinks:
+          labels:
             dataset: diff_dataset
+          filtered:
+            dataset: ver_dataset
     - function_boundary:
         node: function_boundary
         sources: [dataset_path]
         sinks:
-          raw: 
+          raw:
             files_path: files_path
     - astminer_static:
         node: astminer
