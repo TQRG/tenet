@@ -28,19 +28,19 @@ class FilterHandler(PluginHandler):
         self.app.log.warning(f"File {file} not found.")
         return False
 
-    def copy_files(self, a_proj: str, a_path: str, a_file: Path, b_proj: Path, b_path: Path, b_file: Path,
+    def copy_files(self, a_proj: str, a_path: str, a_file: str, b_proj: str, b_path: str, b_file: str,
                    dest_path: Path):
         a_new_file = dest_path / a_proj / a_path
         a_new_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with a_file.open(mode="r") as rf, a_new_file.open(mode="w") as wf:
+        with Path(a_file).open(mode="r") as rf, a_new_file.open(mode="w") as wf:
             self.app.log.info(f"Writing {a_file} to {a_new_file}.")
             wf.write(rf.read())
 
         b_new_file = dest_path / b_proj / b_path
         b_new_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with b_file.open(mode="r") as rf, b_new_file.open(mode="w") as wf:
+        with Path(b_file).open(mode="r") as rf, b_new_file.open(mode="w") as wf:
             self.app.log.info(f"Writing {b_file} to {b_new_file}.")
             wf.write(rf.read())
 
