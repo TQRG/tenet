@@ -32,17 +32,15 @@ class FilterHandler(PluginHandler):
                    dest_path: Path):
         a_new_file = dest_path / a_proj / a_path
         a_new_file.parent.mkdir(parents=True, exist_ok=True)
-        a_path = Path(self.get('files_path'), a_proj, a_path)
 
-        with a_path.open(mode="r") as rf, a_new_file.open(mode="w") as wf:
+        with a_file.open(mode="r") as rf, a_new_file.open(mode="w") as wf:
             self.app.log.info(f"Writing {a_file} to {a_new_file}.")
             wf.write(rf.read())
 
         b_new_file = dest_path / b_proj / b_path
         b_new_file.parent.mkdir(parents=True, exist_ok=True)
-        b_path = Path(self.get('files_path'), b_proj, b_path)
 
-        with b_path.open(mode="r") as rf, b_new_file.open(mode="w") as wf:
+        with b_file.open(mode="r") as rf, b_new_file.open(mode="w") as wf:
             self.app.log.info(f"Writing {b_file} to {b_new_file}.")
             wf.write(rf.read())
 
