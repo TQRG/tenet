@@ -12,7 +12,7 @@ $ ./setup.sh
 
 ## Usage
 
-```yaml
+```shell
 usage: securityaware [-h] [-d] [-q] [-v] [-vb] {run} ...
 
 Fine-grained approach to detect and patch vulnerabilities
@@ -32,7 +32,7 @@ sub-commands:
 
 ### Plugin command
 
-```yaml
+```shell
 usage: securityaware plugin [-h] {install,uninstall} ...
 
 optional arguments:
@@ -52,7 +52,7 @@ This command copies the target plugin file to the `plugin_dir` location specifie
 > - Some names are reserved for core handlers — e.g. _workflow_, _container_, _command_, etc.
 > - The **name** of the plugin must match the **label** attributed to the plugin.
  
-```yaml
+```shell
 usage: securityaware plugin install [-h] -p PATH [-f] -n NAME
 
 optional arguments:
@@ -69,7 +69,7 @@ securityaware plugin install -p ~/workdir/plugins/code2vec.py -n code2vec -f
 
 #### Uninstall sub-command
 
-```yaml
+```shell
 usage: securityaware plugin uninstall [-h] -n NAME
 
 optional arguments:
@@ -83,7 +83,7 @@ securityaware plugin uninstall -n code2vec
 ```
 
 ### Run command
-```yaml
+```shell
 usage: securityaware run [-h] -f FILE -d DATASET -wd WORKDIR -b BIND
 
 optional arguments:
