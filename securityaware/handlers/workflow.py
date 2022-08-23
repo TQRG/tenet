@@ -37,20 +37,28 @@ class WorkflowHandler(HandlersInterface, Handler):
 
             if isinstance(node, Plugin):
                 node_handler = self.app.get_plugin_handler(node.name)
+                node_handler.load(edge, dataset_name=dataset_path.stem)
             else:
                 node_handler = self.app.handler.get('handlers', 'container', setup=True)
+                # TODO: fix this abomination
+
+                if not node.output:
+                    node_handler.load(edge, dataset_name='output', ext='')
+                else:
+                    node_handler.load(edge, dataset_name=node.output, ext='')
+
+                node.output = node_handler.output
 
             node_handler.node = node
             node_handler.edge = edge
-
             self.traversal[edge.name] = node_handler
-            node_handler.load(edge, dataset_name=dataset_path.stem)
 
         self.app.log.info("Linking nodes")
-        self.app.extend('connectors', self.app.pipeline.link(self.traversal))
+        connectors = self.app.pipeline.link(self.traversal)
+        self.app.extend('connectors', connectors)
 
     def __call__(self, dataset_path: Path):
-        dataframe = pd.read_csv(str(dataset_path))
+        dataframe = pd.read_csv(str(dataset_path), sep='\t' if dataset_path.suffix == '.tsv' else ',')
         # Instantiates the connectors for the nodes
 
         if dataframe is None:
@@ -66,7 +74,10 @@ class WorkflowHandler(HandlersInterface, Handler):
                     dataframe = pd.read_csv(node_handler.output)
                     continue
 
-                kwargs = node_handler.node.kwargs if node_handler.node.kwargs else node_handler.edge.kwargs
+                kwargs = node_handler.node.kwargs
+
+                if node_handler.edge.kwargs:
+                    kwargs.update(node_handler.edge.kwargs)
 
                 try:
                     dataframe = node_handler.run(dataset=dataframe, **kwargs)
@@ -86,6 +97,7 @@ class WorkflowHandler(HandlersInterface, Handler):
                     break
             else:
                 skip = False
+
                 try:
                     node_handler.parse()
                 except Skip as se:
@@ -103,5 +115,12 @@ class WorkflowHandler(HandlersInterface, Handler):
                 if skip:
                     continue
 
-                if not node_handler.run():
+                exec_status, cmds = node_handler.run()
+
+                if not exec_status:
                     break
+
+                if not node_handler.output.exists():
+                    with node_handler.output.open(mode='w') as f:
+                        outputs = '\n'.join([cmd.output for cmd in cmds])
+                        f.write(outputs)
