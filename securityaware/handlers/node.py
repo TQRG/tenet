@@ -30,7 +30,11 @@ class NodeHandler(HandlersInterface, Handler):
         """
 
         if self.output and self.output.is_file and self.output.suffix == suffix:
-            return pd.read_csv(str(self.output))
+            try:
+                return pd.read_csv(str(self.output))
+            except pd.errors.EmptyDataError as ede:
+                self.app.log.warning(ede)
+                return self.output.open(mode='r').read()
 
         self.app.log.error("dataset not found")
 
@@ -39,8 +43,12 @@ class NodeHandler(HandlersInterface, Handler):
 
         return None
 
-    def get(self, attr: str):
-        return self.app.connectors[self.edge.name, attr]
+    def get(self, attr: str, default: Any = None):
+        try:
+            return self.app.connectors[self.edge.name, attr]
+        except KeyError as ke:
+            self.app.log.warning(ke)
+            return default
 
     def set(self, attr: str, value: Any, skip: bool = True):
         self.app.connectors[self.edge.name, attr] = value
@@ -49,7 +57,7 @@ class NodeHandler(HandlersInterface, Handler):
                 self.app.connectors.has_values(self.edge.name) and skip:
             raise Skip(f"Connectors for source \"{self.edge.name}\" are instantiated and exist.")
 
-    def load(self, edge: Edge, dataset_name: str):
+    def load(self, edge: Edge, dataset_name: str, ext: str = '.csv'):
         """
             Loads all the related paths to the workflow
 
@@ -67,7 +75,7 @@ class NodeHandler(HandlersInterface, Handler):
             self.path = str(self.app.workdir / edge.name)
             Path(self.path).mkdir()
 
-        self.output = Path(self.path, f"{dataset_name}.{self.edge.name}.csv")
+        self.output = Path(self.path, f"{dataset_name}{ext}")
 
     @property
     def has_dataset(self):
