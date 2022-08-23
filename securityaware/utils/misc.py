@@ -24,3 +24,16 @@ def str_to_tarfile(data: str, tar_info_name: str) -> Path:
         tar.addfile(info, io.BytesIO(data.encode('utf8')))
 
     return dest_path
+
+
+def count_labels(path: Path, kind: str):
+    with path.open(mode='r') as df:
+        safe = 0
+        unsafe = 0
+        for line in df.readlines():
+            if line.startswith('safe'):
+                safe += 1
+            else:
+                unsafe += 1
+
+    print(f'=== {kind} dataset ===\nsafe:{safe}\nunsafe:{unsafe}')

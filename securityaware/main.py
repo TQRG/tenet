@@ -1,13 +1,13 @@
 
 from cement import App, TestApp
 from cement.core.exc import CaughtSignal, InterfaceError
+
+from securityaware.handlers.plugin_loader import PluginLoader
 from .core.exc import SecurityAwareError
 from .controllers.base import Base
-from .controllers.dataset import Dataset
-from .controllers.model import Model
+from .controllers.plugin import Plugin
 from securityaware.core.interfaces import HandlersInterface
 from securityaware.handlers.container import ContainerHandler
-from securityaware.handlers.sampling import SamplingHandler
 from securityaware.handlers.command import CommandHandler
 from securityaware.handlers.workflow import WorkflowHandler
 
@@ -42,14 +42,16 @@ class SecurityAware(App):
         # set the output handler
         output_handler = 'jinja2'
 
+        # set the handler for loading plugins
+        plugin_handler = 'plugin_loader'
+
         interfaces = [
             HandlersInterface
         ]
 
         # register handlers
         handlers = [
-            Base, Dataset, ContainerHandler, SamplingHandler, CommandHandler,
-            Model, WorkflowHandler
+            Base, Plugin, PluginLoader, ContainerHandler, CommandHandler, WorkflowHandler
         ]
 
     def get_config(self, key: str):
@@ -107,12 +109,12 @@ def main():
                 traceback.print_exc()
 
         except SecurityAwareError as e:
-            print('SecurityAwareError > %s' % e.args[0])
+            app.log.error('SecurityAwareError > %s' % e.args[0])
             app.exit_code = 1
 
             if app.debug is True:
                 import traceback
-                traceback.print_exc()
+                app.log.error(traceback.format_exc())
 
         except CaughtSignal as e:
             # Default Cement signals are SIGINT and SIGTERM, exit 0 (non-error)
