@@ -44,6 +44,36 @@ class InlineDiff:
 
 
 @dataclass
+class FunctionBoundary(InlineDiff):
+    ftype: str = None
+    label: str = ''
+
+    @staticmethod
+    def parse_fn_inline_diffs(fn_boundaries: dict, project: str, fpath: str):
+        def get_fn_bound(fn_bound_str: str, ftype: str):
+            sline, scol, eline, ecol = fn_bound_str.split(",")
+            return FunctionBoundary(sline=int(sline), scol=int(scol), eline=int(eline), ecol=int(ecol), ftype=ftype,
+                                    project=project, file_path=fpath)
+
+        fn_decs = [get_fn_bound(fn_dec, 'fnDec') for fn_dec in fn_boundaries['fnDec']] if 'fnDec' in fn_boundaries else []
+        fn_exps = [get_fn_bound(fn_exp, 'fnExp') for fn_exp in fn_boundaries['fnExps']] if 'fnExps' in fn_boundaries else []
+
+        return fn_decs, fn_exps
+
+    def to_list(self):
+        return super().to_list() + [self.ftype]
+
+    def is_contained(self, other):
+        start_ok = (self.sline < other.sline) or (self.sline == other.sline and self.scol <= other.scol)
+        end_ok = (self.eline > other.eline) or (self.eline == other.eline and self.ecol >= other.ecol)
+
+        return start_ok and end_ok
+
+    def __str__(self):
+        return super().__str__() + ',' + self.ftype
+
+
+@dataclass
 class DiffBlock:
     start: int
     a_path: str
