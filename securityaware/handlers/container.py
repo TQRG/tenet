@@ -1,14 +1,14 @@
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from docker.errors import APIError, NotFound
 from docker.models.containers import Container
 
 from securityaware.data.output import CommandData
 from securityaware.core.exc import SecurityAwareError, CommandError
-from securityaware.data.schema import ContainerCommand
+from securityaware.data.schema import ContainerCommand, Placeholder
 from securityaware.handlers.node import NodeHandler
 from securityaware.utils.misc import str_to_tarfile
 
@@ -29,10 +29,10 @@ class ContainerHandler(NodeHandler):
         """
             Returns the output path.
         """
-        match = re.findall("\{(p\d+)\}", self.node.output)
+        match = re.findall("\{(p\d+)\}", str(self.node.output))
 
         if match:
-            output = self.node.output.format(**{m: self.edge.placeholders[m] for m in match})
+            output = str(self.node.output).format(**{m: self.edge.placeholders[m].value for m in match})
             self.app.log.info(f"Parsed output entry: {output}")
 
             if output.startswith(self.app.bind):
@@ -42,28 +42,29 @@ class ContainerHandler(NodeHandler):
             # Update as well the connectors
             if self.app.connectors.has_source(self.edge.name, attr='output'):
                 self.set('output', self.output, skip=False)
-            return self.output.exists()
-        return False
+
+        return self.output.exists()
 
     def parse(self):
         """
             Inserts the placeholders in the commands
         """
         # parse placeholders from the sinks
+
         if self.edge.name in self.app.connectors.sinks:
             for _, sink in self.app.connectors.sinks[self.edge.name].items():
-                for placeholder, value in sink.get_placeholders().items():
+                for tag, value in sink.map_placeholders().items():
                     if value is None:
-                        self.app.log.error(f"Placeholder {placeholder} is None.")
+                        self.app.log.error(f"Placeholder {tag} is None.")
                         exit(1)
 
-                    self.edge.placeholders.update({placeholder: value})
+                    self.edge.placeholders.update({tag: Placeholder(tag=tag, value=value, node=sink.sink)})
 
         # init placeholder sources
         if self.edge.sources:
             for p in self.edge.sources:
                 if p in self.edge.placeholders:
-                    value = self.edge.placeholders[p]
+                    value = self.edge.placeholders[p].value
 
                     if isinstance(value, str) and value.startswith(self.app.bind):
                         value = value.replace(self.app.bind, str(self.app.workdir))
@@ -77,12 +78,13 @@ class ContainerHandler(NodeHandler):
                     if p not in self.edge.placeholders:
                         raise ValueError(f"Missing placeholder {p}")
 
-                    cmd.placeholders[p] = str(self.edge.placeholders[p]).replace(str(self.app.workdir), self.app.bind)
+                    value = str(self.edge.placeholders[p].value).replace(str(self.app.workdir), self.app.bind)
+                    cmd.placeholders[p] = Placeholder(tag=p, value=value, node=self.edge.name)
 
                 if not cmd.placeholders:
                     cmd.parsed = cmd.org
                 else:
-                    cmd.parsed = cmd.org.format(**cmd.placeholders)
+                    cmd.parsed = cmd.org.format(**cmd.get_placeholders())
             else:
                 cmd.parsed = cmd.org
 
@@ -101,17 +103,16 @@ class ContainerHandler(NodeHandler):
         """
             Looks locally for files or directories in placeholders to decide whether the command will be re-executed.
         """
-        for placeholder, value in cmd.placeholders.items():
-            path = Path(value.replace(self.app.bind, str(self.app.workdir)))
-
+        for tag, placeholder in cmd.placeholders.items():
+            path = Path(placeholder.value.replace(self.app.bind, str(self.app.workdir)))
             # if placeholder is a path that does not exist, run cmd
             if not path.exists():
-                self.app.log.warning(f"path {path} for placeholder {placeholder} not found")
+                self.app.log.warning(f"path {path} for placeholder {tag} not found")
                 return False
 
             # if placeholder is a directory that is empty, run cmd
             if path.is_dir() and len(list(path.iterdir())) == 0:
-                self.app.log.warning(f"path {path} for placeholder {placeholder} is empty")
+                self.app.log.warning(f"path {path} for placeholder {tag} is empty")
                 return False
 
         self.app.log.warning(f"Paths for placeholders {list(cmd.placeholders.keys())} found.\n\tSkipping \"{cmd}\"")
@@ -119,26 +120,30 @@ class ContainerHandler(NodeHandler):
         cmd.skip = True
         return True
 
-    def run_cmds(self, container_id: str, cmds: List[ContainerCommand]) -> bool:
+    def run_cmds(self, container_id: str, cmds: List[ContainerCommand]) -> Tuple[bool, List[CommandData]]:
         """
             Run commands inside the specified container.
         """
+        cmds_data = []
+        container_wd = str(self.path).replace(str(self.app.workdir), str(self.app.bind))
+
         for cmd in cmds:
-            if cmd.placeholders and self.execute_cmd(cmd) and cmd.skip:
+            if self.output.exists() and cmd.placeholders and self.execute_cmd(cmd) and cmd.skip:
                 continue
 
-            cmd_data = self.__call__(container_id, cmd_str=str(cmd), raise_err=False)
+            cmd_data = self.__call__(container_id, cmd_str=str(cmd), cmd_cwd=container_wd, raise_err=False)
+            cmds_data.append(cmd_data)
 
             if cmd_data.error or cmd_data.return_code != 0:
                 self.app.log.error(cmd_data.error)
-                return False
+                return False, cmds_data
 
             if cmd_data.output:
                 self.app.log.info(cmd_data.output)
 
-        return True
+        return True, cmds_data
 
-    def run(self) -> bool:
+    def run(self) -> Tuple[bool, List[CommandData]]:
         """
             Executes container node.
 
@@ -157,7 +162,7 @@ class ContainerHandler(NodeHandler):
 
             if not container:
                 self.app.log.warning(f"Container {container_name} created but not found.")
-                return False
+                return False, []
 
         self.start(container_name)
         exec_status = self.run_cmds(container.id, self.node.cmds)
@@ -248,9 +253,7 @@ class ContainerHandler(NodeHandler):
         cmd_data.end = datetime.now()
         cmd_data.duration = (cmd_data.end - cmd_data.start).total_seconds()
 
-        if not self.app.pargs.verbose:
-            cmd_data.output = '\n'.join(out)
-
+        cmd_data.output = '\n'.join(out)
         cmd_data.error = '\n'.join(err)
         cmd_data.exit_status = self.app.docker.api.exec_inspect(exec_id)['ExitCode']
 
