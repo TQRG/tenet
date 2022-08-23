@@ -42,7 +42,8 @@ class XYDataset:
             if headers:
                 dataset_file.write(headers + "\n")
             for x, y in zip(self.x.rows, self.y.rows):
-                dataset_file.write(f"{y}{delimiter}{x}\n")
+                #dataset_file.write(f"{y}{delimiter}{x}\n")
+                dataset_file.write(f"{delimiter.join(x)}\n")
 
         return path
 
