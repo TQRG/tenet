@@ -8,7 +8,7 @@ from schema import Schema, And, Use, Optional, Or
 from securityaware.utils.misc import random_id
 
 _container = Schema(
-    And({'name': str, 'image': str, 'output': str,
+    And({'name': str, 'image': str, Optional('output', default=None): str,
          'cmds': Schema(And([str], Use(lambda cmds: [ContainerCommand(org=cmd) for cmd in cmds])))},
         Use(lambda c: Container(**c))))
 
@@ -19,7 +19,8 @@ _plugin = Schema(
 _edges = Schema(
     And([{str: {'node': str, Optional('sinks', default={}): dict, Optional('sources', default=[]): list,
                 Optional('placeholders', default={}): dict, Optional('kwargs', default={}): dict}}],
-        Use(lambda els: {k: Edge(name=k, **v) for el in els for k, v in el.items()}))
+        Use(lambda els: {k: Edge(name=k, sinks=v['sinks'], sources=v['sources'], kwargs=v['kwargs'], node=v['node'],
+                                 placeholders={t: Placeholder(tag=t, value=p, node=k) for t, p in v['placeholders'].items()}) for el in els for k, v in el.items()}))
 )
 
 _layers = Schema(And({str: _edges}, Use(lambda l: {k: Layer(edges=v) for k, v in l.items()})))
@@ -43,7 +44,7 @@ class Connector:
     links: Dict[str, str] = field(default_factory=lambda: {})
     attrs: Dict[str, Any] = field(default_factory=lambda: {})
 
-    def get_placeholders(self):
+    def map_placeholders(self):
         """
             Looks for placeholders in the attributes and returns them with their associated values.
         """
@@ -121,6 +122,16 @@ class Plugin:
 
 
 @dataclass
+class Placeholder:
+    tag: str
+    node: str
+    value: Any
+
+    def __str__(self):
+        return f"{self.node} - {self.tag}={self.value}"
+
+
+@dataclass
 class ContainerCommand:
     """
         Data object representing the container command.
@@ -128,10 +139,13 @@ class ContainerCommand:
     org: str
     parsed: str = None
     skip: bool = True
-    placeholders: dict = field(default_factory=lambda: {})
+    placeholders: Dict[str, Placeholder] = field(default_factory=lambda: {})
+
+    def get_placeholders(self):
+        return {t: p.value for t, p in self.placeholders.items()}
 
     def __str__(self):
-        return self.parsed
+        return self.parsed if self.parsed else self.org
 
 
 @dataclass
@@ -144,18 +158,25 @@ class Container:
     cmds: List[ContainerCommand]
     output: str
 
-    def get_placeholders(self, skip: bool = True):
+    def find_placeholders(self, skip: bool = True):
         """
             Looks up for and returns the placeholders in the commands.
         """
         matches = []
 
-        for cmd in self.cmds:
-            match = re.findall("\{(p\d+)\}", cmd.org)
+        def match_placeholder(string: str):
+            match = re.findall("\{(p\d+)\}", string)
 
             if match:
-                cmd.skip = skip
                 matches.extend(match)
+
+            return match
+
+        for cmd in self.cmds:
+            if match_placeholder(cmd.org):
+                cmd.skip = skip
+
+        match_placeholder(str(self.output))
 
         return set(matches)
 
@@ -223,14 +244,13 @@ class Pipeline:
     workflow: list
 
     def unpack(self):
-        return {name: edge for _, layer in self.layers.items() for name, edge in layer.edges.items()}
+        return {name: edge for l_name, layer in self.layers.items() if l_name in self.workflow for name, edge in layer.edges.items()}
 
     def match(self, placeholders: list, sink_attrs: list):
         """
             Checks whether the placeholders match sink attributes.
         """
         for attr in sink_attrs:
-            print(attr)
             if attr not in placeholders:
                 return False
         return True
@@ -248,15 +268,12 @@ class Pipeline:
                     connectors.sources[edge.name] = {}
 
                 # If node has attributes, init connector with the value of the attributes
-                sources[edge.name] = {
-                    attr: getattr(node_handlers[edge.name], attr) if getattr(node_handlers[edge.name], attr,
-                                                                             None) else None
-                    for attr in edge.sources}
+                sources[edge.name] = {attr: getattr(node_handlers[edge.name], attr, None) for attr in edge.sources}
 
             for source, links in edge.sinks.items():
                 if source == edge.name:
                     if isinstance(self.nodes[edge.node], Container):
-                        placeholders = self.nodes[edge.node].get_placeholders(skip=False)
+                        placeholders = self.nodes[edge.node].find_placeholders(skip=False)
 
                         if not self.match(placeholders, list(links.values())):
                             raise ValueError(f"Placeholders are not matching attributes in the container commands.")
@@ -285,6 +302,7 @@ class Pipeline:
         traversal = []
 
         for el in self.workflow:
+            print(f'Traversing layer {el}')
             if el in self.layers:
                 traversal.extend(self.layers[el].traverse(self.nodes))
             elif el in self.nodes:
