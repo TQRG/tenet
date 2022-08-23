@@ -17,3 +17,8 @@ class CommandError(Exception):
 class Skip(Exception):
     """Skip node execution exception"""
     pass
+
+
+class Found(Exception):
+    """Found exception to break nested loops"""
+    pass
