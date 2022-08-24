@@ -45,53 +45,53 @@ log.colorlog:
 ### The maximun number of log files to maintain when rotating
   max_files: 4
 
-plugins.github_collector:
+plugin.github_collector:
   enabled: true
 
-plugins.compare:
+plugin.compare:
   enabled: true
 
-plugins.filter:
+plugin.filter:
   enabled: true
 
-plugins.codeql_extract_labels:
+plugin.codeql_extract_labels:
   enabled: true
 
-plugins.function_boundary:
+plugin.function_boundary:
   enabled: true
 
-plugins.match_location:
+plugin.match_location:
   enabled: true
 
-plugins.labeler:
+plugin.labeler:
   enabled: true
 
-plugins.plot_matrix:
+plugin.plot_matrix:
   enabled: true
 
-plugins.filter_frame:
+plugin.filter_frame:
   enabled: true
 
-plugins.file_collector:
+plugin.file_collector:
   enabled: true
 
-plugins.find_references:
+plugin.find_references:
   enabled: true
 
-plugins.sampling:
+plugin.sampling:
   enabled: true
 
-plugins.histogram:
+plugin.histogram:
   enabled: true
 
-plugins.preprocess:
+plugin.preprocess:
   enabled: true
 
-plugins.code2vec:
+plugin.code2vec:
   enabled: true
 
-plugins.filter_fn_size:
+plugin.filter_fn_size:
   enabled: true
 
-plugins.match_path_contexts:
+plugin.match_path_contexts:
   enabled: true

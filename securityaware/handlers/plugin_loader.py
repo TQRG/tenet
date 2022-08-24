@@ -19,6 +19,7 @@ class PluginLoader(CementPluginHandler):
         """
         return super()._load_plugin_from_dir(name, path)
 
+'''
     def _setup(self, app_obj):
         super()._setup(app_obj)
 
@@ -34,10 +35,11 @@ class PluginLoader(CementPluginHandler):
                 except FrameworkError as fe:
                     raise SecurityAwareError(str(fe))
 
-                loaded = name in self._loaded_plugins
+                # loaded = name in self._loaded_plugins
                 enabled = 'enabled' in self.app.config.keys(section) and self.app.config.get(section, 'enabled')
-
-                if loaded and enabled:
-                    break
+                self.app.log.warning(f'{name}_{enabled}')
+                # if loaded and enabled:
+                #    break
             except ValueError:
                 continue
+'''
