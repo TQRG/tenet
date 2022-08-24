@@ -1,3 +1,4 @@
+import re
 import time
 
 import pandas as pd
@@ -13,6 +14,7 @@ from securityaware.core.diff_labeller.misc import check_or_create_dir, safe_writ
 from securityaware.data.runner import Task, Runner
 from securityaware.handlers.runner import ThreadPoolWorker
 from github import Github, GithubException
+from github.GithubException import UnknownObjectException
 
 
 class GithubCollector(PluginHandler):
@@ -48,7 +50,8 @@ class GithubCollector(PluginHandler):
         dataset = dataset[dataset["commits"] == 1]
         # Select columns: repo, sha_list, parents
         # Ensure no duplicates
-        dataset = dataset[["repo", "sha_list", "parents", "cwe_id"]].drop_duplicates().reset_index(drop=True)
+
+        dataset = dataset[["repo", "fix_sha", "parent_sha", "cwe"]].drop_duplicates().reset_index(drop=True)
         tasks = []
         total = len(dataset)
 
@@ -57,10 +60,10 @@ class GithubCollector(PluginHandler):
             task = Task()
             task['id'] = i
             task['repo'] = proj["repo"]
-            task['fix_sha'] = proj['sha_list']
-            task['parent_sha'] = proj['parents']
+            task['fix_sha'] = proj['fix_sha']
+            task['parent_sha'] = proj['parent_sha']
             task['diff_dir'] = diff_dir
-            task['label'] = proj['cwe_id'].replace('\r\n', '|')
+            task['label'] = proj['cwe'].replace('\r\n', '|')
             tasks.append(task)
 
         worker = ThreadPoolWorker(runner_data, tasks=tasks, threads=threads, logger=self.app.log,
@@ -95,11 +98,15 @@ class GithubCollector(PluginHandler):
             self.app.log.error(f"Commit {fix_sha} for repo {repo.name} unavailable: ")
         else:
             # Get diff only from the first parent if the fix is a merge commit
-            parent_hash = ast.literal_eval(parent_sha)[0][0]
+            parents_list = ast.literal_eval(parent_sha)[0]
+            if isinstance(parents_list, list):
+                parent_hash = parents_list[0].split("#")[0].split("?")[0]
+            else:
+                parent_hash = parents_list.split("#")[0].split("?")[0]
 
             try:
                 parent_commit = repo.get_commit(sha=parent_hash)
-            except ValueError:
+            except (ValueError, GithubException):
                 self.app.log.error(f"Parent commit {parent_hash} for repo {repo.name} unavailable")
             else:
                 diff_file = diff_dir / f"{repo_path}_{parent_hash}_{fix_hash}.txt"
