@@ -18,9 +18,9 @@ def transform_inline_diff(code_path: str, inline_diff: InlineDiff,
     return bound_result.stdout.decode("utf-8").splitlines()
 
 
-def parse_fn_bound(fn_bound_str: List[str], inline_diff: InlineDiff) -> Union[InlineDiff, None]:
-    if fn_bound_pattern.match(fn_bound_str[0]) is not None:
-        fn_boundary = fn_bound_str[0].split(",")
+def parse_fn_bound(fn_bound_str: str, inline_diff: InlineDiff) -> Union[InlineDiff, None]:
+    if fn_bound_pattern.match(fn_bound_str) is not None:
+        fn_boundary = fn_bound_str.split(",")
 
         return InlineDiff(project=inline_diff.project, file_path=inline_diff.file_path, sline=int(fn_boundary[0]),
                           scol=int(fn_boundary[1]), eline=int(fn_boundary[2]), ecol=int(fn_boundary[3]),

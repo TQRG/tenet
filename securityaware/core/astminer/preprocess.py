@@ -1,5 +1,6 @@
 import random
 import pickle
+from typing import Tuple
 
 '''
 This script preprocesses the data from MethodPaths. It truncates methods with too many contexts,
@@ -7,24 +8,22 @@ and pads methods with less paths with spaces.
 '''
 
 
-def save_dictionaries(dataset_name, word_to_count, path_to_count, target_to_count,
-                      num_training_examples):
-    save_dict_file_path = '{}.dict.c2v'.format(dataset_name)
-    with open(save_dict_file_path, 'wb') as file:
+def save_dictionaries(dict_file_path, word_to_count, path_to_count, target_to_count, num_training_examples):
+    with open(dict_file_path, 'wb') as file:
         pickle.dump(word_to_count, file)
         pickle.dump(path_to_count, file)
         pickle.dump(target_to_count, file)
         pickle.dump(num_training_examples, file)
-        print('Dictionaries saved to: {}'.format(save_dict_file_path))
+        print('Dictionaries saved to: {}'.format(dict_file_path))
 
 
-def process_file(file_path, data_file_role, dataset_name, word_to_count, path_to_count, max_contexts):
+def process_file(file_path: str, output_path: str, word_to_count, path_to_count, max_contexts: int) -> Tuple[int, str]:
     sum_total = 0
     sum_sampled = 0
     total = 0
     empty = 0
     max_unfiltered = 0
-    output_path = '{}.{}.c2v'.format(dataset_name, data_file_role)
+
     with open(output_path, 'w') as outfile:
         with open(file_path, 'r') as file:
             for line in file:
@@ -63,13 +62,13 @@ def process_file(file_path, data_file_role, dataset_name, word_to_count, path_to
                 outfile.write(target_name + ' ' + " ".join(contexts) + csv_padding + '\n')
                 total += 1
 
-    print('File: ' + file_path)
+    print(f'File: {file_path}')
     print('Average total contexts: ' + str(float(sum_total) / total))
     print('Average final (after sampling) contexts: ' + str(float(sum_sampled) / total))
     print('Total examples: ' + str(total))
     print('Empty examples: ' + str(empty))
     print('Max number of contexts per word: ' + str(max_unfiltered))
-    return total
+    return total, output_path
 
 
 def context_full_found(context_parts, word_to_count, path_to_count):
@@ -82,17 +81,3 @@ def context_partial_found(context_parts, word_to_count, path_to_count):
         print(context_parts)
     return context_parts[0] in word_to_count or context_parts[1] in path_to_count or context_parts[2] in word_to_count
 
-
-def process_data(test_data_path: str, val_data_path: str, train_data_path: str, word_to_count: int, path_to_count: int,
-                 output_name: str, max_contexts: int) -> int:
-    num_training_examples = 0
-
-    for data_file_path, data_role in zip([test_data_path, val_data_path, train_data_path],
-                                         ['test', 'val', 'train']):
-        num_examples = process_file(file_path=data_file_path, data_file_role=data_role, dataset_name=output_name,
-                                    word_to_count=word_to_count, path_to_count=path_to_count,
-                                    max_contexts=max_contexts)
-        if data_role == 'train':
-            num_training_examples = num_examples
-
-    return num_training_examples
