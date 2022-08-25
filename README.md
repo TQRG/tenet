@@ -39,7 +39,8 @@ optional arguments:
   -h, --help           show this help message and exit
 
 sub-commands:
-  {install,uninstall}
+  {enabled, install,uninstall}
+    enabled            Lists enabled plugins
     install            Installs plugin
     uninstall          Uninstalls plugin
 ```
