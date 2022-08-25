@@ -2,7 +2,7 @@ nodes:
   - plugin:
       name: github_collector
       kwargs:
-        token: **CHANGE_TO_OWN_TOKEN**
+        token: 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
   - plugin:
       name: filter
   - plugin:
