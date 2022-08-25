@@ -1,0 +1,122 @@
+nodes:
+  - plugin:
+      name: github_collector
+      kwargs:
+        token: #ADD_GITHUB_KEY#
+  - plugin:
+      name: labeler
+  - container:
+      image: jscodeshift
+      name: jscodeshift_cwe_79
+      cmds:
+        - "jscodeshift -p -s -d -t /projects/js_cwe_79/transforms/outputFnBoundary.js {p1}"
+      output: "output.txt"
+  - plugin:
+      name: function_boundary
+  - container:
+      image: astminer
+      name: astminer_cwe_79
+      cmds:
+        - "mkdir -p {p2}"
+        - "export NODE_OPTIONS=\"--max-old-space-size=8192\""
+        - "java -jar -Xms4g -Xmx4g ../../../astminer/build/shadow/astminer.jar code2vec {p1} {p2} {p3} 0"
+      output: "path_contexts.c2s"
+  - plugin:
+      name: match_path_contexts
+  - plugin:
+      name: sampling
+  - plugin:
+      name: histogram
+  - plugin:
+      name: preprocess
+  - plugin:
+      name: code2vec
+
+
+layers:
+  dataset:
+    - raw:
+        node: github_collector
+        sources: [files_path, dataset]
+    - labels:
+        node: labeler
+        sources: [dataset]
+        kwargs:
+          multi_label: false
+    - jscodeshift:
+        node: jscodeshift_cwe_79
+        sources: [output]
+        sinks:
+          raw:
+            files_path: p1
+    - raw_func_bounds:
+        node: function_boundary
+        sources: [dataset_path]
+        sinks:
+          jscodeshift:
+            output: jscodeshift_output
+          raw:
+            files_path: files_path
+    - astminer_diff:
+        node: astminer_cwe_79
+        sinks:
+          raw:
+            files_path: p1
+          astminer_diff:
+            path: p2
+          raw_func_bounds:
+            dataset_path: p3
+        sources: [path, output]
+  evaluate:
+    - sampling:
+         node: sampling
+         sources: [train_data, val_data, test_data]
+         sinks:
+           astminer_diff:
+            output: context_paths_file
+    - histogram:
+        node: histogram
+        sources: [target_hist_file, origin_hist_file, path_hist_file]
+        sinks:
+          sampling:
+            train_data: train_data_file
+    - preprocess_500:
+        node: preprocess
+        sources: [train_output_path, val_output_path, test_output_path, dict_file_path]
+        kwargs:
+          max_contexts: 500
+        sinks:
+          sampling:
+            train_data: train_data_path
+            val_data: val_data_path
+            test_data: test_data_path
+          histogram:
+            target_hist_file: target_histogram_path
+            origin_hist_file: word_histogram_path
+            path_hist_file: path_histogram_file
+    - train_500:
+        node: code2vec
+        sources: [save_path]
+        kwargs:
+          train: true
+          max_contexts: 500
+        sinks:
+          preprocess_500:
+            val_output_path: val_data_path
+            test_output_path: test_data_path
+            train_output_path: train_data_path
+    - test_500:
+        node: code2vec
+        sources: [save_path]
+        kwargs:
+          train: false
+          max_contexts: 500
+        sinks:
+          train_500: 
+            save_path: save_path
+          preprocess_500:
+            val_output_path: val_data_path
+            test_output_path: test_data_path
+            train_output_path: train_data_path
+
+workflow: [dataset, evaluate]
