@@ -8,7 +8,7 @@ securityaware:
 
 ### Where external (third-party) plugins are loaded from
   plugin_dir: ~/.securityaware/plugins/
-
+  proj_ext: ['js']
 ### Where all plugin configurations are loaded from
 # plugin_config_dir: /etc/securityaware/plugins.d/
 
