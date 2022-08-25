@@ -1,6 +1,7 @@
 FROM ubuntu:20.04
 
 ARG threads
+ARG language
 ENV TZ=Europe
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
@@ -20,6 +21,6 @@ ENV PATH "/codeql-home/codeql:${PATH}"
 WORKDIR /codeql-home
 
 # Precompile query rules
-RUN codeql query compile /codeql-home/codeql-repo/javascript/ql/src/Security/ --threads=$threads
+RUN codeql query compile /codeql-home/codeql-repo/$language/ql/src/Security/ --threads=$threads
 #ADD labels.sh /usr/local/bin
 
