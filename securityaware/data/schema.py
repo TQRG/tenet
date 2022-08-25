@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, List, AnyStr, Any, Tuple, Union
 from schema import Schema, And, Use, Optional, Or
 
+from securityaware.core.exc import SecurityAwareError
 from securityaware.utils.misc import random_id
 
 _container = Schema(
@@ -281,7 +282,7 @@ class Pipeline:
                         raise ValueError(f"Plugin {source} cannot reference itself.")
 
                 if source not in sources:
-                    raise ValueError(f"source {source} must be defined before sink {edge.name}")
+                    raise SecurityAwareError(f"source {source} must be defined before sink {edge.name}")
 
                 if source in sources:
                     connector = Connector(source=source, sink=edge.name, attrs=sources[source], links=links)
