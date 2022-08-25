@@ -29,7 +29,7 @@ class NodeHandler(HandlersInterface, Handler):
             :return: pandas dataframe
         """
 
-        if self.output and self.output.is_file and self.output.suffix == suffix:
+        if self.output and self.output.is_file and self.output.suffix == suffix and self.output.exists():
             try:
                 return pd.read_csv(str(self.output))
             except pd.errors.EmptyDataError as ede:
