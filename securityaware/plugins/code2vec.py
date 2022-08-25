@@ -4,6 +4,7 @@ import re
 from typing import Union
 from pathlib import Path
 
+from securityaware.core.exc import Skip
 from securityaware.utils.misc import count_labels
 from securityaware.data.schema import ContainerCommand
 from securityaware.handlers.plugin import PluginHandler
@@ -26,9 +27,13 @@ class Code2vecHandler(PluginHandler):
             runs the plugin
         """
 
-        model_dir = Path(self.app.bind, Path(self.path).name)
+        model_dir = Path(self.app.workdir, Path(self.path).name)
 
-        save_path = f"{model_dir}/saved_model"
+        if self.get('save_path'):
+            save_path = self.get('save_path')
+        else:
+            save_path = f"{model_dir}/saved_model"
+
         self.set('save_path', save_path)
 
         train_data_path = self.get('train_data_path')
@@ -65,9 +70,9 @@ class Code2vecHandler(PluginHandler):
 
         val_data_path = val_data_path.replace(str(self.app.workdir), str(self.app.bind))
 
-        if model_dir.exists():
-            self.app.log.warning(f"Path {model_dir} exists and will be used. "
-                                 f"Some of the files might be overwritten")
+        # TODO: find better way to skip training when model exists
+        if Path(save_path + '_iter19.index').exists() and train:
+            raise Skip(f"Model path {save_path} exists. Skipping")
 
         container_name = f"{self.app.workdir.name}_code2vec"
         container_handler = self.app.handler.get('handlers', 'container', setup=True)
@@ -80,13 +85,21 @@ class Code2vecHandler(PluginHandler):
             code2vec_container = container_handler[container_name]
 
         container_handler.start(_id)
+        # TODO: find better way of performing this bind
+        model_dir = Path(self.app.bind, Path(self.path).name)
+        save_path = save_path.replace(str(self.app.workdir), str(self.app.bind))
         container_handler.mkdir(_id, str(model_dir))
+
+        # TODO: fix this
+        #container_handler.load(self.edge, dataset_name='output', ext='')
+        container_handler.path = ''
 
         dataset_name = Path(val_data_path).stem.split('.')[0]
         data_dir = Path(Path(val_data_path).parent, dataset_name)
         step = 'train' if train else 'test'
         w2v_file = Path(str(self.path).replace(str(self.app.workdir), str(self.app.bind)), f'{step}_embeddings.kv')
-        default = f"python3 code2vec.py --max-contexts {max_contexts} --emb-size {emb_size}"
+        #default = f"python3 code2vec.py --max-contexts {max_contexts} --emb-size {emb_size}"
+        default = f"python3 code2vec.py --max-contexts {max_contexts}"
 
         if train:
             cmd = ContainerCommand(
