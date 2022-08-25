@@ -128,7 +128,7 @@ class ContainerHandler(NodeHandler):
         container_wd = str(self.path).replace(str(self.app.workdir), str(self.app.bind))
 
         for cmd in cmds:
-            if self.output.exists() and cmd.placeholders and self.execute_cmd(cmd) and cmd.skip:
+            if self.output and self.output.exists() and cmd.placeholders and self.execute_cmd(cmd) and cmd.skip:
                 continue
 
             cmd_data = self.__call__(container_id, cmd_str=str(cmd), cmd_cwd=container_wd, raise_err=False)
