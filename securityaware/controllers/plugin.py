@@ -16,6 +16,13 @@ class Plugin(Controller):
         stacked_type = 'nested'
 
     @ex(
+        help="Lists enabled plugins"
+    )
+    def enabled(self):
+        for p in self.app.plugin.get_enabled_plugins():
+            self.app.log.info(p)
+
+    @ex(
         help="Installs plugin",
         arguments=[
             (['-p', '--path'], {'help': 'File path of the plugin.', 'required': True, 'type': str}),
