@@ -4,8 +4,9 @@
 
 1) Create working directory, for instance, `~/js_cwe_79`; 
 2) (Optional) Copy to the working directory the pipeline file `js_cwe_79_pipeline.yml` under `examples` folder and the dataset file `js_cwe_79.tsv` under `datasets`;
-3) Enable all the plugins in `js_cwe_79_pipeline.yml`;
-   1) ```securityaware plugin install -p securityaware/plugins/^pluign_name^ -n code2vec -f```
+3) Enable all the plugins in `js_cwe_79_pipeline.yml` (in the config file `~/.securityaware/config/securityaware.yml`);
+   1) Check for enabled plugins ```securityaware pluign enabled```; 
+   2) Install/Enable missing plugins ```securityaware plugin install -p securityaware/plugins/^pluign_name^ -n `plugin name` -f```
 4) Make sure all the necessary Docker images in `js_cwe_79_pipeline.yml` are built;
    1) jscodeshift - ```docker push epicosy/securityaware:jscodeshift```
    2) astminer - ```docker push epicosy/securityaware:astminer```
