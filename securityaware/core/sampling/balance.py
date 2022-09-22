@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import sklearn
 import imblearn
 import math
@@ -8,7 +10,7 @@ from termcolor import colored
 from collections import Counter
 
 from securityaware.core.sampling import smote as sm
-from securityaware.data.dataset import XYDataset, SplitDataset, Dataset
+from securityaware.data.dataset import XYDataset, Dataset
 
 default_label = "safe"
 other_label = "unsafe"
@@ -74,7 +76,7 @@ def get_ratio(Y_train):
     return ratio, label_distribution
 
 
-def one_one_ratio(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
+def one_one_ratio(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     context_paths = np.array(X_dataset.rows)
     labels = np.array(Y_dataset.rows)
     df = pd.DataFrame({'label': labels, 'context_path': list(context_paths)}, columns=['label', 'context_path'])
@@ -137,12 +139,11 @@ def one_one_ratio(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
     calculate_labels_dist(Y_val, 'val')
     calculate_labels_dist(Y_test, 'test')
 
-    return SplitDataset(train=XYDataset(Dataset(X_train), Dataset(Y_train)),
-                        val=XYDataset(Dataset(X_val), Dataset(Y_val)),
-                        test=XYDataset(Dataset(X_test), Dataset(Y_test)))
+    return XYDataset(Dataset(X_train), Dataset(Y_train)), XYDataset(Dataset(X_val), Dataset(Y_val)), \
+           XYDataset(Dataset(X_test), Dataset(Y_test))
 
 
-def unique_hash(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
+def unique_hash(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     hashes = [sample[0] for sample in X_dataset.rows]
     code_locations = [sample[1] for sample in X_dataset.rows]
     #    context_paths = np.array(X_dataset)
@@ -176,12 +177,11 @@ def unique_hash(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
     calculate_labels_dist(Y_val, 'val')
     calculate_labels_dist(Y_test, 'test')
 
-    return SplitDataset(train=XYDataset(Dataset(X_train), Dataset(Y_train)),
-                        val=XYDataset(Dataset(X_val), Dataset(Y_val)),
-                        test=XYDataset(Dataset(X_test), Dataset(Y_test)))
+    return XYDataset(Dataset(X_train), Dataset(Y_train)), XYDataset(Dataset(X_val), Dataset(Y_val)), \
+           XYDataset(Dataset(X_test), Dataset(Y_test))
 
 
-def unique(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
+def unique(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     context_paths = np.array(X_dataset.rows)
     labels = np.array(Y_dataset.rows)
     df = pd.DataFrame({'label': labels, 'context_path': list(context_paths)}, columns=['label', 'context_path'])
@@ -211,12 +211,11 @@ def unique(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
     calculate_labels_dist(Y_val, 'val')
     calculate_labels_dist(Y_test, 'test')
 
-    return SplitDataset(train=XYDataset(Dataset(X_train), Dataset(Y_train)),
-                        val=XYDataset(Dataset(X_val), Dataset(Y_val)),
-                        test=XYDataset(Dataset(X_test), Dataset(Y_test)))
+    return XYDataset(Dataset(X_train), Dataset(Y_train)), XYDataset(Dataset(X_val), Dataset(Y_val)),\
+           XYDataset(Dataset(X_test), Dataset(Y_test))
 
 
-def disjoint(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
+def disjoint(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     context_paths = np.array(X_dataset.rows)
     labels = np.array(Y_dataset.rows)
     df = pd.DataFrame({'label': labels, 'context_path': list(context_paths)}, columns=['label', 'context_path'])
@@ -282,12 +281,11 @@ def disjoint(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
     calculate_labels_dist(Y_val, 'val')
     calculate_labels_dist(Y_test, 'test')
 
-    return SplitDataset(train=XYDataset(Dataset(X_train), Dataset(Y_train)),
-                        val=XYDataset(Dataset(X_val), Dataset(Y_val)),
-                        test=XYDataset(Dataset(X_test), Dataset(Y_test)))
+    return XYDataset(Dataset(X_train), Dataset(Y_train)), XYDataset(Dataset(X_val), Dataset(Y_val)), \
+           XYDataset(Dataset(X_test), Dataset(Y_test))
 
 
-def disjoint_hash(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
+def disjoint_hash(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     ids = [[sample[1]] for sample in X_dataset.rows]
     hashes = [[sample[2]] for sample in X_dataset.rows]
     df = pd.DataFrame({'id': ids, 'label': Y_dataset.rows, 'hash': hashes}, columns=['id', 'label', 'hash'])
@@ -363,12 +361,11 @@ def disjoint_hash(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
 
     X_train, X_val, X_test = restore_datasets(X_train, X_val, X_test, X_dataset.rows)
 
-    return SplitDataset(train=XYDataset(Dataset(X_train), Dataset(Y_train)),
-                        val=XYDataset(Dataset(X_val), Dataset(Y_val)),
-                        test=XYDataset(Dataset(X_test), Dataset(Y_test)))
+    return XYDataset(Dataset(X_train), Dataset(Y_train)), XYDataset(Dataset(X_val), Dataset(Y_val)), \
+           XYDataset(Dataset(X_test), Dataset(Y_test))
 
 
-def disjoint_smote(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
+def disjoint_smote(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     context_paths = np.array(X_dataset.rows)
     labels = np.array(Y_dataset.rows)
     df = pd.DataFrame({'label': labels, 'context_path': list(context_paths)})
@@ -429,12 +426,11 @@ def disjoint_smote(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset
     print(type(Y_train))
     # print(smote_data)
 
-    return SplitDataset(train=XYDataset(Dataset(X_train), Dataset(Y_train)),
-                        val=XYDataset(Dataset(X_val), Dataset(Y_val)),
-                        test=XYDataset(Dataset(X_test), Dataset(Y_test)))
+    return XYDataset(Dataset(X_train), Dataset(Y_train)), XYDataset(Dataset(X_val), Dataset(Y_val)), \
+           XYDataset(Dataset(X_test), Dataset(Y_test))
 
 
-def disjoint_smote_hash(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
+def disjoint_smote_hash(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     feature_vectors = [sample[0] for sample in X_dataset.rows]
     df = pd.DataFrame({'label': Y_dataset.rows, 'feature_vector': feature_vectors}, columns=['label', 'feature_vector'])
     print(
@@ -519,29 +515,27 @@ def disjoint_smote_hash(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDa
     print("Resampled train set has", n_default_label, "samples with default label.")
     print("Resampled train set has", n_other_label, "samples with other label.")
 
-    return SplitDataset(train=XYDataset(Dataset(X_train), Dataset(Y_train)),
-                        val=XYDataset(Dataset(X_val), Dataset(Y_val)),
-                        test=XYDataset(Dataset(X_test), Dataset(Y_test)))
+    return XYDataset(Dataset(X_train), Dataset(Y_train)), XYDataset(Dataset(X_val), Dataset(Y_val)), \
+           XYDataset(Dataset(X_test), Dataset(Y_test))
 
 
-def split_data(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
+def split_data(x_dataset: Dataset, y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     print("Splitting dataset into train and test...")
-    X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split(X_dataset.rows, Y_dataset.rows,
+    x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(x_dataset.rows, y_dataset.rows,
                                                                                 test_size=0.1, random_state=seed)
     print("Splitting train set into train and validation...")
-    X_train, X_val, Y_train, Y_val = sklearn.model_selection.train_test_split(X_train, Y_train, test_size=1 / 9,
+    x_train, x_val, y_train, y_val = sklearn.model_selection.train_test_split(x_train, y_train, test_size=1 / 9,
                                                                               random_state=seed)  # (1/9) x 0.9 = 0.1
 
-    calculate_labels_dist(Y_train, 'train')
-    calculate_labels_dist(Y_val, 'val')
-    calculate_labels_dist(Y_test, 'test')
+    calculate_labels_dist(y_train, 'train')
+    calculate_labels_dist(y_val, 'val')
+    calculate_labels_dist(y_test, 'test')
 
-    return SplitDataset(train=XYDataset(Dataset(X_train), Dataset(Y_train)),
-                        val=XYDataset(Dataset(X_val), Dataset(Y_val)),
-                        test=XYDataset(Dataset(X_test), Dataset(Y_test)))
+    return XYDataset(Dataset(x_train), Dataset(y_train)), XYDataset(Dataset(x_val), Dataset(y_val)), \
+           XYDataset(Dataset(x_test), Dataset(y_test))
 
 
-def oversampling(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
+def oversampling(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     print("Splitting dataset into train and test...")
     X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split(X_dataset.rows, Y_dataset.rows,
                                                                                 test_size=0.1, random_state=seed)
@@ -600,12 +594,11 @@ def oversampling(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
     print("Resampled train set has", n_default_label, "samples with default label.")
     print("Resampled train set has", n_other_label, "samples with other label.")
 
-    return SplitDataset(train=XYDataset(Dataset(X_train), Dataset(Y_train)),
-                        val=XYDataset(Dataset(X_val), Dataset(Y_val)),
-                        test=XYDataset(Dataset(X_test), Dataset(Y_test)))
+    return XYDataset(Dataset(X_train), Dataset(Y_train)), XYDataset(Dataset(X_val), Dataset(Y_val)), \
+           XYDataset(Dataset(X_test), Dataset(Y_test))
 
 
-def random_undersampling(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitDataset:
+def random_undersampling(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     context_paths = np.array(X_dataset.rows)
     labels = np.array(Y_dataset.rows)
     df = pd.DataFrame({'label': labels, 'context_path': list(context_paths)}, columns=['label', 'context_path'])
@@ -666,6 +659,5 @@ def random_undersampling(X_dataset: Dataset, Y_dataset: Dataset, seed) -> SplitD
 
     print(f"Train set has {len(X_train)} samples. | {calculate_labels_dist(Y_train, 'train')}")
 
-    return SplitDataset(train=XYDataset(Dataset(X_train), Dataset(Y_train)),
-                        val=XYDataset(Dataset(X_val), Dataset(Y_val)),
-                        test=XYDataset(Dataset(X_test), Dataset(Y_test)))
+    return XYDataset(Dataset(X_train), Dataset(Y_train)), XYDataset(Dataset(X_val), Dataset(Y_val)), \
+           XYDataset(Dataset(X_test), Dataset(Y_test))

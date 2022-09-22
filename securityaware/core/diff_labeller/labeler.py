@@ -31,7 +31,7 @@ class Labeler:
         self.a_path_file = inline_proj_dir / f"a_{a_path_mod}.txt"
         b_path_mod = self.diff_block.b_path.replace('/', '_')
         self.b_path_file = inline_proj_dir / f"b_{b_path_mod}.txt"
-        self.inline_file = inline_proj_dir / f"{a_path_mod}_{b_path_mod}_inline.txt"
+        self.inline_file = inline_proj_dir / f"{Path(self.a_proj).stem}_{Path(self.b_proj).stem}_inline.txt"
 
         opts = jsbeautifier.default_options()
         opts.indent_size = 0
@@ -56,7 +56,7 @@ class Labeler:
         self.b_formatted_lines = self.b_formatted.splitlines(keepends=True)
         self.size_a_lines = len(self.a_formatted_lines)
         self.size_b_lines = len(self.b_formatted_lines)
-
+        # TODO: handler long file names
         if self.inline_file.exists():
             with self.inline_file.open(mode="r") as ilf:
                 print(f"Reading {self.inline_file}")

@@ -42,20 +42,7 @@ class XYDataset:
             if headers:
                 dataset_file.write(headers + "\n")
             for x, y in zip(self.x.rows, self.y.rows):
-                #dataset_file.write(f"{y}{delimiter}{x}\n")
-                dataset_file.write(f"{delimiter.join(x)}\n")
+                # dataset_file.write(f"{y}{delimiter}{x}\n")
+                dataset_file.write(f"{y},{delimiter.join(x)}\n")
 
         return path
-
-
-@dataclass
-class SplitDataset:
-    train: XYDataset
-    val: XYDataset
-    test: XYDataset
-
-    def write(self, out_dir: Path, delimiter: str, headers: str = None):
-        print(len(self.train), len(self.test), len(self.val))
-        return self.train.write(out_dir / "train.raw.txt", delimiter, headers), \
-               self.val.write(out_dir / "validation.raw.txt", delimiter, headers), \
-               self.test.write(out_dir / "test.raw.txt", delimiter, headers)

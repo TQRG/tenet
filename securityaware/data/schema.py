@@ -59,7 +59,11 @@ class Connector:
 
     def __getitem__(self, key: str):
         for source_attr, sink_attr in self.links.items():
+
             if key == sink_attr:
+                return self.attrs[source_attr]
+            # in case the key is used inside the same plugin
+            if key == source_attr:
                 return self.attrs[source_attr]
 
         raise ValueError(f'Key {key} for sink {self.sink} not found in links. Set it in {self.source} source.')
@@ -203,6 +207,10 @@ class Connectors:
 
         for connector in self.sinks[sink].values():
             if key in connector.links.values():
+                return connector[key]
+
+        for connector in self.sources[sink].values():
+            if key in connector.links.keys():
                 return connector[key]
 
     def __setitem__(self, source_attr: Tuple[str, str], value: Any):
