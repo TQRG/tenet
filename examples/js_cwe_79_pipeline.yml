@@ -31,7 +31,8 @@ nodes:
       name: preprocess
   - plugin:
       name: code2vec
-
+      kwargs:
+        image_name: 'epicosy/securityaware:code2vec'
 
 layers:
   dataset:

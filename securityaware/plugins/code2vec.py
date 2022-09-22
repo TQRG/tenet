@@ -22,7 +22,7 @@ class Code2vecHandler(PluginHandler):
         super().__init__(**kw)
 
     def run(self, dataset: pd.DataFrame, max_contexts: int = 200, emb_size: int = 128, train: bool = True,
-            **kwargs) -> Union[pd.DataFrame, None]:
+            image_name: str = "code2vec", **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
@@ -81,7 +81,7 @@ class Code2vecHandler(PluginHandler):
         if code2vec_container:
             _id = code2vec_container.id
         else:
-            _id = container_handler.create('code2vec', container_name)
+            _id = container_handler.create(image_name, container_name)
             code2vec_container = container_handler[container_name]
 
         container_handler.start(_id)

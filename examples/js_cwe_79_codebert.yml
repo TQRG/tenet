@@ -1,0 +1,93 @@
+nodes:
+  - plugin:
+      name: github_collector
+      kwargs:
+        token: #ADD_GITHUB_KEY#
+  - plugin:
+      name: labeler
+  - container:
+      image: jscodeshift
+      name: jscodeshift_cwe_79
+      cmds:
+        - "jscodeshift -p -s -d -t /projects/js_cwe_79/transforms/outputFnBoundary.js {p1}"
+      output: "output.txt"
+  - plugin:
+      name: function_boundary
+  - container:
+      image: astminer
+      name: astminer
+      cmds:
+        - "mkdir -p {p2}"
+        - "export NODE_OPTIONS=\"--max-old-space-size=8192\""
+        - "java -jar -Xms4g -Xmx4g ../../../astminer/build/shadow/astminer.jar codebert {p1} {p2} {p3} 0"
+      output: "path_contexts.c2s"
+  - plugin:
+      name: sampling
+  - plugin:
+      name: codebert
+      kwargs: 
+        image_name: 'epicosy/securityaware:codebert'
+
+
+layers:
+  dataset:
+    - raw:
+        node: github_collector
+        sources: [files_path, dataset]
+    - labels:
+        node: labeler
+        sources: [dataset]
+        kwargs:
+          multi_label: false
+    - jscodeshift:
+        node: jscodeshift_cwe_79
+        sources: [output]
+        sinks:
+          raw:
+            files_path: p1
+    - raw_func_bounds:
+        node: function_boundary
+        sources: [dataset_path]
+        sinks:
+          jscodeshift:
+            output: jscodeshift_output
+          raw:
+            files_path: files_path
+    - astminer:
+        node: astminer
+        sinks:
+          raw:
+            files_path: p1
+          astminer:
+            path: p2
+          raw_func_bounds:
+            dataset_path: p3
+        sources: [path, output]
+  evaluate:
+    - sampling:
+         node: sampling
+         sources: [train_data, val_data, test_data, train_lines, val_lines, test_lines, train_offset_path, val_offset_path, test_offset_path]
+         kwargs: 
+          offset: true
+         sinks:
+          astminer:
+            output: context_paths_file
+          raw:
+            files_path: raw_files_path
+    - train:
+        node: codebert
+        kwargs: 
+          train: true
+          max_epochs: 5
+        sinks:
+          sampling:
+            train_lines: train_lines_path 
+            val_lines: val_lines_path 
+            test_lines: test_lines_path 
+            train_offset_path: train_offset_file
+            val_offset_path: val_offset_file 
+            test_offset_path: test_offset_file 
+
+
+workflow: [dataset, evaluate]
+
