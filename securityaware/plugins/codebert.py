@@ -22,7 +22,7 @@ class CodeBERTHandler(PluginHandler):
         super().__init__(**kw)
 
     def run(self, dataset: pd.DataFrame, train: bool = True, gpus: int = 0, max_epochs: int = 20,
-            **kwargs) -> Union[pd.DataFrame, None]:
+            image_name: str = 'codebert', **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
@@ -111,7 +111,7 @@ class CodeBERTHandler(PluginHandler):
         if codebert_container:
             _id = codebert_container.id
         else:
-            _id = container_handler.create('codebert', container_name)
+            _id = container_handler.create(image_name, container_name)
             codebert_container = container_handler[container_name]
 
         container_handler.start(_id)
