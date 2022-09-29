@@ -9,7 +9,7 @@ nodes:
       image: jscodeshift
       name: jscodeshift_cwe_79
       cmds:
-        - "jscodeshift -p -s -d -t /projects/js_cwe_79/transforms/outputFnBoundary.js {p1}"
+        - "jscodeshift -p -s -d -t /js-fn-rearrange/transforms/outputFnBoundary.js {p1}"
       output: "output.txt"
   - plugin:
       name: function_boundary

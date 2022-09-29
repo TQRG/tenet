@@ -11,8 +11,7 @@
    1) jscodeshift - ```docker push epicosy/securityaware:jscodeshift```
    2) astminer - ```docker push epicosy/securityaware:astminer```
    3) code2vec - ```docker push epicosy/securityaware:code2vec```
-5) Update the root path for jscodeshift `transforms/outputFnBoundary.js` file in `js_cwe_79_pipeline.yml`;
-6) Run the pipeline ```securityaware -vb run -f ~/js_cwe_79/js_cwe_79_pipeline.yml -d ~/js_cwe_79/js_cwe_79.tsv -wd ~/js_cwe_79 -b /js_cwe_79```
+5Run the pipeline ```securityaware -vb run -f ~/js_cwe_79/js_cwe_79_pipeline.yml -d ~/js_cwe_79/js_cwe_79.tsv -wd ~/js_cwe_79 -b /js_cwe_79```
 
 > **Note**: you must run twice the command in step 5 as after training code2vec script writes to sterr and the 
 > following nodes are not executed.
@@ -30,5 +29,4 @@
    1) jscodeshift - ```docker push epicosy/securityaware:jscodeshift```
    2) astminer - ```docker push epicosy/securityaware:astminer```
    3) codebert - ```docker push epicosy/securityaware:codebert```
-5) Update the root path for jscodeshift `transforms/outputFnBoundary.js` file in `js_cwe_79_codebert.yml`;
-6) Run the pipeline ```securityaware -vb run -f ~/codebert/codebert.yml -d ~/codebert/js_cwe_79.tsv -wd ~/codebert -b /codebert```
+5) Run the pipeline ```securityaware -vb run -f ~/codebert/codebert.yml -d ~/codebert/js_cwe_79.tsv -wd ~/codebert -b /codebert```
