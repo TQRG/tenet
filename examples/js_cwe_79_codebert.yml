@@ -6,7 +6,7 @@ nodes:
   - plugin:
       name: labeler
   - container:
-      image: jscodeshift
+      image: epicosy/securityaware:jscodeshift
       name: jscodeshift_cwe_79
       cmds:
         - "jscodeshift -p -s -d -t /js-fn-rearrange/transforms/outputFnBoundary.js {p1}"
@@ -14,7 +14,7 @@ nodes:
   - plugin:
       name: function_boundary
   - container:
-      image: astminer
+      image: epicosy/securityaware:astminer
       name: astminer
       cmds:
         - "mkdir -p {p2}"
