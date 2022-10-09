@@ -44,7 +44,6 @@ class GithubCollector(PluginHandler):
         check_or_create_dir(diff_dir)
 
         runner_data = Runner()
-        threads = self.app.get_config('local_threads')
 
         # Filter focus where commits==1
         dataset = dataset[dataset["commits"] == 1]
@@ -66,7 +65,7 @@ class GithubCollector(PluginHandler):
             task['label'] = proj['cwe'].replace('\r\n', '|')
             tasks.append(task)
 
-        worker = ThreadPoolWorker(runner_data, tasks=tasks, threads=threads, logger=self.app.log,
+        worker = ThreadPoolWorker(runner_data, tasks=tasks, threads=self.app.threads, logger=self.app.log,
                                   func=self.parse_diffs_task)
         worker.start()
 
