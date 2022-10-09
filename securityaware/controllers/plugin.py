@@ -45,7 +45,7 @@ class Plugin(Controller):
             self.app.log.error(f"{plugin_file} must be a file.")
             exit(1)
 
-        plugin_key = f"plugins.{self.app.pargs.name}"
+        plugin_key = f"plugin.{self.app.pargs.name}"
 
         # TODO: find a better way of doing this
         dest_plugin_file = Path(self.app.get_config('plugin_dir')) / (plugin_file.stem + '.py')

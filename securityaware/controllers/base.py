@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import schema
-import yaml, os
+import yaml
 from cement import Controller, ex
 from cement.utils.version import get_version_banner
 from ..core.version import get_version
@@ -40,6 +40,8 @@ class Base(Controller):
         arguments=[
             (['-f', '--file'], {'help': 'Path to the pipeline config file', 'type': str, 'required': True}),
             (['-d', '--dataset'], {'help': 'Path to the input csv dataset file', 'type': str, 'required': True}),
+            (['-t', '--threads'], {'help': 'Number of threads (overwrites the threads in config)', 'type': int,
+                                   'required': False}),
             (['-wd', '--workdir'], {'help': 'Path to the workdir.', 'type': str, 'required': True}),
             (['-b', '--bind'], {'help': 'Docker directory path to bind (to workdir as a volume).',
                                 'type': str, 'required': True})
@@ -48,6 +50,7 @@ class Base(Controller):
     def run(self):
         file = Path(self.app.pargs.file)
         dataset = Path(self.app.pargs.dataset)
+        self.app.threads = self.app.pargs.threads if self.app.pargs.threads else self.app.get_config('local_threads')
 
         if not file.exists():
             self.app.log.error(f"File {file} not found.")

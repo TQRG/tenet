@@ -115,9 +115,9 @@ class SamplingHandler(PluginHandler):
         headers = "label,hash,fpath,sline,scol,eline,ecol" if offset else None
         delimiter = (',' if offset else ' ')
 
-        xy_train.write(train_data_path, delimiter, headers=headers)
-        xy_val.write(val_data_path, delimiter, headers=headers)
-        xy_test.write(test_data_path, delimiter, headers=headers)
+        xy_train.write(train_data_path, delimiter, offset=offset, headers=headers)
+        xy_val.write(val_data_path, delimiter, offset=offset, headers=headers)
+        xy_test.write(test_data_path, delimiter, offset=offset, headers=headers)
 
         raw_files_path_str = self.get('raw_files_path')
         jsonlines_files = []

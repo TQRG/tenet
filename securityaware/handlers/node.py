@@ -68,14 +68,14 @@ class NodeHandler(HandlersInterface, Handler):
 
         if edge.name in paths:
             self.app.log.info(f"Loading node {edge.name}")
-            self.path = str(paths[edge.name])
+            self.path = Path(paths[edge.name])
             # TODO: include correct datasets, and add the layer as well
         else:
             self.app.log.info(f"Making directory for {edge.name}.")
-            self.path = str(self.app.workdir / edge.name)
-            Path(self.path).mkdir()
+            self.path = Path(self.app.workdir / edge.name)
+            self.path.mkdir()
 
-        self.output = Path(self.path, f"{dataset_name}{ext}")
+        self.output = self.path / f"{dataset_name}{ext}"
 
     @property
     def has_dataset(self):

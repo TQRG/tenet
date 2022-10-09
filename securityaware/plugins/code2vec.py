@@ -122,7 +122,7 @@ class Code2vecHandler(PluginHandler):
             with log_file.open(mode='w') as f:
                 f.write(cmd_data[0].output)
 
-        return None
+        return dataset
 
     def parse_results(self, output: str, train: bool):
         reg_exp = '\s+Precision: (?P<precision>\d+\.*\d*), Sensitivity\/Recall: (?P<recall>\d+\.*\d*), ' + \

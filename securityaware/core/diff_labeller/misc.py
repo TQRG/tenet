@@ -1,5 +1,7 @@
 import string
 import sys
+import numpy as np
+
 from itertools import accumulate
 from pathlib import Path
 from typing import TextIO, List, Tuple
@@ -84,6 +86,25 @@ def get_row_diff_range(lines: List[str], diff_bound: List[int],
     return a_del_linenos, b_add_linenos, a_del_lines, b_add_lines
 
 
+def shift_range(orig_one_line: str, formatted: str):
+    # Remove and re-insert excluded characters (whitespaces and non-ascii)
+    formatted_lines = formatted.splitlines()
+    formatted_char_cnt = [len([ch for ch in ln if ch in included_chars]) for ln in formatted_lines]
+    formatted_range = np.array(list(accumulate(formatted_char_cnt)))
+    excluded_total = [pos for pos, ch in enumerate(orig_one_line) if ch not in included_chars]
+
+    for excluded_pos in excluded_total:
+        increments = np.zeros_like(formatted_range)
+        # get the index of the elements greater than excluded_pos
+        gt_excluded_pos = np.argwhere(formatted_range >= excluded_pos)
+        # increment the elements
+        increments[gt_excluded_pos] += 1
+        # to apply the increments
+        formatted_range += increments
+
+    return list(formatted_range)
+
+
 def get_range_offset(orig: str, formatted: str) -> List[Tuple[int, int, int, int]]:
     """
     Matches the pretty-printed text with the original text, gets the corresponding row and
@@ -93,18 +114,13 @@ def get_range_offset(orig: str, formatted: str) -> List[Tuple[int, int, int, int
     :return: A list of 4-tuple of (row_start, col_start, row_end, col_end) in the original text
              for each line in the pretty-printed text.
     """
-    # Remove and re-insert excluded characters (whitespaces and non-ascii)
-    formatted_lines = formatted.splitlines()
-    formatted_char_cnt = [len([ch for ch in ln if ch in included_chars]) for ln in formatted_lines]
-    formatted_range = list(accumulate(formatted_char_cnt))
 
     orig_one_line = "".join(orig.splitlines())
-    excluded_total = [pos for pos, ch in enumerate(orig_one_line) if ch not in included_chars]
-    for excluded_pos in excluded_total:
-        formatted_range = [x + int(x >= excluded_pos) for x in formatted_range]
+    formatted_range = shift_range(orig_one_line, formatted)
 
     if formatted_range:
-        assert formatted_range[-1] == len(orig_one_line)
+        if formatted_range[-1] != len(orig_one_line):
+            raise ValueError('Size of formatted_range != size of orig_one_line')
 
         # Convert column_end pos to (column_start, column_end)
         for i in range(len(formatted_range) - 1, 0, -1):
@@ -116,6 +132,7 @@ def get_range_offset(orig: str, formatted: str) -> List[Tuple[int, int, int, int
 
         # Update orig pos for each line in the pretty-printed text
         orig_row = 1
+
         for r in range(len(formatted_range)):
             while formatted_range[r][0] > orig_line_range[orig_row]:
                 orig_row += 1

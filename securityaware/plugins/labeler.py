@@ -59,7 +59,6 @@ class Labeler(PluginHandler):
             self.file_size_limit = file_size_limit
 
         runner_data = Runner()
-        threads = self.app.get_config('local_threads')
         tasks = []
         total = len(dataset)
 
@@ -75,7 +74,7 @@ class Labeler(PluginHandler):
             task['output_dir'] = out_dir / 'inline'
             tasks.append(task)
 
-        worker = ThreadPoolWorker(runner_data, tasks=tasks, threads=threads, logger=self.app.log,
+        worker = ThreadPoolWorker(runner_data, tasks=tasks, threads=self.app.threads, logger=self.app.log,
                                   func=self.to_inline_task)
         worker.start()
 
@@ -109,8 +108,7 @@ class Labeler(PluginHandler):
             # Perform pretty-printing and diff comparison
             labeler = DiffLabeler(a_proj=entry.a_proj, b_proj=entry.b_proj, diff_block=entry.diff_block, a_str=a_str,
                                   b_str=b_str, inline_proj_dir=output_dir / f"{entry.a_proj}_{entry.b_proj}")
-            # Save the pretty printed inline diffs
-            labeler.pretty_printing()
+
             labeler(unsafe_label='unsafe' if not self.multi_label else entry.label)
 
             try:
@@ -122,8 +120,9 @@ class Labeler(PluginHandler):
 
             del labeler
 
-        except (AssertionError, ValueError) as e:
-            self.app.log.error(str(e))
+        except (AssertionError, ValueError, IndexError) as e:
+            # TODO: fix the IndexError
+            self.app.log.error(f"{entry.a_proj} {entry.a_file} {e}")
 
         return [], 0
 

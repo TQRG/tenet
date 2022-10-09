@@ -1,8 +1,8 @@
 import difflib
+import jsbeautifier
+
 from pathlib import Path
 from typing import List, Tuple
-
-import jsbeautifier
 
 from securityaware.core.exc import SecurityAwareWarning
 from securityaware.core.diff_labeller.misc import check_or_create_dir, get_range_offset, get_row_diff_range
@@ -31,38 +31,20 @@ class Labeler:
         self.a_path_file = inline_proj_dir / f"a_{a_path_mod}.txt"
         b_path_mod = self.diff_block.b_path.replace('/', '_')
         self.b_path_file = inline_proj_dir / f"b_{b_path_mod}.txt"
-        self.inline_file = inline_proj_dir / f"{Path(self.a_proj).stem}_{Path(self.b_proj).stem}_inline.txt"
+        self.inline_file = inline_proj_dir / f"{Path(self.a_proj)}_{Path(self.b_proj)}_{a_path_mod}_inline.txt"
 
-        opts = jsbeautifier.default_options()
-        opts.indent_size = 0
+        self.a_formatted = None
+        self.b_formatted = None
+        self.b_formatted_range = None
+        self.a_formatted_range = None
+        self.inline_diff_text = None
+        self.a_formatted_lines = None
+        self.b_formatted_lines = None
+        self.size_a_lines = None
+        self.size_b_lines = None
 
-        if not self.a_path_file.exists():
-            self.a_formatted = jsbeautifier.beautify(a_str, opts)
-        else:
-            with self.a_path_file.open(mode="r") as apf:
-                print(f"Reading {self.a_path_file}")
-                self.a_formatted = apf.read()
-
-        if not self.a_path_file.exists():
-            self.b_formatted = jsbeautifier.beautify(b_str, opts)
-        else:
-            with self.b_path_file.open(mode="r") as bpf:
-                print(f"Reading {self.b_path_file}")
-                self.b_formatted = bpf.read()
-
-        self.a_formatted_range = get_range_offset(a_str, self.a_formatted)
-        self.b_formatted_range = get_range_offset(b_str, self.b_formatted)
-        self.a_formatted_lines = self.a_formatted.splitlines(keepends=True)
-        self.b_formatted_lines = self.b_formatted.splitlines(keepends=True)
-        self.size_a_lines = len(self.a_formatted_lines)
-        self.size_b_lines = len(self.b_formatted_lines)
-        # TODO: handler long file names
-        if self.inline_file.exists():
-            with self.inline_file.open(mode="r") as ilf:
-                print(f"Reading {self.inline_file}")
-                self.inline_diff_text = ilf.read()
-        else:
-            self.inline_diff_text = "".join(difflib.unified_diff(self.a_formatted_lines, self.b_formatted_lines))
+        self.pretty_printing(a_str, b_str)
+        self.get_inline_diffs(a_str, b_str)
 
     def diff_bound(self) -> Tuple[List[int], List[str], int]:
         inline_lines = self.inline_diff_text.splitlines()
@@ -73,25 +55,58 @@ class Labeler:
 
         return diff_bound, inline_lines, num_diffs
 
-    def pretty_printing(self):
-        """
-                Performs pretty-printing on the whole files A and B
-        """
+    def get_inline_diffs(self, a_str: str, b_str: str):
+        self.a_formatted_range = get_range_offset(a_str, self.a_formatted)
+        self.b_formatted_range = get_range_offset(b_str, self.b_formatted)
+        self.a_formatted_lines = self.a_formatted.splitlines(keepends=True)
+        self.b_formatted_lines = self.b_formatted.splitlines(keepends=True)
+        self.size_a_lines = len(self.a_formatted_lines)
+        self.size_b_lines = len(self.b_formatted_lines)
 
-        check_or_create_dir(self.inline_proj_dir)
+        # TODO: handler long file names
+        # Save the pretty printed inline diffs
+        if self.inline_file.exists():
+            with self.inline_file.open(mode="r") as ilf:
+                print(f"Reading {self.inline_file}")
+                self.inline_diff_text = ilf.read()
+        else:
+            self.inline_diff_text = "".join(difflib.unified_diff(self.a_formatted_lines, self.b_formatted_lines))
 
-        if not self.a_path_file.exists():
-            with self.a_path_file.open(mode="w") as a_temp:
-                print(f"Writing {self.a_path_file}")
-                a_temp.write(self.a_formatted)
-        if not self.b_path_file.exists():
-            with self.b_path_file.open(mode="w") as b_temp:
-                print(f"Writing {self.b_path_file}")
-                b_temp.write(self.b_formatted)
-        if not self.inline_file.exists():
             with self.inline_file.open(mode='w') as diff_temp:
                 print(f"Writing {self.inline_file}")
                 diff_temp.write(self.inline_diff_text)
+
+    def pretty_printing(self, a_str: str, b_str: str):
+        """
+                Performs pretty-printing on the whole files A and B
+        """
+        opts = jsbeautifier.default_options()
+        opts.indent_size = 0
+        check_or_create_dir(self.inline_proj_dir)
+
+        if not self.a_path_file.exists():
+            self.a_formatted = jsbeautifier.beautify(a_str, opts)
+
+            with self.a_path_file.open(mode="w") as a_temp:
+                print(f"Writing {self.a_path_file}")
+                a_temp.write(self.a_formatted)
+
+        else:
+            with self.a_path_file.open(mode="r") as apf:
+                print(f"Reading {self.a_path_file}")
+                self.a_formatted = apf.read()
+
+        if not self.b_path_file.exists():
+            self.b_formatted = jsbeautifier.beautify(b_str, opts)
+
+            with self.b_path_file.open(mode="w") as b_temp:
+                print(f"Writing {self.b_path_file}")
+                b_temp.write(self.b_formatted)
+
+        else:
+            with self.b_path_file.open(mode="r") as bpf:
+                print(f"Reading {self.b_path_file}")
+                self.b_formatted = bpf.read()
 
     def add_inline_diffs(self, project: str, file_path: str, formatted_range: List, linenos: List[int], label: str):
         """

@@ -37,12 +37,14 @@ class XYDataset:
         self.x.add(x_row)
         self.y.add(y_row)
 
-    def write(self, path: Path, delimiter: str, headers: str = None):
+    def write(self, path: Path, delimiter: str, offset: bool, headers: str = None):
         with path.open(mode="w", newline='') as dataset_file:
             if headers:
                 dataset_file.write(headers + "\n")
             for x, y in zip(self.x.rows, self.y.rows):
-                # dataset_file.write(f"{y}{delimiter}{x}\n")
-                dataset_file.write(f"{y},{delimiter.join(x)}\n")
+                if offset:
+                    dataset_file.write(f"{y},{delimiter.join(x)}\n")
+                else:
+                    dataset_file.write(f"{delimiter.join(x)}\n")
 
         return path
