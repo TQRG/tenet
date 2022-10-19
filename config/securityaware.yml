@@ -24,6 +24,10 @@ securityaware:
 ### Threading
   local_threads: 8
 
+### labels mapping
+  labels_map:
+    safe: 0
+    unsafe: 1
 
 log.colorlog:
 
