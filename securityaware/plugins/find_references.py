@@ -84,6 +84,7 @@ class FindReferencesHandler(PluginHandler):
                 commits.append(len(commit_fix_hashes))
 
         new_dataset = pd.DataFrame(filtered_dataset, columns=list(dataset.columns.values))
+        new_dataset.rename(columns={'id': 'cve_id'})
         new_dataset.drop(columns=[column])
         new_dataset['project'] = projects
         new_dataset['repo'] = repos

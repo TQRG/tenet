@@ -45,7 +45,7 @@ log.colorlog:
 ### The maximun number of log files to maintain when rotating
   max_files: 4
 
-plugin.github_collector:
+plugin.collector:
   enabled: true
 
 plugin.compare:

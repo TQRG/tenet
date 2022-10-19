@@ -2,7 +2,7 @@ import re
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, AnyStr, Any, Tuple, Union
+from typing import Dict, List, AnyStr, Any, Tuple, Union, Callable
 from schema import Schema, And, Use, Optional, Or
 
 from securityaware.core.exc import SecurityAwareError
@@ -145,6 +145,8 @@ class ContainerCommand:
     parsed: str = None
     skip: bool = True
     placeholders: Dict[str, Placeholder] = field(default_factory=lambda: {})
+    parse_fn: Callable = None
+    tag: str = None
 
     def get_placeholders(self):
         return {t: p.value for t, p in self.placeholders.items()}

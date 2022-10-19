@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, AnyStr
+from typing import List, AnyStr, Any, Dict
 
 
 @dataclass
@@ -28,10 +28,12 @@ class Store:
 
 @dataclass
 class Task(Store):
+    id: int = None
     status: str = None
     start_date: datetime = None
     end_date: datetime = None
     err: AnyStr = None
+    result: Any = None
 
     def duration(self):
         if self.start_date and self.end_date:
@@ -63,13 +65,32 @@ class Task(Store):
 
 
 @dataclass
-class Runner(Store):
+class Runner:
+    pointer: int = 1
     tasks: List[Task] = field(default_factory=lambda: [])
     finished: List[Task] = field(default_factory=lambda: [])
-    running: List[Task] = field(default_factory=lambda: [])
+    running: Dict[int, Task] = field(default_factory=lambda: {})
     waiting: List[Task] = field(default_factory=lambda: [])
+
+    def __len__(self):
+        return len(self.tasks)
+
+    def results(self, skip_none: bool = True):
+        return [task.result for task in self.finished if not (skip_none and (task.result is None))]
+
+    def reset(self):
+        self.tasks = []
+        self.pointer = 1
+        self.finished = []
+        self.running = {}
+        self.waiting = []
+
+    def add(self, task: Task):
+        task.id = self.pointer
+        self.tasks.append(task)
+        self.pointer += 1
 
     def done(self, task: Task):
         task.done()
         self.finished += [task]
-        self.running.remove(task)
+        del self.running[task.id]

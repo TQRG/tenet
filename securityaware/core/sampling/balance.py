@@ -519,20 +519,18 @@ def disjoint_smote_hash(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[X
            XYDataset(Dataset(X_test), Dataset(Y_test))
 
 
-def split_data(x_dataset: Dataset, y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
+def split_data(dataset: pd.DataFrame, seed) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     print("Splitting dataset into train and test...")
-    x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(x_dataset.rows, y_dataset.rows,
-                                                                                test_size=0.1, random_state=seed)
+    train, test = sklearn.model_selection.train_test_split(dataset, test_size=0.1, random_state=seed)
     print("Splitting train set into train and validation...")
-    x_train, x_val, y_train, y_val = sklearn.model_selection.train_test_split(x_train, y_train, test_size=1 / 9,
-                                                                              random_state=seed)  # (1/9) x 0.9 = 0.1
+    # (1/9) x 0.9 = 0.1
+    train, val = sklearn.model_selection.train_test_split(train, test_size=1/9, random_state=seed)
 
-    calculate_labels_dist(y_train, 'train')
-    calculate_labels_dist(y_val, 'val')
-    calculate_labels_dist(y_test, 'test')
+    calculate_labels_dist(train, 'train')
+    calculate_labels_dist(val, 'val')
+    calculate_labels_dist(test, 'test')
 
-    return XYDataset(Dataset(x_train), Dataset(y_train)), XYDataset(Dataset(x_val), Dataset(y_val)), \
-           XYDataset(Dataset(x_test), Dataset(y_test))
+    return train, val, test
 
 
 def oversampling(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:

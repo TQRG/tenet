@@ -2,14 +2,18 @@
 from cement import App, TestApp
 from cement.core.exc import CaughtSignal, InterfaceError
 
-from securityaware.handlers.plugin_loader import PluginLoader
 from .core.exc import SecurityAwareError
 from .controllers.base import Base
 from .controllers.plugin import Plugin
+
 from securityaware.core.interfaces import HandlersInterface
-from securityaware.handlers.container import ContainerHandler
+from securityaware.handlers.github import GithubHandler
 from securityaware.handlers.command import CommandHandler
+from securityaware.handlers.runner import MultiTaskHandler
 from securityaware.handlers.workflow import WorkflowHandler
+from securityaware.handlers.plugin_loader import PluginLoader
+from securityaware.handlers.container import ContainerHandler
+from securityaware.handlers.code_parser import CodeParserHandler
 
 
 class SecurityAware(App):
@@ -51,7 +55,8 @@ class SecurityAware(App):
 
         # register handlers
         handlers = [
-            Base, Plugin, PluginLoader, ContainerHandler, CommandHandler, WorkflowHandler
+            Base, Plugin, PluginLoader, ContainerHandler, CommandHandler, WorkflowHandler, CodeParserHandler,
+            MultiTaskHandler, GithubHandler
         ]
 
     def get_config(self, key: str):

@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 
 from docker.errors import APIError, NotFound
 from docker.models.containers import Container
@@ -24,6 +24,10 @@ class ContainerHandler(NodeHandler):
             self.app.log.error(str(nf))
 
             return None
+
+    @property
+    def working_dir(self):
+        return Path(str(self.path).replace(str(self.app.workdir), str(self.app.bind)))
 
     def find_output(self):
         """
@@ -125,54 +129,50 @@ class ContainerHandler(NodeHandler):
             Run commands inside the specified container.
         """
         cmds_data = []
-        container_wd = str(self.path).replace(str(self.app.workdir), str(self.app.bind))
+
+        if not cmds:
+            self.app.log.warning(f'No commands to execute.')
+            return False, cmds_data
 
         for cmd in cmds:
             if self.output and self.output.exists() and cmd.placeholders and self.execute_cmd(cmd) and cmd.skip:
                 continue
 
-            cmd_data = self.__call__(container_id, cmd_str=str(cmd), cmd_cwd=container_wd, raise_err=False)
+            cmd_data = self.__call__(container_id, cmd_str=str(cmd), cmd_cwd=self.working_dir, raise_err=False,
+                                     tag=cmd.tag)
             cmds_data.append(cmd_data)
 
-            if cmd_data.error or cmd_data.return_code != 0:
-                self.app.log.error(cmd_data.error)
-                return False, cmds_data
+            if cmd_data.output is not None:
+                if cmd.parse_fn is not None:
+                    cmd_data.parsed_output = cmd.parse_fn(cmd_data.output)
 
-            if cmd_data.output:
-                self.app.log.info(cmd_data.output)
+            if cmd_data.error or cmd_data.return_code != 0:
+                return False, cmds_data
 
         return True, cmds_data
 
-    def run(self) -> Tuple[bool, List[CommandData]]:
-        """
-            Executes container node.
-
-            :return: whether the command executions passed or failed as a bool.
-        """
-
-        container_name = self.app.workdir.name + '_' + self.edge.name
+    def run(self, image_name: str, node_name: str = None):
+        # TODO: Fix this, folder set to the layer name (astminer container inside layer gets codeql folder)
+        container_name = f"{self.app.workdir.name}_{node_name if node_name else self.node.name}"
         container = self[container_name]
 
         if not container:
             self.app.log.warning(f"Container {container_name} not found.")
-
-            # TODO: Fix this, folder set to the layer name (astminer container inside layer gets codeql folder)
-            self.create(self.node.image, container_name)
+            _id = self.create(image_name, container_name)
             container = self[container_name]
 
             if not container:
                 self.app.log.warning(f"Container {container_name} created but not found.")
                 return False, []
 
-        self.start(container_name)
-        exec_status = self.run_cmds(container.id, self.node.cmds)
-        self.app.log.info("Done")
+        self.start(container.id)
 
+        return container
+
+    def stop(self, container: Container):
         if container and container.status == "running":
             self.app.log.warning(f"Stopping running container {container.name}")
             container.stop()
-
-        return exec_status
 
     def create(self, image: str, name: str) -> str:
         """
@@ -186,7 +186,7 @@ class ContainerHandler(NodeHandler):
         binds = {str(self.app.workdir): {'bind': self.app.bind, 'mode': 'rw'}}
         host_config = self.app.docker.api.create_host_config(binds=binds)
         output = self.app.docker.api.create_container(image, name=name, volumes=["/data"], host_config=host_config,
-                                                      tty=True, detach=True)
+                                                      tty=True, detach=True, working_dir=str(self.working_dir))
 
         self.app.log.info(f"Created container for {name} with id {output['Id'][:10]}")
 
@@ -195,11 +195,11 @@ class ContainerHandler(NodeHandler):
 
         return output['Id']
 
-    def __call__(self, container_id: str, cmd_str: str, args: str = "", call: bool = True, cmd_cwd: str = None,
+    def __call__(self, container_id: str, cmd_str: str, args: str = "", call: bool = True, cmd_cwd: Path = None,
                  msg: str = None, env: Path = None, timeout: int = None, raise_err: bool = False,
-                 exit_err: bool = False, **kwargs) -> CommandData:
+                 exit_err: bool = False, tag: str = None, **kwargs) -> CommandData:
 
-        cmd_data = CommandData(f"{cmd_str} {args}" if args else cmd_str)
+        cmd_data = CommandData(f"{cmd_str} {args}" if args else cmd_str, tag=tag)
 
         if msg and self.app.pargs.verbose:
             self.app.log.info(msg)
@@ -233,22 +233,27 @@ class ContainerHandler(NodeHandler):
         out = []
         err = []
 
-        for stdout, stderr in self.app.docker.api.exec_start(exec_id, stream=True, demux=True):
-            if stdout:
-                line = stdout.decode('utf-8').rstrip('\n')
+        with (self.path / f'{exec_id}_out.txt').open(mode='a') as out_file, \
+                (self.path / f'{exec_id}_err.txt').open(mode='a') as err_file:
 
-                if self.app.pargs.verbose:
-                    print(line)
+            for stdout, stderr in self.app.docker.api.exec_start(exec_id, stream=True, demux=True):
+                if stdout:
+                    line = stdout.decode('utf-8').rstrip('\n')
+                    out_file.write(line + '\n')
 
-                out.append(line)
+                    if self.app.pargs.verbose:
+                        self.app.log.info(line)
 
-            if stderr:
-                err_line = stderr.decode('utf-8').rstrip('\n')
+                    out.append(line)
 
-                if self.app.pargs.verbose:
-                    print(err_line)
+                if stderr:
+                    err_line = stderr.decode('utf-8').rstrip('\n')
+                    err_file.write(err_line + '\n')
 
-                err.append(err_line)
+                    if self.app.pargs.verbose:
+                        self.app.log.error(err_line)
+
+                    err.append(err_line)
 
         cmd_data.end = datetime.now()
         cmd_data.duration = (cmd_data.end - cmd_data.start).total_seconds()
@@ -270,7 +275,7 @@ class ContainerHandler(NodeHandler):
         tar_bash_file = str_to_tarfile(f"#!/bin/bash\n{cmd_str}\n", tar_info_name=bash_file.name)
 
         with tar_bash_file.open(mode='rb') as fd:
-            if not container.put_archive(data=fd, path=str(path)):
+            if not container.put_archive(data=fd.read(), path=str(path)):
                 raise SecurityAwareError(f'Writing bash file {bash_file.name} to {path} failed.')
 
         self(container_id=container.id, cmd_str=f"chmod {mode} {bash_file}", raise_err=True)
@@ -288,7 +293,7 @@ class ContainerHandler(NodeHandler):
         file_path = path / name
 
         with tar_bash_file.open(mode='rb') as fd:
-            if not container.put_archive(data=fd, path=str(path)):
+            if not container.put_archive(data=fd.read(), path=str(path)):
                 raise SecurityAwareError(f'Writing file {name} to {path} failed.')
 
         self(container_id=container.id, cmd_str=f"chmod {mode} {file_path}", raise_err=True)

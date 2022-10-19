@@ -1,9 +1,4 @@
-from pathlib import Path
-
-from cement.core.exc import FrameworkError
 from cement.ext.ext_plugin import CementPluginHandler
-
-from securityaware.core.exc import SecurityAwareError
 
 
 class PluginLoader(CementPluginHandler):

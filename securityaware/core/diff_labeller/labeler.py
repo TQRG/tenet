@@ -4,34 +4,29 @@ import jsbeautifier
 from pathlib import Path
 from typing import List, Tuple
 
-from securityaware.core.exc import SecurityAwareWarning
 from securityaware.core.diff_labeller.misc import check_or_create_dir, get_range_offset, get_row_diff_range
-from securityaware.data.diff import InlineDiff, DiffBlock
+from securityaware.data.diff import InlineDiff, Entry
 
 
 class Labeler:
-    def __init__(self, a_proj: str, b_proj: str, diff_block: DiffBlock, a_str: str, b_str: str, inline_proj_dir: Path):
+    def __init__(self, entry: Entry, a_str: str, b_str: str, inline_proj_dir: Path):
         """
-            :param a_proj: The project id of the parent commit: <owner>_<project_name>_<sha>.
-            :param b_proj: The project id of the later commit: <owner>_<project_name>_<sha>.
-            :param diff_block: The diff block with the file paths of files A and B.
+            :param entry: Diff block entry.
             :param a_str: The contents of file A.
             :param b_str: The contents of file B.
         """
-        self.a_proj = a_proj
-        self.b_proj = b_proj
-        self.diff_block = diff_block
+        self.entry = entry
         self.a_del_line_cnt = 0
         self.b_add_line_cnt = 0
         self.inline_diffs: List[InlineDiff] = []
         self.sim_ratio = None
         self.inline_proj_dir = inline_proj_dir
 
-        a_path_mod = self.diff_block.a_path.replace('/', '_')
+        a_path_mod = self.entry.diff_block.a_path.replace('/', '_')
         self.a_path_file = inline_proj_dir / f"a_{a_path_mod}.txt"
-        b_path_mod = self.diff_block.b_path.replace('/', '_')
+        b_path_mod = self.entry.diff_block.b_path.replace('/', '_')
         self.b_path_file = inline_proj_dir / f"b_{b_path_mod}.txt"
-        self.inline_file = inline_proj_dir / f"{Path(self.a_proj)}_{Path(self.b_proj)}_{a_path_mod}_inline.txt"
+        self.inline_file = inline_proj_dir / f"{a_path_mod}_inline.txt"
 
         self.a_formatted = None
         self.b_formatted = None
@@ -108,19 +103,22 @@ class Labeler:
                 print(f"Reading {self.b_path_file}")
                 self.b_formatted = bpf.read()
 
-    def add_inline_diffs(self, project: str, file_path: str, formatted_range: List, linenos: List[int], label: str):
+    def add_inline_diffs(self, owner: str, project: str, version: str, file_path: str, formatted_range: List,
+                         linenos: List[int], label: str):
         """
             Adds the InlineDiff instances.
-            :param project: The project id of the commit: <owner>_<project_name>_<sha>.
+            :param owner: The repository owner.
+            :param project: The respective project.
+            :param version: The commit sha.
             :param file_path: The filepath of the target file.
             :param formatted_range: The InlineDiff instance.
             :param linenos: The InlineDiff instance.
             :param label: The InlineDiff instance.
         """
         for i, inlineno in enumerate(linenos):
-            inline_diff = InlineDiff(project=project, file_path=file_path, sline=formatted_range[inlineno - 1][0],
-                                     scol=formatted_range[inlineno - 1][1], eline=formatted_range[inlineno - 1][2],
-                                     ecol=formatted_range[inlineno - 1][3], label=label)
+            inline_diff = InlineDiff(owner=owner, project=project, version=version, fpath=file_path, label=label,
+                                     sline=formatted_range[inlineno - 1][0], scol=formatted_range[inlineno - 1][1],
+                                     eline=formatted_range[inlineno - 1][2], ecol=formatted_range[inlineno - 1][3])
 
             self.inline_diffs.append(inline_diff)
 
@@ -137,15 +135,17 @@ class Labeler:
                 self.a_del_line_cnt += len(a_del_linenos)
                 self.b_add_line_cnt += len(b_add_linenos)
 
-                self.add_inline_diffs(project=self.a_proj, file_path=self.diff_block.a_path, label=unsafe_label,
+                self.add_inline_diffs(owner=self.entry.owner, project=self.entry.project, version=self.entry.a_version,
+                                      file_path=self.entry.diff_block.a_path, label=unsafe_label,
                                       linenos=a_del_linenos, formatted_range=self.a_formatted_range)
 
-                self.add_inline_diffs(project=self.b_proj, file_path=self.diff_block.b_path, label='safe',
+                self.add_inline_diffs(owner=self.entry.owner, project=self.entry.project, version=self.entry.b_version,
+                                      file_path=self.entry.diff_block.b_path, label='safe',
                                       linenos=b_add_linenos, formatted_range=self.b_formatted_range)
 
         return self.inline_diffs
 
-    def calc_sim_ratio(self, thresh: float = 0.8) -> float:
+    def calc_sim_ratio(self) -> float:
         """
             Computes and records the similarity ratio between the two files from the parent and the later
             commit at line-level (after pretty-printing). Prints out a notification message if the ratio is
@@ -160,14 +160,13 @@ class Labeler:
             total_lines = self.size_a_lines + self.size_b_lines
             self.sim_ratio = 1. - (self.a_del_line_cnt + self.b_add_line_cnt) / total_lines
 
-        if self.sim_ratio < thresh:
-            warning = f"\nNote: line-level similarity ratio = {self.sim_ratio}, " \
-                      f"a:-{self.a_del_line_cnt}/{self.size_a_lines}," \
-                      f"b:+{self.b_add_line_cnt}/{self.size_b_lines}\n" \
-                      f"a: {self.a_proj},{self.diff_block.a_path}\nb: {self.b_proj},{self.diff_block.b_path}\n"
-            raise SecurityAwareWarning(warning)
-
         return self.sim_ratio
 
     def __str__(self):
-        return f"{self.a_proj},{self.diff_block.a_path},{self.b_proj},{self.diff_block.b_path},{self.sim_ratio}"
+        return f"{self.entry.a_version},{self.entry.diff_block.a_path},{self.entry.b_version}," \
+               f"{self.entry.diff_block.b_path},{self.sim_ratio}"
+
+    def warning(self) -> str:
+        return f"\nNote: line-level similarity ratio = {self.sim_ratio}, a:-{self.a_del_line_cnt}/{self.size_a_lines}," \
+               f"b:+{self.b_add_line_cnt}/{self.size_b_lines}\na: {self.entry.a_version},{self.entry.diff_block.a_path}\n" \
+               f"b: {self.entry.b_version},{self.entry.diff_block.b_path}\n "

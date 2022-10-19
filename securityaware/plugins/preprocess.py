@@ -3,8 +3,8 @@ import pandas as pd
 from typing import Union
 from pathlib import Path
 
-from securityaware.core.astminer.common import common
-from securityaware.core.astminer.preprocess import process_file, save_dictionaries
+from securityaware.core.astminer.preprocess import save_dictionaries
+from securityaware.core.preprocess.context_paths import get_histograms, ContextPathsTruncator
 from securityaware.handlers.plugin import PluginHandler
 
 
@@ -42,9 +42,6 @@ class PreprocessHandler(PluginHandler):
         train_data_path = self.get('train_data_path')
         val_data_path = self.get('val_data_path')
         test_data_path = self.get('test_data_path')
-        word_histogram_path = self.get('word_histogram_path')
-        path_histogram_file = self.get('path_histogram_file')
-        target_histogram_path = self.get('target_histogram_path')
 
         if not train_data_path:
             self.app.log.warning(f"Train data file not instantiated.")
@@ -70,49 +67,42 @@ class PreprocessHandler(PluginHandler):
             self.app.log.warning(f"Test data file not found.")
             return None
 
-        if not word_histogram_path:
-            self.app.log.warning(f"Word histogram data file not instantiated.")
-            return None
+        train_data = pd.read_csv(str(train_data_path))
+        test_data = pd.read_csv(str(test_data_path))
+        val_data = pd.read_csv(str(val_data_path))
 
-        if not Path(word_histogram_path).exists():
-            self.app.log.warning(f"Word histogram data file not found.")
-            return None
+        self.app.log.info("Creating histogram from training data")
+        word_vocab, path_vocab = get_histograms(train_data['input'].to_list())
+        word_to_count: dict = word_vocab(max_size=word_vocab_size)
+        path_to_count: dict = path_vocab(max_size=path_vocab_size)
+        target_to_count: dict = train_data['label'].value_counts().to_dict()
+        cp_truncator = ContextPathsTruncator(max_vectors=max_contexts, word_to_count=word_to_count,
+                                             path_to_count=path_to_count)
+        self.app.log.info("Truncating train data")
+        train_context_paths, train_data_info = cp_truncator(context_paths=train_data['input'].to_list(),
+                                                            labels=train_data['label'].to_list(), path=train_output_path)
+        self.app.log.info(f'Train data info: {train_data_info}')
 
-        if not path_histogram_file:
-            self.app.log.warning(f"Path histogram data file not instantiated.")
-            return None
-
-        if not Path(path_histogram_file).exists():
-            self.app.log.warning(f"Path histogram data file not found.")
-            return None
-
-        if not target_histogram_path:
-            self.app.log.warning(f"Target histogram data file not instantiated.")
-            return None
-
-        if not Path(target_histogram_path).exists():
-            self.app.log.warning(f"Target histogram data file not found.")
-            return None
-
-        word_to_count, path_to_count, target_to_count = common.get_counts(word_histogram=word_histogram_path,
-                                                                          word_vocab_size=word_vocab_size,
-                                                                          path_histogram=path_histogram_file,
-                                                                          path_vocab_size=path_vocab_size,
-                                                                          target_histogram=target_histogram_path,
-                                                                          target_vocab_size=target_vocab_size)
-
-        num_training_examples = process_file(file_path=train_data_path, output_path=train_output_path,
-                                             word_to_count=word_to_count, path_to_count=path_to_count,
-                                             max_contexts=max_contexts)
-
-        process_file(file_path=test_data_path, output_path=test_output_path, word_to_count=word_to_count,
-                     path_to_count=path_to_count, max_contexts=max_contexts)
-
-        process_file(file_path=val_data_path, output_path=val_output_path, word_to_count=word_to_count,
-                     path_to_count=path_to_count, max_contexts=max_contexts)
+        with Path(train_output_path).open(mode='w') as f:
+            for cp in train_context_paths:
+                f.write(f"{cp}\n")
 
         save_dictionaries(dict_file_path=dict_file_path, word_to_count=word_to_count, path_to_count=path_to_count,
-                          target_to_count=target_to_count, num_training_examples=num_training_examples)
+                          target_to_count=target_to_count, num_training_examples=train_data_info.total)
+
+        self.app.log.info("Truncating test data")
+        test_context_paths, test_data_info = cp_truncator(context_paths=test_data['input'].to_list(),
+                                                          labels=test_data['label'].to_list(), path=test_output_path)
+        self.app.log.info(f'Test data info: {test_data_info}')
+
+        with Path(test_output_path).open(mode='w') as f:
+            for cp in test_context_paths:
+                f.write(f"{cp}\n")
+
+        self.app.log.info("Truncating validation data")
+        val_context_paths, val_data_info = cp_truncator(context_paths=val_data['input'].to_list(),
+                                                        labels=val_data['label'].to_list(), path=val_output_path)
+        self.app.log.info(f'Val data info: {val_data_info}')
 
         return dataset
 

@@ -1,13 +1,23 @@
 import pandas as pd
-import re
 
 from typing import Union
 from pathlib import Path
 
-from securityaware.core.exc import Skip
-from securityaware.utils.misc import count_labels
 from securityaware.data.schema import ContainerCommand
 from securityaware.handlers.plugin import PluginHandler
+
+
+def parse_results(output: str):
+    results = []
+
+    # TODO: Parse output into results
+    for line in output.splitlines():
+        print(line)
+    #    match = re.search(reg_exp, line)
+
+    #    if match:
+    #        results.append(match.groupdict())
+    return results
 
 
 class CodeBERTHandler(PluginHandler):
@@ -21,7 +31,7 @@ class CodeBERTHandler(PluginHandler):
     def __init__(self, **kw):
         super().__init__(**kw)
 
-    def run(self, dataset: pd.DataFrame, train: bool = True, gpus: int = 0, max_epochs: int = 20,
+    def run(self, dataset: pd.DataFrame, train: bool = True, evaluate: bool = True, gpus: int = 0, max_epochs: int = 20,
             image_name: str = 'codebert', **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
@@ -104,68 +114,33 @@ class CodeBERTHandler(PluginHandler):
 #        if Path(save_path + '_iter19.index').exists() and train:
 #            raise Skip(f"Model path {save_path} exists. Skipping")
 
-        container_name = f"{self.app.workdir.name}_codebert"
-        container_handler = self.app.handler.get('handlers', 'container', setup=True)
-        codebert_container = container_handler[container_name]
-
-        if codebert_container:
-            _id = codebert_container.id
-        else:
-            _id = container_handler.create(image_name, container_name)
-            codebert_container = container_handler[container_name]
-
-        container_handler.start(_id)
-        # TODO: find better way of performing this bind
-        model_dir = Path(self.app.bind, Path(self.path).name)
+        container = self.container_handler.run(image_name=image_name, node_name=self.node.name)
         #save_path = save_path.replace(str(self.app.workdir), str(self.app.bind))
-        container_handler.mkdir(_id, str(model_dir))
 
-        # TODO: fix this
         #container_handler.load(self.edge, dataset_name='output', ext='')
-        container_handler.path = ''
         step = 'train' if train else 'test'
 
-        default = f"python3 codebert.py --task {step} --gpus {gpus} --max_epochs {max_epochs}"
+        default = f"python3 /code_bert/codebert.py --task {step} --gpus {gpus} --max_epochs {max_epochs}"
         default = f"{default} --train_dataset_file {train_lines_path} --validation_dataset_file {val_lines_path}"
         default = f"{default} --test_dataset_file {test_lines_path} --train_offset_file {train_offset_file}"
         default = f"{default} --validation_offset_file {val_offset_file} --test_offset_file {test_offset_file}"
 
+        cmds = []
+
         if train:
-            cmd = ContainerCommand(org=f"{default}")
-        else:
-            cmd = ContainerCommand(org=f"{default}")
+            cmds.append(ContainerCommand(org=f"{default}", parse_fn=parse_results, tag='train'))
+        if evaluate:
+            cmds.append(ContainerCommand(org=f"{default}", parse_fn=parse_results, tag='test'))
 
-        log_file = Path(self.path, f'{step}_output.txt')
-        error_file = Path(self.path, f'{step}_errors.txt')
+        outcome, cmd_data = self.container_handler.run_cmds(container.id, cmds)
 
-        outcome, cmd_data = container_handler.run_cmds(codebert_container.id, [cmd])
+        for cd in cmd_data:
+            df = pd.DataFrame(cd.parsed_output)
+            df.to_csv(f"{self.path}/{cd.tag}_results.csv")
 
-        if cmd_data[0].error:
-            with error_file.open(mode='w') as f:
-                f.write(cmd_data[0].error)
+        self.container_handler.stop(container)
 
-        if cmd_data[0].output:
-            # self.parse_results(cmd_data[0].output, train)
-
-            with log_file.open(mode='w') as f:
-                f.write(cmd_data[0].output)
-
-        return None
-
-    def parse_results(self, output: str, train: bool):
-        results = []
-        step = 'train' if train else 'test'
-
-        # TODO: Parse output into results
-        for line in output.splitlines():
-            print(line)
-        #    match = re.search(reg_exp, line)
-
-        #    if match:
-        #        results.append(match.groupdict())
-
-        df = pd.DataFrame(results)
-        df.to_csv(f"{self.path}/{step}_results.csv")
+        return dataset
 
 
 def load(app):

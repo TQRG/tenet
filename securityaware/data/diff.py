@@ -4,8 +4,10 @@ from pathlib import Path
 
 @dataclass
 class InlineDiff:
+    owner: str
     project: str
-    file_path: str
+    version: str
+    fpath: str
     sline: int
     scol: int
     eline: int
@@ -13,7 +15,8 @@ class InlineDiff:
     label: str
 
     def is_same(self, other):
-        return self.project == other.project and self.file_path == other.file_path and self.label == other.label
+        return self.owner == other.owner and self.project == other.project and self.version == other.version and \
+               self.fpath == other.fpath and self.label == other.label
 
     def inbounds(self, other):
         if self.sline > other.eline:
@@ -36,11 +39,22 @@ class InlineDiff:
 
         return False
 
+    def to_dict(self, **kwargs):
+        il_dict = {'owner': self.owner, 'version': self.version, 'project': self.project, 'fpath': self.fpath,
+                   'sline': self.sline, 'scol': self.scol, 'eline': self.eline, 'ecol': self.ecol, 'label': self.label}
+
+        if kwargs:
+            il_dict.update(kwargs)
+
+        return il_dict
+
     def to_list(self):
-        return [self.project, self.file_path, self.sline, self.scol, self.eline, self.ecol, self.label]
+        return [self.owner, self.project, self.version, self.fpath, self.sline, self.scol, self.eline, self.ecol,
+                self.label]
 
     def __str__(self):
-        return f"{self.project},{self.file_path},{self.sline},{self.scol},{self.eline},{self.ecol},{self.label}"
+        return f"{self.owner},{self.project},{self.version},{self.fpath},{self.sline},{self.scol},{self.eline}," \
+               f"{self.ecol},{self.label}"
 
 
 @dataclass
@@ -49,11 +63,11 @@ class FunctionBoundary(InlineDiff):
     label: str = ''
 
     @staticmethod
-    def parse_fn_inline_diffs(fn_boundaries: dict, project: str, fpath: str):
+    def parse_fn_inline_diffs(fn_boundaries: dict, owner: str, project: str, version: str, fpath: str):
         def get_fn_bound(fn_bound_str: str, ftype: str):
             sline, scol, eline, ecol = fn_bound_str.split(",")
             return FunctionBoundary(sline=int(sline), scol=int(scol), eline=int(eline), ecol=int(ecol), ftype=ftype,
-                                    project=project, file_path=fpath)
+                                    owner=owner, project=project, version=version, fpath=fpath)
 
         fn_decs = [get_fn_bound(fn_dec, 'fnDec') for fn_dec in fn_boundaries['fnDec']] if 'fnDec' in fn_boundaries else []
         fn_exps = [get_fn_bound(fn_exp, 'fnExp') for fn_exp in fn_boundaries['fnExps']] if 'fnExps' in fn_boundaries else []
@@ -79,21 +93,37 @@ class DiffBlock:
     a_path: str
     b_path: str
 
+    def to_dict(self):
+        return {"start": self.start, "a_path": self.a_path, "b_path": self.b_path}
+
 
 @dataclass
 class Entry:
-    a_proj: str
-    b_proj: str
+    project: str
+    owner: str
+    a_version: str
+    b_version: str
     diff_block: DiffBlock
-    a_file: Path
-    b_file: Path
     label: str
+    a_file_size: int = None
+    b_file_size: int = None
+
+    @property
+    def full_a_path(self):
+        return Path(self.owner, self.project, self.a_version, self.diff_block.a_path)
+
+    @property
+    def full_b_path(self):
+        return Path(self.owner, self.project, self.b_version, self.diff_block.b_path)
 
     def to_dict(self):
-        return {"a_proj": self.a_proj, "b_proj": self.b_proj, "a_file": self.a_file, "b_file": self.b_file,
-                "label": self.label, "a_path": self.diff_block.a_path, "b_path": self.diff_block.b_path,
-                "start": self.diff_block.start}
+        diff_block_dict = self.diff_block.to_dict()
+        diff_block_dict.update({"owner": self.owner, "project": self.project, "a_version": self.a_version,
+                                "b_version": self.b_version, "label": self.label, 'a_file_size': self.a_file_size,
+                                'b_file_size': self.b_file_size})
+
+        return diff_block_dict
 
     def __str__(self):
-        return f"{self.a_proj},{self.b_proj},{self.diff_block.start},{self.diff_block.a_path}," \
-               f"{self.diff_block.b_path},{self.a_file},{self.b_file},{self.label}"
+        return f"{self.owner},{self.project},{self.a_version},{self.b_version},{self.diff_block.start}," \
+               f"{self.diff_block.a_path},{self.diff_block.b_path},{self.a_file_size},{self.b_file_size},{self.label}"

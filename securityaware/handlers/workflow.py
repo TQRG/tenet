@@ -1,10 +1,10 @@
-from pathlib import Path
-
 import pandas as pd
 import pandas.errors
 import tqdm
 import traceback
+
 from cement import Handler
+from pathlib import Path
 
 from securityaware.core.exc import Skip
 from securityaware.core.interfaces import HandlersInterface
@@ -115,7 +115,9 @@ class WorkflowHandler(HandlersInterface, Handler):
                 if skip:
                     continue
 
-                exec_status, cmds = node_handler.run()
+                container = node_handler.run(node_handler.node.image)
+                exec_status, cmds = node_handler.run_cmds(container.id, node_handler.node.cmds)
+                node_handler.stop(container)
 
                 if not exec_status:
                     break

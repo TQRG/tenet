@@ -25,6 +25,11 @@ class Labeler(PluginHandler):
         super().__init__(**kw)
         self.multi_label = False
         self.file_size_limit = None
+        self.inline_dir = None
+        self.sim_ratio_thresh = None
+
+    def set_dirs(self):
+        self.inline_dir = self.output.parent / 'inline'
 
     def get_file_str(self, file: Path) -> str:
         """
@@ -41,90 +46,64 @@ class Labeler(PluginHandler):
         raise ValueError(f"File {file} not found.")
 
     def run(self, dataset: pd.DataFrame, multi_label: bool = False, file_size_limit: int = None,
-            **kwargs) -> Union[pd.DataFrame, None]:
+            sim_ratio_tresh: float = 0.8, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
+        if not self.get('raw_files_path'):
+            self.app.log.warning(f"Raw files path not instantiated.")
+            return None
 
-        self.set('dataset', str(self.output))
-
-        if self.output.exists():
-            return pd.read_csv(str(self.output))
-
-        out_dir = self.output.parent
+        if not self.get('raw_files_path').exists():
+            self.app.log.warning(f"Train data file not found.")
+            return None
 
         self.multi_label = multi_label
+        self.sim_ratio_thresh = sim_ratio_tresh
+        self.set('dataset', str(self.output))
+        self.set_dirs()
 
         if file_size_limit:
             self.file_size_limit = file_size_limit
 
-        runner_data = Runner()
-        tasks = []
-        total = len(dataset)
-
-        self.app.log.info(f"Creating {total} tasks")
+        self.app.log.info(f"Creating {len(dataset)} tasks")
 
         for i, entry in tqdm.tqdm(dataset.iterrows()):
-            task = Task()
-            task['id'] = i
-            task['entry'] = Entry(a_proj=entry['a_proj'], b_proj=entry['b_proj'], a_file=Path(entry['a_file']),
-                                  diff_block=DiffBlock(start=entry['start'], a_path=entry['a_path'],
-                                                       b_path=entry['b_path']), b_file=Path(entry['b_file']),
-                                  label=entry['label'])
-            task['output_dir'] = out_dir / 'inline'
-            tasks.append(task)
+            diff_block = DiffBlock(start=entry['start'], a_path=entry['a_path'], b_path=entry['b_path'])
+            entry = Entry(a_version=entry['a_version'], b_version=entry['b_version'], label=entry['label'],
+                          diff_block=diff_block, owner=entry['owner'], project=entry['project'])
+            self.multi_task_handler.add(entry=entry)
 
-        worker = ThreadPoolWorker(runner_data, tasks=tasks, threads=self.app.threads, logger=self.app.log,
-                                  func=self.to_inline_task)
-        worker.start()
+        self.multi_task_handler(func=self.to_inline)
+        inline_diffs = self.multi_task_handler.results(expand=True)
 
-        while worker.is_alive():
-            time.sleep(1)
+        if inline_diffs:
+            return pd.DataFrame.from_dict(inline_diffs)
 
-        # Save similarity ratio as a csv file in the same output folder
-        with self.output.open(mode="w") as out, \
-                (out_dir / f"{self.output.stem}.ratios.csv").open(mode="w") as ratio_file:
+        return None
 
-            out.write("project,fpath,sline,scol,eline,ecol,label\n")
-            ratio_file.write("project_a,fpath_a,project_b,fpath_b,sim_ratio\n")
+    def to_inline(self, entry: Entry) -> list:
+        inline_proj_dir = self.inline_dir / f"{entry.owner}_{entry.project}_{entry.a_version}_{entry.b_version}"
 
-            for res in runner_data.finished:
-                if 'result' in res and res['result']:
-                    if not res['result'][0]:
-                        continue
-                    ratio_file.write(f"{res['result'][1]}\n")
-                    for inline_diff in res['result'][0]:
-                        out.write(f"{inline_diff}\n")
-
-        return pd.read_csv(str(self.output))
-
-    def to_inline_task(self, task: Task):
-        return self.to_inline(entry=task['entry'], output_dir=task['output_dir'])
-
-    def to_inline(self, entry: Entry, output_dir: Path) -> Tuple[List[InlineDiff], float]:
         try:
-            a_str = self.get_file_str(file=entry.a_file)
-            b_str = self.get_file_str(file=entry.b_file)
+            a_str = self.get_file_str(file=self.get('raw_files_path') / entry.full_a_path)
+            b_str = self.get_file_str(file=self.get('raw_files_path') / entry.full_b_path)
             # Perform pretty-printing and diff comparison
-            labeler = DiffLabeler(a_proj=entry.a_proj, b_proj=entry.b_proj, diff_block=entry.diff_block, a_str=a_str,
-                                  b_str=b_str, inline_proj_dir=output_dir / f"{entry.a_proj}_{entry.b_proj}")
-
+            labeler = DiffLabeler(entry=entry, a_str=a_str, b_str=b_str, inline_proj_dir=inline_proj_dir)
             labeler(unsafe_label='unsafe' if not self.multi_label else entry.label)
 
-            try:
-                # Calc and check similarity ratio
-                labeler.calc_sim_ratio()
-                return labeler.inline_diffs, labeler.sim_ratio
-            except SecurityAwareWarning as saw:
-                self.app.log.warning(str(saw))
+            # Calc and check similarity ratio
+            if labeler.calc_sim_ratio() < self.sim_ratio_thresh:
+                self.app.log.warning(labeler.warning())
+                return []
 
-            del labeler
+            return [il.to_dict(sim_ratio=round(labeler.sim_ratio, 3)) for il in labeler.inline_diffs]
 
         except (AssertionError, ValueError, IndexError) as e:
             # TODO: fix the IndexError
-            self.app.log.error(f"{entry.a_proj} {entry.a_file} {e}")
+            self.app.log.error(f"{inline_proj_dir}_{entry.diff_block.a_path} {e}")
 
-        return [], 0
+        return []
 
 
 def load(app):

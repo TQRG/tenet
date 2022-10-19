@@ -5,12 +5,13 @@ from pathlib import Path
 import pandas as pd
 
 from scipy.sparse import hstack, coo_matrix, load_npz
-from typing import Union, List, Any
+from typing import Union, List, Any, Tuple
 
 from securityaware.core.models import get_model
 from securityaware.handlers.plugin import PluginHandler
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import f1_score, precision_score, recall_score, matthews_corrcoef, make_scorer, confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, matthews_corrcoef, make_scorer, \
+    confusion_matrix
 
 
 class MLPipeline(PluginHandler):
@@ -44,19 +45,19 @@ class MLPipeline(PluginHandler):
         self.app.log.info(train_labels_path)
         train_labels = pd.read_csv(train_labels_path)
         test_labels = pd.read_csv(test_labels_path)
-        y_train = train_labels["label"]
-        y_test = test_labels["label"]
+        y_train = self.convert_labels(train_labels["label"]).to_numpy().reshape((-1, 1))
+        y_test = self.convert_labels(test_labels["label"]).to_numpy().reshape((-1, 1))
 
         # Create empty input.
         x_train = coo_matrix((y_train.shape[0], 0))
-        x_test = coo_matrix((y_train.shape[0], 0))
+        x_test = coo_matrix((y_test.shape[0], 0))
         self.app.log.info(f"x_train shape: {x_train.shape}, x_test shape: {x_test.shape}")
 
         self.app.log.info("Adding NLP features.")
         train_features_sparse = load_npz(train_features_path)
         test_features_sparse = load_npz(test_features_path)
-        x_train = hstack([train_labels, train_features_sparse])
-        x_test = hstack([test_labels, test_features_sparse])
+        x_train = hstack([y_train, train_features_sparse])
+        x_test = hstack([y_test, test_features_sparse])
         self.app.log.info(f"x_train shape: {x_train.shape}, x_test shape: {x_test.shape}")
 
         # Simple train, test split.
@@ -72,8 +73,9 @@ class MLPipeline(PluginHandler):
             self.app.log.info(f"Training time {train_time}")
 
         if evaluate:
-            y_predict = self.evaluate_model(model_path=model_path, x_test=x_test, y_test=y_test)
-
+            y_predict, results = self.evaluate_model(model_path=model_path, x_test=x_test, y_test=y_test)
+            res_df = pd.DataFrame([results])
+            res_df.to_csv(str(self.path / f'{model_prefix}_metrics.csv'))
             test_data = pd.read_csv(str(test_data_path))
             test_data['predicted'] = y_predict.tolist()
             test_data.to_csv(str(predictions_path), index=False)
@@ -109,7 +111,7 @@ class MLPipeline(PluginHandler):
 
         self.app.log.info(f"\tSaved best model to {model_path}.")
 
-    def evaluate_model(self, model_path: Path, x_test: Any, y_test: Any):
+    def evaluate_model(self, model_path: Path, x_test: Any, y_test: Any) -> Tuple[Any, dict]:
         model_best = pickle.load(open(model_path, 'rb'))
 
         p_start = time.time()
@@ -120,17 +122,19 @@ class MLPipeline(PluginHandler):
         num_predictions_p = num_predictions / x_test.shape[0]
 
         weighting = 'binary'
+        acc = accuracy_score(y_test, y_predict)
         mcc = matthews_corrcoef(y_test, y_predict)
         f1 = f1_score(y_test, y_predict, average=weighting)
         recall = recall_score(y_test, y_predict, average=weighting)
         precision = precision_score(y_test, y_predict, average=weighting)
         tn, fp, fn, tp = confusion_matrix(y_test, y_predict).ravel()
-        self.app.log.info(f"TN: {tn}; FP: {fp}; FN: {fn}; TP: {tp}")
-        self.app.log.info(f"MCC: {mcc}, F1: {f1}, Recall: {recall}, Precision: {precision}, # Preds. {num_predictions_p}, Pred. time: {pred_time}")
+        results = {
+            'TN': tn, 'FP': fp, 'FN': fn, 'TP': tp, 'Acc': acc, 'MCC': mcc, 'F1': f1, 'Recall': recall,
+            'Precision': precision, '#Preds.': num_predictions_p, 'Pred. time': pred_time
+        }
+        self.app.log.info(results)
 
-#        rrfile.write(f"{active_project_name},{model_prefix},{models_sub_path},{bootstrap_run},{num_predictions},{num_predictions_p},{recall},{precision},{f1},{mcc},{train_time},{pred_time}\n")
-
-        return y_predict
+        return y_predict, results
 
 
 def load(app):

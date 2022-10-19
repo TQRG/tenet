@@ -1,4 +1,4 @@
-from typing import AnyStr
+from typing import AnyStr, Any
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -14,3 +14,5 @@ class CommandData:
     output: AnyStr = None
     error: AnyStr = None
     timeout: bool = False
+    parsed_output: Any = None
+    tag: str = None
