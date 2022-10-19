@@ -1,0 +1,85 @@
+nodes:
+  - plugin:
+      name: collector
+      kwargs:
+        token: { { TOKEN } }
+        max_size: 262144
+  - plugin:
+      name: labeler
+  - plugin:
+      name: jscodeshift
+      kwargs:
+        image_name: epicosy/securityaware:jscodeshift
+  - plugin:
+      name: function_boundary
+  - plugin:
+      name: astminer  
+      kwargs:
+        image_name: epicosy/securityaware:astminer
+  - plugin:
+      name: sampling
+  - plugin:
+      name: code_mining
+  - plugin:
+      name: ml_pipeline
+
+layers:
+  collect:
+    - raw:
+        node: collector
+        sources: [files_path, dataset]
+  label:
+    - labels:
+        node: labeler
+        sources: [dataset]
+        kwargs:
+          multi_label: false
+        sinks:
+          raw:
+            files_path: raw_files_path
+  rearrange:
+    - jscodeshift:
+        node: jscodeshift
+        sources: [fn_boundaries_file, dataset_path]
+        sinks:
+          raw:
+            files_path: raw_files_path
+  preprocess:
+    - functions:
+        node: astminer
+        sources: [path_contexts, dataset_path]
+        kwargs:
+          extract_cp: false
+        sinks:
+          raw:
+            files_path: raw_files_path
+          jscodeshift:
+             dataset_path: raw_fn_bounds_file
+    - sampling:
+        node: sampling
+        sources: [train_data, val_data, test_data]
+    - features:
+        node: code_mining
+        sources: [train_sparse_matrix_path, test_sparse_matrix_path, train_labels_path, test_labels_path]
+        sinks:
+          sampling:
+            train_data: train_data_path
+            test_data: test_data_path
+  evaluate:
+    - evaluation:
+        node: ml_pipeline
+        sources: [model_path]
+        kwargs:
+          model_type: ADA
+        sinks:
+          features:
+            train_sparse_matrix_path: train_features_path
+            test_sparse_matrix_path: test_features_path
+            train_labels_path: train_labels_path 
+            test_labels_path: test_labels_path
+          sampling:
+            train_data: train_data_path
+            test_data: test_data_path
+
+workflow: [collect, label, rearrange, preprocess, evaluate]
+

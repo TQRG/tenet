@@ -1,0 +1,92 @@
+nodes:
+  - plugin:
+      name: collector
+      kwargs:
+        token: { { TOKEN } }
+        max_size: 262144
+  - plugin:
+      name: labeler
+  - plugin:
+      name: jscodeshift
+      kwargs:
+        image_name: epicosy/securityaware:jscodeshift
+  - plugin:
+      name: function_boundary
+  - plugin:
+      name: astminer  
+      kwargs:
+        image_name: epicosy/securityaware:astminer
+  - plugin:
+      name: sampling
+  - plugin:
+      name: jsonifier
+  - plugin:
+      name: codebert
+      kwargs: 
+        image_name: 'epicosy/securityaware:codebert'
+
+layers:
+  collect:
+    - raw:
+        node: collector
+        sources: [files_path, dataset]
+  label:
+    - labels:
+        node: labeler
+        sources: [dataset]
+        kwargs:
+          multi_label: false
+        sinks:
+          raw:
+            files_path: raw_files_path
+  rearrange:
+    - jscodeshift:
+        node: jscodeshift
+        sources: [fn_boundaries_file, dataset_path]
+        sinks:
+          raw:
+            files_path: raw_files_path
+  preprocess:
+    - functions:
+        node: astminer
+        sources: [path_contexts, dataset_path]
+        kwargs:
+          extract_cp: false
+        sinks:
+          raw:
+            files_path: raw_files_path
+          jscodeshift:
+             dataset_path: raw_fn_bounds_file
+        sources: [path, output]
+    - sampling:
+        node: sampling
+        sources: [train_data, val_data, test_data]
+    - jsonifier:
+        node: jsonifier
+        sources: [train_lines, val_lines, test_lines, train_offset_path, val_offset_path, test_offset_path]
+        kwargs:
+          offset: true
+        sinks:
+          raw:
+            files_path: raw_files_path
+          sampling:
+            train_data: train_data_path
+            val_data: val_data_path
+            test_data: test_data_path
+  evaluate:
+    - evaluation_cb:
+        node: codebert
+        kwargs: 
+          train: true
+          max_epochs: 5
+        sinks:
+          jsonifier:
+            train_lines: train_lines_path 
+            val_lines: val_lines_path 
+            test_lines: test_lines_path 
+            train_offset_path: train_offset_file
+            val_offset_path: val_offset_file 
+            test_offset_path: test_offset_file 
+
+workflow: [collect, label, rearrange, preprocess, evaluate]
+

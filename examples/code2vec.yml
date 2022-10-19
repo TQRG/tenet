@@ -1,0 +1,85 @@
+nodes:
+  - plugin:
+      name: collector
+      kwargs:
+        token: { { TOKEN } }
+        max_size: 262144
+  - plugin:
+      name: labeler
+  - plugin:
+      name: jscodeshift
+      kwargs:
+        image_name: epicosy/securityaware:jscodeshift
+  - plugin:
+      name: function_boundary
+  - plugin:
+      name: astminer  
+  - plugin:
+      name: sampling
+  - plugin:
+      name: preprocess
+  - plugin:
+      name: code2vec
+
+layers:
+  collect:
+    - raw:
+        node: collector
+        sources: [files_path, dataset]
+  label:
+    - labels:
+        node: labeler
+        sources: [dataset]
+        kwargs:
+          multi_label: false
+        sinks:
+          raw:
+            files_path: raw_files_path
+  rearrange:
+    - jscodeshift:
+        node: jscodeshift
+        sources: [fn_boundaries_file, dataset_path]
+        sinks:
+          raw:
+            files_path: raw_files_path
+  preprocess:
+    - contexts:
+        node: astminer
+        sources: [path_contexts, dataset_path]
+        kwargs:
+          extract_cp: true
+        sinks:
+          raw:
+            files_path: raw_files_path
+          jscodeshift:
+             dataset_path: raw_fn_bounds_file
+        sources: [path, output]
+    - sampling_c2v:
+        node: sampling
+        sources: [train_data, val_data, test_data]
+    - truncate:
+        node: preprocess
+        sources: [train_output_path, val_output_path, test_output_path, dict_file_path]
+        kwargs:
+          max_contexts: 90
+        sinks: 
+          sampling_c2v:
+            train_data: train_data_path
+            val_data: val_data_path
+            test_data: test_data_path
+  evaluate:
+    - evaluation_c2v:
+        node: code2vec
+        sources: [save_path]
+        kwargs:
+          training: true
+          max_contexts: 90
+          image_name: 'epicosy/securityaware:code2vec'
+        sinks:
+          truncate:
+            val_output_path: val_data_path
+            test_output_path: test_data_path
+            train_output_path: train_data_path
+
+workflow: [collect, label, rearrange, preprocess, evaluate]
+

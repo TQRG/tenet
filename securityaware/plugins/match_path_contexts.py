@@ -94,7 +94,7 @@ class MatchPathContextsHandler(PluginHandler):
         data_fn['path'] = path
         data_fn['fsize'] = fsize
         data_fn['label'] = labels
-        data_fn.drop(columns=['project', 'fpath', 'n_mut', 'func_id'], inplace=True)
+        data_fn.drop(columns=['project', 'fpath', 'func_id'], inplace=True)
 
         return data_fn.drop_duplicates()
 
