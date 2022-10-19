@@ -51,13 +51,7 @@ plugin.collector:
 plugin.compare:
   enabled: true
 
-plugin.filter:
-  enabled: true
-
 plugin.codeql_extract_labels:
-  enabled: true
-
-plugin.function_boundary:
   enabled: true
 
 plugin.match_location:
@@ -97,4 +91,13 @@ plugin.match_path_contexts:
   enabled: true
 
 plugin.codebert:
+  enabled: true
+
+plugin.jscodeshift:
+  enabled: true
+
+plugin.astminer:
+  enabled: true
+
+plugin.jsonifier:
   enabled: true
