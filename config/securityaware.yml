@@ -105,3 +105,9 @@ plugin.astminer:
 
 plugin.jsonifier:
   enabled: true
+
+plugin.code_mining:
+  enabled: true
+
+plugin.ml_pipeline:
+  enabled: true

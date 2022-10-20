@@ -1,8 +1,11 @@
+import re
+
 import pandas as pd
 
-from typing import Union
+from typing import Union, Tuple
 from pathlib import Path
 
+from securityaware.core.exc import SecurityAwareError
 from securityaware.data.schema import ContainerCommand
 from securityaware.handlers.plugin import PluginHandler
 
@@ -36,15 +39,6 @@ class CodeBERTHandler(PluginHandler):
         """
             runs the plugin
         """
-
-        model_dir = Path(self.app.workdir, Path(self.path).name)
-
-#        if self.get('save_path'):
-#            save_path = self.get('save_path')
-#        else:
-#            save_path = f"{model_dir}/saved_model"
-
-#        self.set('save_path', save_path)
 
         train_lines_path = self.get('train_lines_path')
         val_lines_path = self.get('val_lines_path')
@@ -110,17 +104,9 @@ class CodeBERTHandler(PluginHandler):
         val_offset_file = str(val_offset_file).replace(str(self.app.workdir), str(self.app.bind))
         test_offset_file = str(test_offset_file).replace(str(self.app.workdir), str(self.app.bind))
 
-        # TODO: find better way to skip training when model exists
-#        if Path(save_path + '_iter19.index').exists() and train:
-#            raise Skip(f"Model path {save_path} exists. Skipping")
-
         container = self.container_handler.run(image_name=image_name, node_name=self.node.name)
-        #save_path = save_path.replace(str(self.app.workdir), str(self.app.bind))
 
-        #container_handler.load(self.edge, dataset_name='output', ext='')
-        step = 'train' if train else 'test'
-
-        default = f"python3 /code_bert/codebert.py --task {step} --gpus {gpus} --max_epochs {max_epochs}"
+        default = f"python3 /code_bert/codebert.py --gpus {gpus} --max_epochs {max_epochs}"
         default = f"{default} --train_dataset_file {train_lines_path} --validation_dataset_file {val_lines_path}"
         default = f"{default} --test_dataset_file {test_lines_path} --train_offset_file {train_offset_file}"
         default = f"{default} --validation_offset_file {val_offset_file} --test_offset_file {test_offset_file}"
@@ -128,9 +114,14 @@ class CodeBERTHandler(PluginHandler):
         cmds = []
 
         if train:
-            cmds.append(ContainerCommand(org=f"{default}", parse_fn=parse_results, tag='train'))
+            cmds.append(ContainerCommand(org=f"{default} --task train", parse_fn=parse_results, tag='train'))
         if evaluate:
-            cmds.append(ContainerCommand(org=f"{default}", parse_fn=parse_results, tag='test'))
+            checkpoint_path, hparams_path = self.get_paths()
+            # convert paths to container paths
+            checkpoint_path = str(checkpoint_path).replace(str(self.app.workdir), str(self.app.bind))
+            hparams_path = str(hparams_path).replace(str(self.app.workdir), str(self.app.bind))
+            test_cmd = f"{default} --checkpoint_path {checkpoint_path} --hparams_path {hparams_path} --task test"
+            cmds.append(ContainerCommand(org=test_cmd, parse_fn=parse_results, tag='test'))
 
         outcome, cmd_data = self.container_handler.run_cmds(container.id, cmds)
 
@@ -141,6 +132,33 @@ class CodeBERTHandler(PluginHandler):
         self.container_handler.stop(container)
 
         return dataset
+
+    def get_paths(self) -> Tuple[Path, Path]:
+        checkpoint_path = self.path / 'lightning_logs'
+
+        if not checkpoint_path.exists():
+            raise SecurityAwareError(f"{checkpoint_path} not found.")
+
+        # find the most recent version
+        for last_version in sorted(checkpoint_path.iterdir(), reverse=True):
+            hparams_path = last_version / 'hparams.yaml'
+
+            if not hparams_path.exists():
+                raise SecurityAwareError(f"{hparams_path} not found.")
+
+            checkpoint_path = last_version / 'checkpoints'
+
+            if not checkpoint_path.exists():
+                raise SecurityAwareError(f"{checkpoint_path} not found.")
+
+            # find checkpoint for the last epoch
+            for last_epoch in sorted(checkpoint_path.iterdir(), reverse=True):
+                if not last_epoch.exists():
+                    raise SecurityAwareError(f"{last_epoch} not found.")
+
+                return last_epoch, hparams_path
+
+        raise SecurityAwareError(f"checkpoint and hparams paths not found.")
 
 
 def load(app):
