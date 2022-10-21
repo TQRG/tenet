@@ -47,7 +47,9 @@ class SamplingHandler(PluginHandler):
         train, val, test = split_data(dataset=dataset, seed=seed)
 
         self.app.log.info("Writing split to files...")
-        self.app.log.info(f"Train: {len(train)}, Val.: {len(val)}, Test: {len(test)}")
+        self.app.log.info(f"Train: {len(train)} ({train.label.value_counts()})\n"
+                          f"Val.: {len(val)} ({val.label.value_counts()})\n"
+                          f"Test: {len(test)} ({test.label.value_counts()})")
 
         train.to_csv(str(train_data_path))
         val.to_csv(str(val_data_path))
