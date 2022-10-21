@@ -69,7 +69,12 @@ class JSCodeShiftHandler(PluginHandler):
             del fn_dict['path']
             self.fn_boundaries[fn_path] = fn_dict
 
-        dataset = dataset.drop(columns=['sim_ratio'])
+        # TODO: fix this drop of columns
+
+        if 'sim_ratio' in dataset.columns:
+            dataset = dataset.drop(columns=['sim_ratio'])
+        if 'rule_id' in dataset.columns:
+            dataset = dataset.drop(columns=['rule_id'])
 
         for (owner, project, version, fpath), rows in tqdm(dataset.groupby(['owner', 'project', 'version', 'fpath'])):
             self.multi_task_handler.add(group_inline_diff=rows, path=str(Path(owner, project, version, fpath)),
