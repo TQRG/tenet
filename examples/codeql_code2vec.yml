@@ -1,0 +1,85 @@
+nodes:
+  - plugin:
+      name: collector
+      kwargs:
+        token: {{TOKEN}}
+        max_size: 262144
+  - plugin:
+      name: labeler
+  - plugin:
+      name: jscodeshift
+  - plugin:
+      name: function_boundary
+  - plugin:
+      name: astminer  
+      kwargs:
+        image_name: epicosy/securityaware:astminer
+  - plugin:
+      name: codeql  
+      kwargs:
+        image_name: epicosy/securityaware:codeql
+  - plugin:
+      name: sampling
+  - plugin:
+      name: preprocess
+  - plugin:
+      name: code2vec
+
+layers:
+  dataset:
+    - raw:
+        node: collector
+        sources: [files_path, dataset]
+    - codeql_labels:
+        node: codeql
+        sources: [report_file_path, codeql_db_path]
+        sinks:
+          raw:
+            files_path: raw_files_path
+  rearrange:
+    - jscodeshift_codeql:
+        node: jscodeshift
+        sources: [fn_boundaries_file, dataset_path]
+        sinks:
+          raw:
+            files_path: raw_files_path
+  preprocess:
+    - contexts_codeql:
+        node: astminer
+        sources: [path_contexts, dataset_path]
+        kwargs:
+          extract_cp: true
+        sinks:
+          raw:
+            files_path: raw_files_path
+          jscodeshift_codeql:
+             dataset_path: raw_fn_bounds_file
+    - sampling_codeql_c2v:
+        node: sampling
+        sources: [train_data, val_data, test_data]
+    - truncate_codeql:
+        node: preprocess
+        sources: [train_output_path, val_output_path, test_output_path, dict_file_path]
+        kwargs:
+          max_contexts: 90
+        sinks: 
+          sampling_codeql_c2v:
+            train_data: train_data_path
+            val_data: val_data_path
+            test_data: test_data_path
+  evaluate:
+    - evaluation_codeql_c2v:
+        node: code2vec
+        sources: [save_path]
+        kwargs:
+          training: false
+          max_contexts: 90
+          image_name: 'epicosy/securityaware:code2vec'
+        sinks:
+          truncate_codeql:
+            val_output_path: val_data_path
+            test_output_path: test_data_path
+            train_output_path: train_data_path
+
+workflow: [dataset, rearrange, preprocess, evaluate]
+
