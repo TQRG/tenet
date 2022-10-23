@@ -111,3 +111,6 @@ plugin.code_mining:
 
 plugin.ml_pipeline:
   enabled: true
+
+plugin.hybrid:
+  enabled: true
