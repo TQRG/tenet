@@ -123,8 +123,7 @@ class JSCodeShiftHandler(PluginHandler):
             fn_bound = None
 
             # edge case for files with a null inline diff marked with specific label
-            if (self.add_labelled_nulls is not None) and len(group_inline_diff) == 1 \
-                    and inline_diff.label == self.add_labelled_nulls:
+            if (self.add_labelled_nulls is not None) and inline_diff.label == self.add_labelled_nulls:
                 if inline_diff.is_null():
                     # just add the first func and continue
                     for fn_dec in fn_decs:
