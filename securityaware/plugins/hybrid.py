@@ -10,7 +10,7 @@ class HybridHandler(PluginHandler):
     """
 
     class Meta:
-        label = "Hybrid"
+        label = "hybrid"
 
     def __init__(self, **kw):
         super().__init__(**kw)
@@ -39,8 +39,9 @@ class HybridHandler(PluginHandler):
 
         for i, row in diff_labelled_data[diff_labelled_data.hash.isin(unsafe_static_labelled_fns)].iterrows():
             if row.label != 'unsafe':
-                diff_labelled_data.at(i)['label'] = 'unsafe'
-
+                self.app.log.info(f"Updating label for {row.fpath}")
+                diff_labelled_data.at[i, 'label'] = 'unsafe'
+        self.app.log.info(f"Unsafe fns: {len(diff_labelled_data[diff_labelled_data.label == 'unsafe'])}")
         return diff_labelled_data
 
 
