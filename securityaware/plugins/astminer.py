@@ -35,6 +35,7 @@ class ASTMinerHandler(PluginHandler):
         self.extract_cp = extract_cp
         self.path_context_file = (self.path / 'path_contexts.c2s')
         self.set('path_contexts', self.path_context_file)
+        self.set('dataset', self.output)
 
         if not self.get('raw_fn_bounds_file'):
             self.app.log.warning(f"path to dataset with fn boundaries not instantiated.")
