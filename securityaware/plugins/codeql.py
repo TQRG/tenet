@@ -46,7 +46,7 @@ class CodeQLExtractLabelsHandler(PluginHandler):
         return f'CWE-{cwe_number:03}'
 
     def run(self, dataset: pd.DataFrame, image_name: str = 'codeql', language: str = 'javascript',
-            target_cwes: list = None, **kwargs) -> Union[pd.DataFrame, None]:
+            target_cwes: list = None, parent_files_only: bool = True, **kwargs) -> Union[pd.DataFrame, None]:
         """
             run CodeQL and extracts the labels from its report
         """
@@ -87,6 +87,8 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             self.app.log.warning(f"CodeQL report file not found.")
             return None
 
+        parent_commits = dataset['a_version'].to_list()
+
         with report_file.open(mode='r') as rf:
             json_report = json.loads(rf.read())
             result = jq.all(r'.runs[0].results', json_report)
@@ -109,6 +111,10 @@ class CodeQLExtractLabelsHandler(PluginHandler):
                         eline = sline
 
                     owner, project, version, *file = fpath.replace(str(self.app.bind)+'/', '').split('/')
+
+                    if parent_files_only and (version not in parent_commits):
+                        continue
+
                     dataset.append({'owner': owner, 'project': project, 'version': version, 'fpath': '/'.join(file),
                                     'sline': sline, 'scol': scol, 'eline': eline, 'ecol': ecol, 'label': 'unsafe',
                                     'rule_id': rule_id})
