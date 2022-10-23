@@ -21,14 +21,14 @@ class JSCodeShiftHandler(PluginHandler):
     def __init__(self, **kw):
         super().__init__(**kw)
         self.fn_boundaries = None
-        self.add_nulls = False
+        self.add_labelled_nulls = None
 
     def run(self, dataset: pd.DataFrame, image_name: str = "jscodeshift", single_unsafe_fn: bool = False,
-            add_nulls: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
+            add_labelled_nulls: str = None, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
-        self.add_nulls = add_nulls
+        self.add_labelled_nulls = add_labelled_nulls
         self.fn_boundaries_file = (self.path / 'output.txt')
         self.set('fn_boundaries_file', self.fn_boundaries_file)
         self.set('dataset_path', self.output)
@@ -122,8 +122,9 @@ class JSCodeShiftHandler(PluginHandler):
             inline_diff = InlineDiff(**row)
             fn_bound = None
 
-            # edge case for files marked as safe
-            if self.add_nulls and len(group_inline_diff) == 1:
+            # edge case for files with a null inline diff marked with specific label
+            if (self.add_labelled_nulls is not None) and len(group_inline_diff) == 1 \
+                    and inline_diff.label == self.add_labelled_nulls:
                 if inline_diff.is_null():
                     # just add the first func and continue
                     for fn_dec in fn_decs:

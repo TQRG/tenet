@@ -47,9 +47,17 @@ class CodeQLExtractLabelsHandler(PluginHandler):
 
     def run(self, dataset: pd.DataFrame, image_name: str = 'codeql', language: str = 'javascript',
             target_cwes: list = None, parent_files_only: bool = True, add_fix_files: bool = True,
-            **kwargs) -> Union[pd.DataFrame, None]:
+            parent_files_safe: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """
             run CodeQL and extracts the labels from its report
+
+            :param dataset: dataset with diff blocks
+            :param image_name: name of the CodeQL image
+            :param language: programming language of target code to scan
+            :param target_cwes: list of CWEs to analyze for
+            :param parent_files_only: flag to include warnings for parent files only
+            :param add_fix_files: flag to include fix files as a safe inline diff without location
+            :param parent_files_safe: flag to mark parent files without warnings safe
         """
 
         codeql_db_path = self.container_handler.working_dir / 'db'
@@ -89,7 +97,7 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             return None
 
         parent_commits = dataset['a_version'].to_list()
-        missing_parent_commits = []
+        labelled_parent_commits = []
         new_dataset = []
 
         with report_file.open(mode='r') as rf:
@@ -118,21 +126,25 @@ class CodeQLExtractLabelsHandler(PluginHandler):
                         continue
 
                     # keep missing commits
-                    parent_commits.remove(version)
+                    labelled_parent_commits.append(version)
                     new_dataset.append({'owner': owner, 'project': project, 'version': version, 'fpath': '/'.join(file),
                                         'sline': sline, 'scol': scol, 'eline': eline, 'ecol': ecol, 'label': 'unsafe',
                                         'rule_id': rule_id})
 
         if add_fix_files:
             for i, row in dataset.iterrows():
+                # add all fix files as safe
                 new_dataset.append({'owner': row.owner, 'project': row.project, 'version': row['b_version'],
                                     'fpath': row['b_path'], 'sline': None, 'scol': None, 'eline': None,
                                     'ecol': None, 'label': 'safe', 'rule_id': None})
 
-                if parent_files_only and (row['a_version'] in parent_commits):
-                    new_dataset.append({'owner': row.owner, 'project': row.project, 'version': row['a_version'],
-                                        'fpath': row['a_path'], 'sline': None, 'scol': None, 'eline': None,
-                                        'ecol': None, 'label': 'safe', 'rule_id': None})
+        if parent_files_only and parent_files_safe:
+            unlabelled_parent_commits = list(set(parent_commits).difference(set(labelled_parent_commits)))
+            # label parent files without warnings as safe
+            for i, row in dataset[~dataset['a_version'].isin(unlabelled_parent_commits)].iterrows():
+                new_dataset.append({'owner': row.owner, 'project': row.project, 'version': row['a_version'],
+                                    'fpath': row['a_path'], 'sline': None, 'scol': None, 'eline': None,
+                                    'ecol': None, 'label': 'safe', 'rule_id': None})
 
         if new_dataset:
             return pd.DataFrame(new_dataset)
