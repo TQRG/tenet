@@ -21,12 +21,14 @@ class JSCodeShiftHandler(PluginHandler):
     def __init__(self, **kw):
         super().__init__(**kw)
         self.fn_boundaries = None
+        self.add_nulls = False
 
     def run(self, dataset: pd.DataFrame, image_name: str = "jscodeshift", single_unsafe_fn: bool = False,
-            **kwargs) -> Union[pd.DataFrame, None]:
+            add_nulls: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
+        self.add_nulls = add_nulls
         self.fn_boundaries_file = (self.path / 'output.txt')
         self.set('fn_boundaries_file', self.fn_boundaries_file)
         self.set('dataset_path', self.output)
@@ -118,8 +120,32 @@ class JSCodeShiftHandler(PluginHandler):
 
         for index, row in group_inline_diff.to_dict('index').items():
             inline_diff = InlineDiff(**row)
-            self.app.log.info(f'Matching inline diff {inline_diff} with {len(fn_decs)} fn decs and {len(fn_exps)} fn exps')
             fn_bound = None
+
+            # edge case for files marked as safe
+            if self.add_nulls and len(group_inline_diff) == 1:
+                if inline_diff.is_null():
+                    # just add the first func and continue
+                    for fn_dec in fn_decs:
+                        fn_dec.label = inline_diff.label
+                        fn_bound = fn_dec
+                        break
+
+                    if fn_bound:
+                        fn_bounds.append(fn_bound.to_dict(ftype='fn_dec'))
+                        break
+
+                    for fn_exp in fn_exps:
+                        fn_exp.label = inline_diff.label
+                        fn_bound = fn_exp
+                        break
+
+                    if fn_bound:
+                        fn_bounds.append(fn_bound.to_dict(ftype='fn_exp'))
+
+                    break
+
+            self.app.log.info(f'Matching inline diff {inline_diff} with {len(fn_decs)} fn decs and {len(fn_exps)} fn exps')
 
             for fn_dec in fn_decs:
                 if fn_dec.is_contained(inline_diff):

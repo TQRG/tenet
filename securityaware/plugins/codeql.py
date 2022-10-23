@@ -46,7 +46,8 @@ class CodeQLExtractLabelsHandler(PluginHandler):
         return f'CWE-{cwe_number:03}'
 
     def run(self, dataset: pd.DataFrame, image_name: str = 'codeql', language: str = 'javascript',
-            target_cwes: list = None, parent_files_only: bool = True, **kwargs) -> Union[pd.DataFrame, None]:
+            target_cwes: list = None, parent_files_only: bool = True, add_fix_files: bool = True,
+            **kwargs) -> Union[pd.DataFrame, None]:
         """
             run CodeQL and extracts the labels from its report
         """
@@ -88,11 +89,12 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             return None
 
         parent_commits = dataset['a_version'].to_list()
+        missing_parent_commits = []
+        new_dataset = []
 
         with report_file.open(mode='r') as rf:
             json_report = json.loads(rf.read())
             result = jq.all(r'.runs[0].results', json_report)
-            dataset = []
 
             for i, data_point in enumerate(jq.iter(r'.[]', result[0])):
                 # TODO: run this in parallel
@@ -115,12 +117,25 @@ class CodeQLExtractLabelsHandler(PluginHandler):
                     if parent_files_only and (version not in parent_commits):
                         continue
 
-                    dataset.append({'owner': owner, 'project': project, 'version': version, 'fpath': '/'.join(file),
-                                    'sline': sline, 'scol': scol, 'eline': eline, 'ecol': ecol, 'label': 'unsafe',
-                                    'rule_id': rule_id})
+                    # keep missing commits
+                    parent_commits.remove(version)
+                    new_dataset.append({'owner': owner, 'project': project, 'version': version, 'fpath': '/'.join(file),
+                                        'sline': sline, 'scol': scol, 'eline': eline, 'ecol': ecol, 'label': 'unsafe',
+                                        'rule_id': rule_id})
 
-            if dataset:
-                return pd.DataFrame(dataset)
+        if add_fix_files:
+            for i, row in dataset.iterrows():
+                new_dataset.append({'owner': row.owner, 'project': row.project, 'version': row['b_version'],
+                                    'fpath': row['b_path'], 'sline': None, 'scol': None, 'eline': None,
+                                    'ecol': None, 'label': 'safe', 'rule_id': None})
+
+                if parent_files_only and (row['a_version'] in parent_commits):
+                    new_dataset.append({'owner': row.owner, 'project': row.project, 'version': row['a_version'],
+                                        'fpath': row['a_path'], 'sline': None, 'scol': None, 'eline': None,
+                                        'ecol': None, 'label': 'safe', 'rule_id': None})
+
+        if new_dataset:
+            return pd.DataFrame(new_dataset)
 
         return None
 

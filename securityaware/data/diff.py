@@ -14,6 +14,9 @@ class InlineDiff:
     ecol: int
     label: str
 
+    def is_null(self):
+        return self.sline is None and self.scol is None and self.eline is None and self.ecol is None
+
     def is_same(self, other):
         return self.owner == other.owner and self.project == other.project and self.version == other.version and \
                self.fpath == other.fpath and self.label == other.label
