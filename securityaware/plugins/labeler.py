@@ -1,16 +1,12 @@
-import time
 import pandas as pd
 import tqdm
 
 from pathlib import Path
-from typing import Union, Tuple, List
+from typing import Union
 
 from securityaware.core.diff_labeller.labeler import Labeler as DiffLabeler
-from securityaware.core.exc import SecurityAwareWarning
-from securityaware.data.diff import Entry, DiffBlock, InlineDiff
-from securityaware.data.runner import Runner, Task
+from securityaware.data.diff import Entry, DiffBlock
 from securityaware.handlers.plugin import PluginHandler
-from securityaware.handlers.runner import ThreadPoolWorker
 
 
 class Labeler(PluginHandler):

@@ -1,9 +1,10 @@
-from pathlib import Path
-from typing import Union
-
 import pandas as pd
 import jq
 import json
+import tqdm
+
+from typing import Union
+from pathlib import Path
 
 from securityaware.core.exc import SecurityAwareError
 from securityaware.data.schema import ContainerCommand
@@ -24,6 +25,10 @@ class CodeQLExtractLabelsHandler(PluginHandler):
         self.cwes = [20, 22, 73, 78, 79, 89, 94, 1004, 116, 117, 1275, 134, 178, 200, 201, 209, 295, 300, 312,
                      313, 326, 327, 338, 346, 347, 352, 367, 377, 384, 400, 451, 502, 506, 598, 601, 611, 614, 640,
                      643, 730, 754, 770, 776, 798, 807, 829, 830, 834, 843, 862, 912, 915, 916, 918]
+        self.parent_commits = []
+        self.fix_commits = []
+        self.parent_files = True
+        self.fix_files = True
 
     def parse_language(self, language: str) -> str:
         if language.lower() in self.language_mapping.values():
@@ -47,7 +52,7 @@ class CodeQLExtractLabelsHandler(PluginHandler):
 
     def run(self, dataset: pd.DataFrame, image_name: str = 'codeql', language: str = 'javascript',
             target_cwes: list = None, parent_files: bool = True, fix_files: bool = True,
-            add_fix_files: bool = False, parent_files_safe: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
+            **kwargs) -> Union[pd.DataFrame, None]:
         """
             run CodeQL and extracts the labels from its report
 
@@ -57,10 +62,9 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             :param target_cwes: list of CWEs to analyze for
             :param parent_files: flag to include warnings for parent files
             :param fix_files: flag to include warnings for fix files
-            :param add_fix_files: flag to include fix files as a safe inline diff without location
-            :param parent_files_safe: flag to mark parent files without warnings safe
         """
-
+        self.parent_files = parent_files
+        self.fix_files = fix_files
         codeql_db_path = self.container_handler.working_dir / 'db'
         report_file = self.path / f"{self.output.stem}_report.json"
         report_file_container = self.container_handler.working_dir / f"{self.output.stem}_report.json"
@@ -97,67 +101,51 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             self.app.log.warning(f"CodeQL report file not found.")
             return None
 
-        parent_commits = dataset['a_version'].to_list()
-        fix_commits = dataset['b_version'].to_list()
-        labelled_parent_commits = []
-        labelled_fix_commits = []
-        new_dataset = []
+        self.parent_commits = dataset['a_version'].to_list()
+        self.fix_commits = dataset['b_version'].to_list()
 
         with report_file.open(mode='r') as rf:
             json_report = json.loads(rf.read())
             result = jq.all(r'.runs[0].results', json_report)
+            data_points = jq.iter(r'.[]', result[0])
+            self.app.log.info(f"Creating {len(data_points)} tasks")
 
-            for i, data_point in enumerate(jq.iter(r'.[]', result[0])):
-                # TODO: run this in parallel
-                self.app.log.info(f"Processing data point {i}")
-                vuln_entry = jq.all(r'.', data_point)[0]
-                fpath = jq.first(r'.locations[0].physicalLocation.artifactLocation.uri', vuln_entry)
+            for i, data_point in tqdm.tqdm(data_points):
+                self.multi_task_handler.add(data_point=data_point)
 
-                if fpath.endswith('.js'):
-                    rule_id = jq.first(r'.ruleId', vuln_entry)
-                    sline = jq.first(r'.locations[0].physicalLocation.region.startLine', vuln_entry)
-                    scol = jq.first(r'.locations[0].physicalLocation.region.startColumn', vuln_entry)
-                    eline = jq.first(r'.locations[0].physicalLocation.region.endLine', vuln_entry)
-                    ecol = jq.first(r'.locations[0].physicalLocation.region.endColumn', vuln_entry)
+            self.multi_task_handler(func=self.parse_data_point)
 
-                    if eline is None or eline == "null":
-                        eline = sline
-
-                    owner, project, version, *file = fpath.replace(str(self.app.bind)+'/', '').split('/')
-
-                    if parent_files and (version not in parent_commits):
-                        continue
-                    else:
-                        labelled_parent_commits.append(version)
-
-                    if fix_files and (version not in fix_commits):
-                        continue
-                    else:
-                        labelled_fix_commits.append(version)
-
-                    # keep missing commits
-                    new_dataset.append({'owner': owner, 'project': project, 'version': version, 'fpath': '/'.join(file),
-                                        'sline': sline, 'scol': scol, 'eline': eline, 'ecol': ecol, 'label': 'unsafe',
-                                        'rule_id': rule_id})
-
-        if add_fix_files:
-            for i, row in dataset.iterrows():
-                # add all fix files as safe
-                new_dataset.append({'owner': row.owner, 'project': row.project, 'version': row['b_version'],
-                                    'fpath': row['b_path'], 'sline': None, 'scol': None, 'eline': None,
-                                    'ecol': None, 'label': 'safe', 'rule_id': None})
-
-        if parent_files and parent_files_safe:
-            unlabelled_parent_commits = list(set(parent_commits).difference(set(labelled_parent_commits)))
-            # label parent files without warnings as safe
-            for i, row in dataset[~dataset['a_version'].isin(unlabelled_parent_commits)].iterrows():
-                new_dataset.append({'owner': row.owner, 'project': row.project, 'version': row['a_version'],
-                                    'fpath': row['a_path'], 'sline': None, 'scol': None, 'eline': None,
-                                    'ecol': None, 'label': 'safe', 'rule_id': None})
+        new_dataset = self.multi_task_handler.results()
 
         if new_dataset:
-            return pd.DataFrame(new_dataset)
+            return pd.DataFrame.from_dict(new_dataset)
 
+        return None
+
+    def parse_data_point(self, data_point):
+        vuln_entry = jq.all(r'.', data_point)[0]
+        fpath = jq.first(r'.locations[0].physicalLocation.artifactLocation.uri', vuln_entry)
+
+        if fpath.endswith('.js'):
+            rule_id = jq.first(r'.ruleId', vuln_entry)
+            sline = jq.first(r'.locations[0].physicalLocation.region.startLine', vuln_entry)
+            scol = jq.first(r'.locations[0].physicalLocation.region.startColumn', vuln_entry)
+            eline = jq.first(r'.locations[0].physicalLocation.region.endLine', vuln_entry)
+            ecol = jq.first(r'.locations[0].physicalLocation.region.endColumn', vuln_entry)
+
+            if eline is None or eline == "null":
+                eline = sline
+
+            owner, project, version, *file = fpath.replace(str(self.app.bind) + '/', '').split('/')
+
+            if self.parent_files and (version not in self.parent_commits):
+                return None
+
+            if self.fix_files and (version not in self.fix_commits):
+                return None
+
+            return {'owner': owner, 'project': project, 'version': version, 'fpath': '/'.join(file), 'sline': sline,
+                    'scol': scol, 'eline': eline, 'ecol': ecol, 'label': 'unsafe', 'rule_id': rule_id}
         return None
 
 
