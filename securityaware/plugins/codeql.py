@@ -46,8 +46,8 @@ class CodeQLExtractLabelsHandler(PluginHandler):
         return f'CWE-{cwe_number:03}'
 
     def run(self, dataset: pd.DataFrame, image_name: str = 'codeql', language: str = 'javascript',
-            target_cwes: list = None, parent_files_only: bool = True, add_fix_files: bool = True,
-            parent_files_safe: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
+            target_cwes: list = None, parent_files: bool = True, fix_files: bool = True,
+            add_fix_files: bool = False, parent_files_safe: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """
             run CodeQL and extracts the labels from its report
 
@@ -55,7 +55,8 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             :param image_name: name of the CodeQL image
             :param language: programming language of target code to scan
             :param target_cwes: list of CWEs to analyze for
-            :param parent_files_only: flag to include warnings for parent files only
+            :param parent_files: flag to include warnings for parent files
+            :param fix_files: flag to include warnings for fix files
             :param add_fix_files: flag to include fix files as a safe inline diff without location
             :param parent_files_safe: flag to mark parent files without warnings safe
         """
@@ -97,7 +98,9 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             return None
 
         parent_commits = dataset['a_version'].to_list()
+        fix_commits = dataset['b_version'].to_list()
         labelled_parent_commits = []
+        labelled_fix_commits = []
         new_dataset = []
 
         with report_file.open(mode='r') as rf:
@@ -122,11 +125,17 @@ class CodeQLExtractLabelsHandler(PluginHandler):
 
                     owner, project, version, *file = fpath.replace(str(self.app.bind)+'/', '').split('/')
 
-                    if parent_files_only and (version not in parent_commits):
+                    if parent_files and (version not in parent_commits):
                         continue
+                    else:
+                        labelled_parent_commits.append(version)
+
+                    if fix_files and (version not in fix_commits):
+                        continue
+                    else:
+                        labelled_fix_commits.append(version)
 
                     # keep missing commits
-                    labelled_parent_commits.append(version)
                     new_dataset.append({'owner': owner, 'project': project, 'version': version, 'fpath': '/'.join(file),
                                         'sline': sline, 'scol': scol, 'eline': eline, 'ecol': ecol, 'label': 'unsafe',
                                         'rule_id': rule_id})
@@ -138,7 +147,7 @@ class CodeQLExtractLabelsHandler(PluginHandler):
                                     'fpath': row['b_path'], 'sline': None, 'scol': None, 'eline': None,
                                     'ecol': None, 'label': 'safe', 'rule_id': None})
 
-        if parent_files_only and parent_files_safe:
+        if parent_files and parent_files_safe:
             unlabelled_parent_commits = list(set(parent_commits).difference(set(labelled_parent_commits)))
             # label parent files without warnings as safe
             for i, row in dataset[~dataset['a_version'].isin(unlabelled_parent_commits)].iterrows():
