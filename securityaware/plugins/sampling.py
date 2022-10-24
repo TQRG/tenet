@@ -24,9 +24,12 @@ class SamplingHandler(PluginHandler):
         self.balance_techniques = ['over', 'disj_over', 'disj_smote', 'unique', 'undersampling', 'stratified', '1_to_1']
 
     def run(self, dataset: pd.DataFrame, technique: str = "", seed: int = 0, offset: bool = False,
-            **kwargs) -> Union[pd.DataFrame, None]:
+            only_single: bool = False, only_multiple: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
+
+            :param only_single: flag for considering only single unsafe functions in a file
+            :param only_multiple: flag for considering only multiple unsafe functions in a file
         """
         # TODO: change these sets into something simpler
         train_data_path = Path(self.path, 'train.csv')
@@ -43,6 +46,18 @@ class SamplingHandler(PluginHandler):
 
         self.app.log.info((f"Sampling with {technique}.\n" if technique else "") + f"Saving results to {self.path}")
         self.app.log.info(f"Dataset has {len(dataset)} samples.")
+
+        if only_single:
+            for g, rows in dataset[dataset.label == 'unsafe'].groupby(['owner', 'project', 'version', 'fpath']):
+                if len(rows) > 1:
+                    for i, row in rows.iterrows():
+                        rows.loc[i, 'input'] = 'safe'
+
+        elif only_multiple:
+            for g, rows in dataset[dataset.label == 'unsafe'].groupby(['owner', 'project', 'version', 'fpath']):
+                if len(rows) == 1:
+                    for i, row in rows.iterrows():
+                        rows.loc[i, 'input'] = 'safe'
 
         train, val, test = split_data(dataset=dataset, seed=seed)
 
