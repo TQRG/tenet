@@ -45,11 +45,20 @@ class ASTMinerHandler(PluginHandler):
             # TODO: fix the node name
             container = self.container_handler.run(image_name=image_name, node_name=self.node.name)
             export_cmd = ContainerCommand(org=f"export NODE_OPTIONS=\"--max-old-space-size={max_old_space_size}\"")
-            astminer_cmd = ContainerCommand(org="java -jar -Xms4g -Xmx4g ../../../astminer/build/shadow/astminer.jar")
-            astminer_cmd.org += ' ' + ('code2vec' if extract_cp else 'codebert')
+
             raw_files_path = Path(str(self.get('raw_files_path')).replace(str(self.app.workdir), str(self.app.bind)))
             raw_fn_bounds_file = Path(str(self.get('raw_fn_bounds_file')).replace(str(self.app.workdir), str(self.app.bind)))
+
+            max_old_space_size_gb = round(max_old_space_size / 1024)
+            max_mem = f"-Xmx{max_old_space_size_gb}g"
+            max_size = f"-Xms{max_old_space_size_gb}g"
+
+            astminer_jar_path = "../../../astminer/build/shadow/astminer.jar"
+            astminer_cmd = ContainerCommand(org=f"java -jar {max_size} {max_mem} {astminer_jar_path}")
+
+            astminer_cmd.org += ' ' + ('code2vec' if extract_cp else 'codebert')
             astminer_cmd.org += f" {raw_files_path} {self.container_handler.working_dir} {raw_fn_bounds_file} {1 if mutations else 0}"
+
             self.container_handler.run_cmds(container.id, [export_cmd, astminer_cmd])
             self.container_handler.stop(container)
 
@@ -103,6 +112,10 @@ class ASTMinerHandler(PluginHandler):
             Plotter(self.path).histogram_pairs(df, column='cp_size', x_label='Context paths size', filter_outliers=True)
         if 'fsize' in df.columns:
             Plotter(self.path).histogram_pairs(df, column='fsize', x_label='Function size', filter_outliers=True)
+
+        self.app.log.info(f'Initial size before dropping duplicates by input: {len(df)}')
+        df.drop_duplicates(subset=['input'], inplace=True)
+        self.app.log.info(f'Size after dropping duplicates by input: {len(df)}')
 
         return df
 
