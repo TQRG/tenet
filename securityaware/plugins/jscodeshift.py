@@ -125,22 +125,15 @@ class JSCodeShiftHandler(PluginHandler):
             # edge case for files with a null inline diff marked with specific label
             if (self.add_labelled_nulls is not None) and inline_diff.label == self.add_labelled_nulls:
                 if inline_diff.is_null():
-                    # just add the first func and continue
+                    # add all the funcs and continue, astminer takes care of the rest
                     for fn_dec in fn_decs:
                         fn_dec.label = inline_diff.label
                         fn_bound = fn_dec
-                        break
-
-                    if fn_bound:
                         fn_bounds.append(fn_bound.to_dict(ftype='fn_dec'))
-                        break
 
                     for fn_exp in fn_exps:
                         fn_exp.label = inline_diff.label
                         fn_bound = fn_exp
-                        break
-
-                    if fn_bound:
                         fn_bounds.append(fn_bound.to_dict(ftype='fn_exp'))
 
                     break
