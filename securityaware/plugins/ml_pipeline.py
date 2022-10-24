@@ -90,7 +90,7 @@ class MLPipeline(PluginHandler):
                                    n_jobs=self.app.get_config('local_threads'))
 
         # Perform grid search and cross validate.
-        grid_search_results = grid_search.fit(x_train, y_train)
+        grid_search_results = grid_search.fit(x_train, y_train.ravel())
 
         # Print results.
         self.app.log.info("\tGrid search results:")
@@ -103,7 +103,7 @@ class MLPipeline(PluginHandler):
 
         # Train the best model with the entire training set.
         self.app.log.info(f"\tTraining model with best hyper parameters {grid_search_results.best_params_}")
-        best_model.fit(x_train, y_train)
+        best_model.fit(x_train, y_train.ravel())
         self.app.log.info("\tFinished training.")
 
         with model_path.open(mode='wb') as mf:
