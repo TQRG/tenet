@@ -56,8 +56,8 @@ class MLPipeline(PluginHandler):
         self.app.log.info("Adding NLP features.")
         train_features_sparse = load_npz(train_features_path)
         test_features_sparse = load_npz(test_features_path)
-        x_train = hstack([y_train, train_features_sparse])
-        x_test = hstack([y_test, test_features_sparse])
+        x_train = hstack([x_train, train_features_sparse])
+        x_test = hstack([x_test, test_features_sparse])
         self.app.log.info(f"x_train shape: {x_train.shape}, x_test shape: {x_test.shape}")
 
         # Simple train, test split.
