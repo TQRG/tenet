@@ -45,7 +45,7 @@ class FusionHandler(PluginHandler):
         static_data_hashes = static_labelled_data.hash.to_list()
 
         # fusing diff and static datasets into a single dataset
-        common_fns = pd.merge(diff_data_hashes, static_labelled_data[['hash', 'sa_label']], on='hash', how='left')
+        common_fns = pd.merge(diff_labelled_data, static_labelled_data[['hash', 'sa_label']], on='hash', how='left')
 
         self.app.log.info(f"Common functions {len(common_fns)}")
         self.app.log.info(f"\tDiff safe functions: {len(common_fns[common_fns['da_label'] == 'safe'])}, "
