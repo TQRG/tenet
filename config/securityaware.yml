@@ -114,3 +114,6 @@ plugin.ml_pipeline:
 
 plugin.hybrid:
   enabled: true
+
+plugin.fusion:
+  enabled: true
