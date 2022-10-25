@@ -83,7 +83,7 @@ class ASTMinerHandler(PluginHandler):
             raise AssertionError('Could not parse path context file')
 
         df = pd.DataFrame(results)
-        df.drop_duplicates(inplace=True)
+        df.drop_duplicates(subset=['hash'], inplace=True)
         self.app.log.info(f'Initial size: {len(results)} | Without duplicates: {len(df)}')
 
         df['fpath'] = df.fpath.apply(lambda x: x.replace(str(self.app.bind), str(self.app.workdir)))
@@ -112,10 +112,6 @@ class ASTMinerHandler(PluginHandler):
             Plotter(self.path).histogram_pairs(df, column='cp_size', x_label='Context paths size', filter_outliers=True)
         if 'fsize' in df.columns:
             Plotter(self.path).histogram_pairs(df, column='fsize', x_label='Function size', filter_outliers=True)
-
-        self.app.log.info(f'Initial size before dropping duplicates by input: {len(df)}')
-        df.drop_duplicates(subset=['input'], inplace=True)
-        self.app.log.info(f'Size after dropping duplicates by input: {len(df)}')
 
         return df
 

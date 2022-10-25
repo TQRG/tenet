@@ -121,23 +121,6 @@ class JSCodeShiftHandler(PluginHandler):
         for index, row in group_inline_diff.to_dict('index').items():
             inline_diff = InlineDiff(**row)
             fn_bound = None
-
-            # edge case for files with a null inline diff marked with specific label
-            if (self.add_labelled_nulls is not None) and inline_diff.label == self.add_labelled_nulls:
-                if inline_diff.is_null():
-                    # add all the funcs and continue, astminer takes care of the rest
-                    for fn_dec in fn_decs:
-                        fn_dec.label = inline_diff.label
-                        fn_bound = fn_dec
-                        fn_bounds.append(fn_bound.to_dict(ftype='fn_dec'))
-
-                    for fn_exp in fn_exps:
-                        fn_exp.label = inline_diff.label
-                        fn_bound = fn_exp
-                        fn_bounds.append(fn_bound.to_dict(ftype='fn_exp'))
-
-                    break
-
             self.app.log.info(f'Matching inline diff {inline_diff} with {len(fn_decs)} fn decs and {len(fn_exps)} fn exps')
 
             for fn_dec in fn_decs:
