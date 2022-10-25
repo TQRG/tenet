@@ -37,7 +37,7 @@ class FusionHandler(PluginHandler):
         diff_labelled_data = pd.read_csv(str(diff_labelled_data_path))
         static_labelled_data = pd.read_csv(str(static_labelled_data_path))
         diff_labelled_data.reset_index(inplace=True, drop=True)
-        static_labelled_data.rename(columns={'label': 'da_label'}, inplace=True)
+        diff_labelled_data.rename(columns={'label': 'da_label'}, inplace=True)
         static_labelled_data.reset_index(inplace=True, drop=True)
         static_labelled_data.rename(columns={'label': 'sa_label'}, inplace=True)
 
