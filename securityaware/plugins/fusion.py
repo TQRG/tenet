@@ -15,12 +15,10 @@ class FusionHandler(PluginHandler):
     def __init__(self, **kw):
         super().__init__(**kw)
 
-    def run(self, dataset: pd.DataFrame, hybrid_inner_join: bool = False, hybrid_outer_join: bool = False,
-            sa_labels: bool = False, da_labels: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
+    def run(self, dataset: pd.DataFrame, sa_labels: bool = False, da_labels: bool = False,
+            **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
-            :param hybrid_inner_join: flag to perform inner join between diff labelled and static labelled datasets
-            :param hybrid_outer_join: flag to perform full outer join between diff labelled and static labelled datasets
             :param da_labels: flag to return datasets with only diff labels
             :param sa_labels: flag to return datasets with only static labels
         """
@@ -77,40 +75,6 @@ class FusionHandler(PluginHandler):
         dataset.sort_index(inplace=True)
         dataset.reset_index(inplace=True)
         self.app.log.info(f"Total functions after fusion: {len(dataset)}")
-
-        if hybrid_inner_join:
-            dataset['label'] = dataset['da_label']
-            for i, row in dataset[dataset['da_label'] == 'unsafe' or dataset['sa_label'] == 'unsafe'].iterrows():
-                if row['da_label'] == 'unsafe' and row['sa_label'] == 'safe':
-                    self.app.log.info(f"Updating label for {row.fpath}")
-                    dataset.at[i, 'label'] = 'safe'
-                elif row['sa_label'] == 'unsafe' and row['da_label'] == 'safe':
-                    self.app.log.info(f"Updating label for {row.fpath}")
-                    dataset.at[i, 'label'] = 'safe'
-
-            self.app.log.info(f"Total unsafe fns from hybrid inner join: {len(dataset[dataset.label == 'unsafe'])}")
-
-            dataset.drop(columns=['da_label'], inplace=True)
-            dataset.drop(columns=['sa_label'], inplace=True)
-
-            return dataset
-
-        elif hybrid_outer_join:
-            dataset['label'] = dataset['da_label']
-            for i, row in dataset[dataset['da_label'] == 'unsafe' or dataset['sa_label'] == 'unsafe'].iterrows():
-                if row['da_label'] == 'unsafe' and row['sa_label'] == 'safe':
-                    self.app.log.info(f"Updating label for {row.fpath}")
-                    dataset.at[i, 'label'] = 'unsafe'
-                elif row['sa_label'] == 'unsafe' and row['da_label'] == 'safe':
-                    self.app.log.info(f"Updating label for {row.fpath}")
-                    dataset.at[i, 'label'] = 'unsafe'
-
-            self.app.log.info(f"Total unsafe fns from hybrid outer join: {len(dataset[dataset.label == 'unsafe'])}")
-
-            dataset.drop(columns=['da_label'], inplace=True)
-            dataset.drop(columns=['sa_label'], inplace=True)
-
-            return dataset
 
         if sa_labels:
             dataset.drop(columns=['da_label'], inplace=True)
