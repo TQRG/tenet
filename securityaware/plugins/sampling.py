@@ -48,16 +48,16 @@ class SamplingHandler(PluginHandler):
         self.app.log.info(f"Dataset has {len(dataset)} samples.")
 
         if only_single:
-            for g, rows in dataset[dataset.label == 'unsafe'].groupby(['owner', 'project', 'version', 'fpath']):
+            for g, rows in dataset[dataset.label == 'unsafe'].groupby('fpath'):
                 if len(rows) > 1:
                     for i, row in rows.iterrows():
-                        rows.loc[i, 'input'] = 'safe'
+                        dataset.loc[i, 'label'] = 'safe'
 
         elif only_multiple:
-            for g, rows in dataset[dataset.label == 'unsafe'].groupby(['owner', 'project', 'version', 'fpath']):
+            for g, rows in dataset[dataset.label == 'unsafe'].groupby('fpath'):
                 if len(rows) == 1:
                     for i, row in rows.iterrows():
-                        rows.loc[i, 'input'] = 'safe'
+                        dataset.loc[i, 'label'] = 'safe'
 
         train, val, test = split_data(dataset=dataset, seed=seed)
 
