@@ -44,7 +44,7 @@ class FusionHandler(PluginHandler):
         # fusing diff and static datasets into a single dataset
         common_fns = pd.merge(diff_labelled_data, static_labelled_data[['hash', 'sa_label']], on='hash', how='inner')
         # drop duplicates on hash
-        common_fns = common_fns.drop_duplicates(subset=['hash'], inplace=True)
+        common_fns.drop_duplicates(subset=['hash'], inplace=True)
         common_hashes = common_fns.hash.to_list()
 
         self.app.log.info(f"Common functions {len(common_fns)}")
