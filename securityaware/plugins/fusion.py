@@ -41,11 +41,9 @@ class FusionHandler(PluginHandler):
         static_labelled_data.reset_index(inplace=True, drop=True)
         static_labelled_data.rename(columns={'label': 'sa_label'}, inplace=True)
 
-        diff_data_hashes = diff_labelled_data.hash.to_list()
-        static_data_hashes = static_labelled_data.hash.to_list()
-
         # fusing diff and static datasets into a single dataset
         common_fns = pd.merge(diff_labelled_data, static_labelled_data[['hash', 'sa_label']], on='hash', how='inner')
+        common_hashes = common_fns.hash.to_list()
 
         self.app.log.info(f"Common functions {len(common_fns)}")
         self.app.log.info(f"\tDiff safe functions: {len(common_fns[common_fns['da_label'] == 'safe'])}, "
@@ -53,7 +51,7 @@ class FusionHandler(PluginHandler):
         self.app.log.info(f"\tStatic safe functions: {len(common_fns[common_fns['sa_label'] == 'safe'])}, "
                           f"Static unsafe functions: {len(common_fns[common_fns['sa_label'] == 'unsafe'])}")
 
-        diff_uncommon_fns = diff_labelled_data[~diff_labelled_data.hash.isin(static_data_hashes)]
+        diff_uncommon_fns = diff_labelled_data[~diff_labelled_data.hash.isin(common_hashes)]
         diff_safe_uncommon_fns = diff_uncommon_fns[diff_uncommon_fns['da_label'] == 'safe']
         diff_unsafe_uncommon_fns = diff_uncommon_fns[diff_uncommon_fns['da_label'] == 'unsafe']
         self.app.log.info(f"Diff analysis uncommon functions {len(diff_uncommon_fns)} "
@@ -62,7 +60,7 @@ class FusionHandler(PluginHandler):
         diff_safe_uncommon_fns['sa_label'] = diff_safe_uncommon_fns['da_label'].copy()
         diff_unsafe_uncommon_fns['sa_label'] = diff_unsafe_uncommon_fns['da_label'].copy().apply(lambda x: 'safe')
 
-        static_uncommon_fns = static_labelled_data[~static_labelled_data.hash.isin(diff_data_hashes)]
+        static_uncommon_fns = static_labelled_data[~static_labelled_data.hash.isin(common_hashes)]
         static_safe_uncommon_fns = static_uncommon_fns[static_uncommon_fns['sa_label'] == 'safe']
         static_unsafe_uncommon_fns = static_uncommon_fns[static_uncommon_fns['sa_label'] == 'unsafe']
         self.app.log.info(f"Static analysis uncommon functions {len(static_uncommon_fns)} "
