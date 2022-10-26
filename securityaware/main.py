@@ -1,10 +1,10 @@
-
 from cement import App, TestApp
 from cement.core.exc import CaughtSignal, InterfaceError
 
 from .core.exc import SecurityAwareError
 from .controllers.base import Base
 from .controllers.plugin import Plugin
+from .controllers.cwe import CWE
 
 from securityaware.core.interfaces import HandlersInterface
 from securityaware.handlers.github import GithubHandler
@@ -14,6 +14,7 @@ from securityaware.handlers.workflow import WorkflowHandler
 from securityaware.handlers.plugin_loader import PluginLoader
 from securityaware.handlers.container import ContainerHandler
 from securityaware.handlers.code_parser import CodeParserHandler
+from securityaware.handlers.cwe_list import CWEListHandler
 
 
 class SecurityAware(App):
@@ -33,6 +34,9 @@ class SecurityAware(App):
             'colorlog',
             'jinja2',
         ]
+
+        # configuration files
+        config_files = ['~/.securityaware/config/abstractions.yml', '~/.securityaware/config/mappings.yml']
 
         # configuration handler
         config_handler = 'yaml'
@@ -55,8 +59,8 @@ class SecurityAware(App):
 
         # register handlers
         handlers = [
-            Base, Plugin, PluginLoader, ContainerHandler, CommandHandler, WorkflowHandler, CodeParserHandler,
-            MultiTaskHandler, GithubHandler
+            Base, Plugin, CWE, PluginLoader, ContainerHandler, CommandHandler, WorkflowHandler, CodeParserHandler,
+            MultiTaskHandler, GithubHandler, CWEListHandler
         ]
 
     def get_config(self, key: str):
@@ -102,6 +106,15 @@ class SecurityAwareTest(TestApp, SecurityAware):
 
 def main():
     with SecurityAware() as app:
+
+        if not app.config.has_section('mappings'):
+            app.log.error(f"Views mappings not found, make sure ~/.securityaware/config/mappings.yml exists")
+            exit(1)
+
+        if not app.config.has_section('abstractions'):
+            app.log.error(f"CWE abstractions not found, make sure ~/.securityaware/config/abstractions.yml exists")
+            exit(1)
+
         try:
             app.run()
 

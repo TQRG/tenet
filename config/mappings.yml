@@ -1,0 +1,2134 @@
+mappings:
+  software_development:
+    19:
+      title: Data Processing Errors
+      entries:
+        130: Improper Handling of Length Parameter Inconsistency
+        166: Improper Handling of Missing Special Element
+        167: Improper Handling of Additional Special Element
+        168: Improper Handling of Inconsistent Special Elements
+        178: Improper Handling of Case Sensitivity
+        182: Collapse of Data into Unsafe Value
+        186: Overly Restrictive Regular Expression
+        229: Improper Handling of Values
+        233: Improper Handling of Parameters
+        237: Improper Handling of Structural Elements
+        241: Improper Handling of Unexpected Data Type
+        409: Improper Handling of Highly Compressed Data (Data Amplification
+        471: Modification of Assumed-Immutable Data (MAID
+        472: External Control of Assumed-Immutable Web Parameter
+        601: URL Redirection to Untrusted Site ('Open Redirect
+        611: Improper Restriction of XML External Entity Reference
+        624: Executable Regular Expression Error
+        625: Permissive Regular Expression
+        776: Improper Restriction of Recursive Entity References in DTDs ('XML Entity Expansion
+        1024: Comparison of Incompatible Types
+    133:
+      title: String Errors
+      entries:
+        134: Use of Externally-Controlled Format String
+        135: Incorrect Calculation of Multi-Byte String Length
+        597: Use of Wrong Operator in String Comparison
+    136:
+      title: Type Errors
+      entries:
+        681: Incorrect Conversion between Numeric Types
+        843: Access of Resource Using Incompatible Type ('Type Confusion
+    137:
+      title: Data Neutralization Issues
+      entries:
+        76: Improper Neutralization of Equivalent Special Elements
+        78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection
+        79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting
+        88: Improper Neutralization of Argument Delimiters in a Command ('Argument Injection
+        89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection
+        90: Improper Neutralization of Special Elements used in an LDAP Query ('LDAP Injection
+        91: XML Injection (aka Blind XPath Injection
+        93: Improper Neutralization of CRLF Sequences ('CRLF Injection
+        94: Improper Control of Generation of Code ('Code Injection
+        96: Improper Neutralization of Directives in Statically Saved Code ('Static Code Injection
+        117: Improper Output Neutralization for Logs
+        140: Improper Neutralization of Delimiters
+        170: Improper Null Termination
+        188: Reliance on Data/Memory Layout
+        462: Duplicate Key in Associative List (Alist
+        463: Deletion of Data Structure Sentinel
+        464: Addition of Data Structure Sentinel
+        641: Improper Restriction of Names for Files and Other Resources
+        643: Improper Neutralization of Data within XPath Expressions ('XPath Injection
+        652: Improper Neutralization of Data within XQuery Expressions ('XQuery Injection
+        791: Incomplete Filtering of Special Elements
+        795: Only Filtering Special Elements at a Specified Location
+        838: Inappropriate Encoding for Output Context
+        917: Improper Neutralization of Special Elements used in an Expression Language Statement ('Expression Language Injection
+        1236: Improper Neutralization of Formula Elements in a CSV File
+    189:
+      title: Numeric Errors
+      entries:
+        128: Wrap-around Error
+        190: Integer Overflow or Wraparound
+        191: Integer Underflow (Wrap or Wraparound
+        192: Integer Coercion Error
+        193: Off-by-one Error
+        197: Numeric Truncation Error
+        198: Use of Incorrect Byte Ordering
+        369: Divide By Zero
+        681: Incorrect Conversion between Numeric Types
+        839: Numeric Range Comparison Without Minimum Check
+        1077: Floating Point Comparison with Incorrect Operator
+        1339: Insufficient Precision or Accuracy of a Real Number
+    199:
+      title: Information Management Errors
+      entries:
+        201: Insertion of Sensitive Information Into Sent Data
+        204: Observable Response Discrepancy
+        205: Observable Behavioral Discrepancy
+        208: Observable Timing Discrepancy
+        209: Generation of Error Message Containing Sensitive Information
+        212: Improper Removal of Sensitive Information Before Storage or Transfer
+        213: Exposure of Sensitive Information Due to Incompatible Policies
+        214: Invocation of Process Using Visible Sensitive Information
+        215: Insertion of Sensitive Information Into Debugging Code
+        312: Cleartext Storage of Sensitive Information
+        319: Cleartext Transmission of Sensitive Information
+        359: Exposure of Private Personal Information to an Unauthorized Actor
+        497: Exposure of Sensitive System Information to an Unauthorized Control Sphere
+        524: Use of Cache Containing Sensitive Information
+        532: Insertion of Sensitive Information into Log File
+        540: Inclusion of Sensitive Information in Source Code
+        921: Storage of Sensitive Data in a Mechanism without Access Control
+        1230: Exposure of Sensitive Information Through Metadata
+    255:
+      title: Credentials Management Errors
+      entries:
+        256: Plaintext Storage of a Password
+        257: Storing Passwords in a Recoverable Format
+        260: Password in Configuration File
+        261: Weak Encoding for Password
+        262: Not Using Password Aging
+        263: Password Aging with Long Expiration
+        324: Use of a Key Past its Expiration Date
+        521: Weak Password Requirements
+        523: Unprotected Transport of Credentials
+        549: Missing Password Field Masking
+        620: Unverified Password Change
+        640: Weak Password Recovery Mechanism for Forgotten Password
+        798: Use of Hard-coded Credentials
+        916: Use of Password Hash With Insufficient Computational Effort
+    265:
+      title: Privilege Issues
+      entries:
+        243: Creation of chroot Jail Without Changing Working Directory
+        250: Execution with Unnecessary Privileges
+        266: Incorrect Privilege Assignment
+        267: Privilege Defined With Unsafe Actions
+        268: Privilege Chaining
+        270: Privilege Context Switching Error
+        272: Least Privilege Violation
+        273: Improper Check for Dropped Privileges
+        274: Improper Handling of Insufficient Privileges
+        280: Improper Handling of Insufficient Permissions or Privileges
+        501: Trust Boundary Violation
+        580: clone() Method Without super.clone()
+        648: Incorrect Use of Privileged APIs
+    275:
+      title: Permission Issues
+      entries:
+        276: Incorrect Default Permissions
+        277: Insecure Inherited Permissions
+        278: Insecure Preserved Inherited Permissions
+        279: Incorrect Execution-Assigned Permissions
+        280: Improper Handling of Insufficient Permissions or Privileges
+        281: Improper Preservation of Permissions
+        618: Exposed Unsafe ActiveX Method
+        766: Critical Data Element Declared Public
+        767: Access to Critical Private Variable via Public Method
+    310:
+      title: Cryptographic Issues
+      entries:
+        261: Weak Encoding for Password
+        324: Use of a Key Past its Expiration Date
+        325: Missing Cryptographic Step
+        328: Use of Weak Hash
+        331: Insufficient Entropy
+        334: Small Space of Random Values
+        335: Incorrect Usage of Seeds in Pseudo-Random Number Generator (PRNG
+        338: Use of Cryptographically Weak Pseudo-Random Number Generator (PRNG
+        347: Improper Verification of Cryptographic Signature
+        916: Use of Password Hash With Insufficient Computational Effort
+        1240: Use of a Cryptographic Primitive with a Risky Implementation
+    320:
+      title: Key Management Errors
+      entries:
+        321: Use of Hard-coded Cryptographic Key
+        322: Key Exchange without Entity Authentication
+        323: Reusing a Nonce, Key Pair in Encryption
+        324: Use of a Key Past its Expiration Date
+    355:
+      title: User Interface Security Issues
+      entries:
+        317: Cleartext Storage of Sensitive Information in GUI
+        356: Product UI does not Warn User of Unsafe Actions
+        357: Insufficient UI Warning of Dangerous Operations
+        447: Unimplemented or Unsupported Feature in UI
+        448: Obsolete Feature in UI
+        449: The UI Performs the Wrong Action
+        450: Multiple Interpretations of UI Input
+        549: Missing Password Field Masking
+        1007: Insufficient Visual Distinction of Homoglyphs Presented to User
+        1021: Improper Restriction of Rendered UI Layers or Frames
+    371:
+      title: State Issues
+      entries:
+        15: External Control of System or Configuration Setting
+        372: Incomplete Internal State Distinction
+        374: Passing Mutable Objects to an Untrusted Method
+        375: Returning a Mutable Object to an Untrusted Caller
+        1265: Unintended Reentrant Invocation of Non-reentrant Code Via Nested Calls
+    387:
+      title: Signal Errors
+      entries:
+        364: Signal Handler Race Condition
+        432: Dangerous Signal Handler not Disabled During Sensitive Operations
+        828: Signal Handler with Functionality that is not Asynchronous-Safe
+        831: Signal Handler Function Associated with Multiple Signals
+    389:
+      title: Error Conditions, Return Values, Status Codes
+      entries:
+        209: Generation of Error Message Containing Sensitive Information
+        248: Uncaught Exception
+        252: Unchecked Return Value
+        253: Incorrect Check of Function Return Value
+        390: Detection of Error Condition Without Action
+        391: Unchecked Error Condition
+        392: Missing Report of Error Condition
+        393: Return of Wrong Status Code
+        394: Unexpected Status Code or Return Value
+        395: Use of NullPointerException Catch to Detect NULL Pointer Dereference
+        396: Declaration of Catch for Generic Exception
+        397: Declaration of Throws for Generic Exception
+        544: Missing Standardized Error Handling Mechanism
+        584: Return Inside Finally Block
+        600: Uncaught Exception in Servlet
+        617: Reachable Assertion
+        756: Missing Custom Error Page
+        1069: Empty Exception Block
+    399:
+      title: Resource Management Errors
+      entries:
+        73: External Control of File Name or Path
+        403: Exposure of File Descriptor to Unintended Control Sphere ('File Descriptor Leak
+        410: Insufficient Resource Pool
+        470: Use of Externally-Controlled Input to Select Classes or Code ('Unsafe Reflection
+        502: Deserialization of Untrusted Data
+        619: Dangling Database Cursor ('Cursor Injection
+        641: Improper Restriction of Names for Files and Other Resources
+        694: Use of Multiple Resources with Duplicate Identifier
+        763: Release of Invalid Pointer or Reference
+        770: Allocation of Resources Without Limits or Throttling
+        771: Missing Reference to Active Allocated Resource
+        772: Missing Release of Resource after Effective Lifetime
+        826: Premature Release of Resource During Expected Lifetime
+        908: Use of Uninitialized Resource
+        909: Missing Initialization of Resource
+        910: Use of Expired File Descriptor
+        911: Improper Update of Reference Count
+        914: Improper Control of Dynamically-Identified Variables
+        915: Improperly Controlled Modification of Dynamically-Determined Object Attributes
+        920: Improper Restriction of Power Consumption
+        1188: Insecure Default Initialization of Resource
+    411:
+      title: Resource Locking Problems
+      entries:
+        412: Unrestricted Externally Accessible Lock
+        413: Improper Resource Locking
+        414: Missing Lock Check
+        609: Double-Checked Locking
+        764: Multiple Locks of a Critical Resource
+        765: Multiple Unlocks of a Critical Resource
+        832: Unlock of a Resource that is not Locked
+        833: Deadlock
+    417:
+      title: Communication Channel Errors
+      entries:
+        322: Key Exchange without Entity Authentication
+        346: Origin Validation Error
+        385: Covert Timing Channel
+        419: Unprotected Primary Channel
+        420: Unprotected Alternate Channel
+        425: Direct Request ('Forced Browsing
+        515: Covert Storage Channel
+        924: Improper Enforcement of Message Integrity During Transmission in a Communication Channel
+        940: Improper Verification of Source of a Communication Channel
+        941: Incorrectly Specified Destination in a Communication Channel
+    429:
+      title: Handler Errors
+      entries:
+        430: Deployment of Wrong Handler
+        431: Missing Handler
+        432: Dangerous Signal Handler not Disabled During Sensitive Operations
+        433: Unparsed Raw Web Content Delivery
+        434: Unrestricted Upload of File with Dangerous Type
+        479: Signal Handler Use of a Non-reentrant Function
+    438:
+      title: Behavioral Problems
+      entries:
+        115: Misinterpretation of Input
+        179: 'Incorrect Behavior Order: Early Validation'
+        408: 'Incorrect Behavior Order: Early Amplification'
+        437: Incomplete Model of Endpoint Features
+        439: Behavioral Change in New Version or Environment
+        440: Expected Behavior Violation
+        444: Inconsistent Interpretation of HTTP Requests ('HTTP Request/Response Smuggling
+        480: Use of Incorrect Operator
+        483: Incorrect Block Delimitation
+        484: Omitted Break Statement in Switch
+        551: 'Incorrect Behavior Order: Authorization Before Parsing and Canonicalization'
+        698: Execution After Redirect (EAR
+        733: Compiler Optimization Removal or Modification of Security-critical Code
+        783: Operator Precedence Logic Error
+        835: Loop with Unreachable Exit Condition ('Infinite Loop
+        837: Improper Enforcement of a Single, Unique Action
+        841: Improper Enforcement of Behavioral Workflow
+        1025: Comparison Using Wrong Factors
+        1037: Processor Optimization Removal or Modification of Security-critical Code
+    452:
+      title: Initialization and Cleanup Errors
+      entries:
+        226: Sensitive Information in Resource Not Removed Before Reuse
+        454: External Initialization of Trusted Variables or Data Stores
+        455: Non-exit on Failed Initialization
+        459: Incomplete Cleanup
+        460: Improper Cleanup on Thrown Exception
+        1051: Initialization with Hard-Coded Network Resource Configuration Data
+        1052: Excessive Use of Hard-Coded Literals in Initialization
+        1188: Insecure Default Initialization of Resource
+    465:
+      title: Pointer Issues
+      entries:
+        466: Return of Pointer Value Outside of Expected Range
+        467: Use of sizeof() on a Pointer Type
+        468: Incorrect Pointer Scaling
+        469: Use of Pointer Subtraction to Determine Size
+        476: NULL Pointer Dereference
+        587: Assignment of a Fixed Address to a Pointer
+        588: Attempt to Access Child of a Non-structure Pointer
+        763: Release of Invalid Pointer or Reference
+        822: Untrusted Pointer Dereference
+        823: Use of Out-of-range Pointer Offset
+        824: Access of Uninitialized Pointer
+        825: Expired Pointer Dereference
+    557:
+      title: Concurrency Issues
+      entries:
+        363: Race Condition Enabling Link Following
+        364: Signal Handler Race Condition
+        366: Race Condition within a Thread
+        367: Time-of-check Time-of-use (TOCTOU) Race Condition
+        368: Context Switching Race Condition
+        386: Symbolic Name not Mapping to Correct Object
+        421: Race Condition During Access to Alternate Channel
+        567: Unsynchronized Access to Shared Data in a Multithreaded Context
+        585: Empty Synchronized Block
+        663: Use of a Non-reentrant Function in a Concurrent Context
+        820: Missing Synchronization
+        821: Incorrect Synchronization
+        1058: Invokable Control Element in Multi-Thread Context with non-Final Static Storable or Member Element
+        1088: Synchronous Access of Remote Resource without Timeout
+    569:
+      title: Expression Issues
+      entries:
+        480: Use of Incorrect Operator
+        570: Expression is Always False
+        571: Expression is Always True
+        588: Attempt to Access Child of a Non-structure Pointer
+        595: Comparison of Object References Instead of Object Contents
+        783: Operator Precedence Logic Error
+    840:
+      title: Business Logic Errors
+      entries:
+        283: Unverified Ownership
+        288: Authentication Bypass Using an Alternate Path or Channel
+        639: Authorization Bypass Through User-Controlled Key
+        640: Weak Password Recovery Mechanism for Forgotten Password
+        708: Incorrect Ownership Assignment
+        770: Allocation of Resources Without Limits or Throttling
+        826: Premature Release of Resource During Expected Lifetime
+        837: Improper Enforcement of a Single, Unique Action
+        841: Improper Enforcement of Behavioral Workflow
+    1006:
+      title: Bad Coding Practices
+      entries:
+        478: Missing Default Case in Switch Statement
+        487: Reliance on Package-level Scope
+        489: Active Debug Code
+        546: Suspicious Comment
+        547: Use of Hard-coded, Security-relevant Constants
+        561: Dead Code
+        562: Return of Stack Variable Address
+        563: Assignment to Variable without Use
+        581: 'Object Model Violation: Just One of Equals and Hashcode Defined'
+        586: Explicit Call to Finalize()
+        605: Multiple Binds to the Same Port
+        621: Variable Extraction Error
+        627: Dynamic Variable Evaluation
+        628: Function Call with Incorrectly Specified Arguments
+        694: Use of Multiple Resources with Duplicate Identifier
+        1041: Use of Redundant Code
+        1043: Data Element Aggregating an Excessively Large Number of Non-Primitive Elements
+        1044: Architecture with Number of Horizontal Layers Outside of Expected Range
+        1045: Parent Class with a Virtual Destructor and a Child Class without a Virtual Destructor
+        1046: Creation of Immutable Text Using String Concatenation
+        1048: Invokable Control Element with Large Number of Outward Calls
+        1049: Excessive Data Query Operations in a Large Data Table
+        1050: Excessive Platform Resource Consumption within a Loop
+        1063: Creation of Class Instance within a Static Code Block
+        1065: Runtime Resource Management Control Element in a Component Built to Run on Application Servers
+        1066: Missing Serialization Control Element
+        1067: Excessive Execution of Sequential Searches of Data Resource
+        1070: Serializable Data Element Containing non-Serializable Item Elements
+        1071: Empty Code Block
+        1072: Data Resource Access without Use of Connection Pooling
+        1073: Non-SQL Invokable Control Element with Excessive Number of Data Resource Accesses
+        1079: Parent Class without Virtual Destructor Method
+        1082: Class Instance Self Destruction Control Element
+        1084: Invokable Control Element with Excessive File or Data Access Operations
+        1085: Invokable Control Element with Excessive Volume of Commented-out Code
+        1087: Class with Virtual Method without a Virtual Destructor
+        1089: Large Data Table with Excessive Number of Indices
+        1091: Use of Object without Invoking Destructor Method
+        1092: Use of Same Invokable Control Element in Multiple Architectural Layers
+        1094: Excessive Index Range Scan for a Data Resource
+        1097: Persistent Storable Data Element without Associated Comparison Control Element
+        1098: Data Element containing Pointer Item without Proper Copy Control Element
+        1099: Inconsistent Naming Conventions for Identifiers
+        1101: Reliance on Runtime Component in Generated Code
+        1102: Reliance on Machine-Dependent Data Representation
+        1103: Use of Platform-Dependent Third Party Components
+        1104: Use of Unmaintained Third Party Components
+        1106: Insufficient Use of Symbolic Constants
+        1107: Insufficient Isolation of Symbolic Constant Definitions
+        1108: Excessive Reliance on Global Variables
+        1109: Use of Same Variable for Multiple Purposes
+        1113: Inappropriate Comment Style
+        1114: Inappropriate Whitespace Style
+        1115: Source Code Element without Standard Prologue
+        1116: Inaccurate Comments
+        1117: Callable with Insufficient Behavioral Summary
+        1126: Declaration of Variable with Unnecessarily Wide Scope
+        1127: Compilation with Insufficient Warnings or Errors
+        1235: Incorrect Use of Autoboxing and Unboxing for Performance Critical Operations
+    1210:
+      title: Audit / Logging Errors
+      entries:
+        117: Improper Output Neutralization for Logs
+        222: Truncation of Security-relevant Information
+        223: Omission of Security-relevant Information
+        224: Obscured Security-relevant Information by Alternate Name
+        532: Insertion of Sensitive Information into Log File
+        778: Insufficient Logging
+        779: Logging of Excessive Data
+    1211:
+      title: Authentication Errors
+      entries:
+        288: Authentication Bypass Using an Alternate Path or Channel
+        290: Authentication Bypass by Spoofing
+        294: Authentication Bypass by Capture-replay
+        295: Improper Certificate Validation
+        296: Improper Following of a Certificate's Chain of Trust
+        299: Improper Check for Certificate Revocation
+        303: Incorrect Implementation of Authentication Algorithm
+        304: Missing Critical Step in Authentication
+        305: Authentication Bypass by Primary Weakness
+        306: Missing Authentication for Critical Function
+        307: Improper Restriction of Excessive Authentication Attempts
+        308: Use of Single-factor Authentication
+        309: Use of Password System for Primary Authentication
+        322: Key Exchange without Entity Authentication
+        603: Use of Client-Side Authentication
+        645: Overly Restrictive Account Lockout Mechanism
+        804: Guessable CAPTCHA
+        836: Use of Password Hash Instead of Password for Authentication
+    1212:
+      title: Authorization Errors
+      entries:
+        425: Direct Request ('Forced Browsing
+        551: 'Incorrect Behavior Order: Authorization Before Parsing and Canonicalization'
+        612: Improper Authorization of Index Containing Sensitive Information
+        639: Authorization Bypass Through User-Controlled Key
+        842: Placement of User into Incorrect Group
+        939: Improper Authorization in Handler for Custom URL Scheme
+        1220: Insufficient Granularity of Access Control
+    1213:
+      title: Random Number Issues
+      entries:
+        331: Insufficient Entropy
+        334: Small Space of Random Values
+        335: Incorrect Usage of Seeds in Pseudo-Random Number Generator (PRNG
+        338: Use of Cryptographically Weak Pseudo-Random Number Generator (PRNG
+        341: Predictable from Observable State
+        342: Predictable Exact Value from Previous Values
+        343: Predictable Value Range from Previous Values
+        1241: Use of Predictable Algorithm in Random Number Generator
+    1214:
+      title: Data Integrity Issues
+      entries:
+        322: Key Exchange without Entity Authentication
+        346: Origin Validation Error
+        347: Improper Verification of Cryptographic Signature
+        348: Use of Less Trusted Source
+        349: Acceptance of Extraneous Untrusted Data With Trusted Data
+        351: Insufficient Type Distinction
+        353: Missing Support for Integrity Check
+        354: Improper Validation of Integrity Check Value
+        494: Download of Code Without Integrity Check
+        565: Reliance on Cookies without Validation and Integrity Checking
+        649: Reliance on Obfuscation or Encryption of Security-Relevant Inputs without Integrity Checking
+        829: Inclusion of Functionality from Untrusted Control Sphere
+        924: Improper Enforcement of Message Integrity During Transmission in a Communication Channel
+    1215:
+      title: Data Validation Issues
+      entries:
+        112: Missing XML Validation
+        129: Improper Validation of Array Index
+        179: 'Incorrect Behavior Order: Early Validation'
+        183: Permissive List of Allowed Inputs
+        184: Incomplete List of Disallowed Inputs
+        606: Unchecked Input for Loop Condition
+        641: Improper Restriction of Names for Files and Other Resources
+        1173: Improper Use of Validation Framework
+    1216:
+      title: Lockout Mechanism Errors
+      entries:
+        645: Overly Restrictive Account Lockout Mechanism
+    1217:
+      title: User Session Errors
+      entries:
+        488: Exposure of Data Element to Wrong Session
+        613: Insufficient Session Expiration
+        841: Improper Enforcement of Behavioral Workflow
+    1218:
+      title: Memory Buffer Errors
+      entries:
+        120: Buffer Copy without Checking Size of Input ('Classic Buffer Overflow
+        123: Write-what-where Condition
+        124: Buffer Underwrite ('Buffer Underflow
+        125: Out-of-bounds Read
+        131: Incorrect Calculation of Buffer Size
+        786: Access of Memory Location Before Start of Buffer
+        787: Out-of-bounds Write
+        788: Access of Memory Location After End of Buffer
+        805: Buffer Access with Incorrect Length Value
+    1219:
+      title: File Handling Issues
+      entries:
+        23: Relative Path Traversal
+        36: Absolute Path Traversal
+        41: Improper Resolution of Path Equivalence
+        59: Improper Link Resolution Before File Access ('Link Following
+        66: Improper Handling of File Names that Identify Virtual Resources
+        378: Creation of Temporary File With Insecure Permissions
+        379: Creation of Temporary File in Directory with Insecure Permissions
+        426: Untrusted Search Path
+        427: Uncontrolled Search Path Element
+        428: Unquoted Search Path or Element
+    1225:
+      title: Documentation Issues
+      entries:
+        1053: Missing Documentation for Design
+        1068: Inconsistency Between Implementation and Documented Design
+        1110: Incomplete Design Documentation
+        1111: Incomplete I/O Documentation
+        1112: Incomplete Documentation of Program Execution
+        1118: Insufficient Documentation of Error Handling Techniques
+    1226:
+      title: Complexity Issues
+      entries:
+        1043: Data Element Aggregating an Excessively Large Number of Non-Primitive Elements
+        1047: Modules with Circular Dependencies
+        1055: Multiple Inheritance from Concrete Classes
+        1056: Invokable Control Element with Variadic Parameters
+        1060: Excessive Number of Inefficient Server-Side Data Accesses
+        1064: Invokable Control Element with Signature Containing an Excessive Number of Parameters
+        1074: Class with Excessively Deep Inheritance
+        1075: Unconditional Control Flow Transfer outside of Switch Block
+        1080: Source Code File with Excessive Number of Lines of Code
+        1086: Class with Excessive Number of Child Classes
+        1095: Loop Condition Value Update within the Loop
+        1119: Excessive Use of Unconditional Branching
+        1121: Excessive McCabe Cyclomatic Complexity
+        1122: Excessive Halstead Complexity
+        1123: Excessive Use of Self-Modifying Code
+        1124: Excessively Deep Nesting
+        1125: Excessive Attack Surface
+    1227:
+      title: Encapsulation Issues
+      entries:
+        1054: Invocation of a Control Element at an Unnecessarily Deep Horizontal Layer
+        1057: Data Access Operations Outside of Expected Data Manager Component
+        1062: Parent Class with References to Child Class
+        1083: Data Access from Outside Expected Data Manager Component
+        1090: Method Containing Access of a Member Element from Another Class
+        1100: Insufficient Isolation of System-Dependent Functions
+        1105: Insufficient Encapsulation of Machine-Dependent Functionality
+    1228:
+      title: API / Function Errors
+      entries:
+        242: Use of Inherently Dangerous Function
+        474: Use of Function with Inconsistent Implementations
+        475: Undefined Behavior for Input to API
+        477: Use of Obsolete Function
+        676: Use of Potentially Dangerous Function
+        695: Use of Low-Level Functionality
+        749: Exposed Dangerous Method or Function
+
+  software_fault_pattern:
+    primary:
+      885:
+        title: Risky Values
+        clusters:
+          998: Glitch in Computation
+      886:
+        title: Unused entities
+        entries:
+          482: Comparing instead of Assigning
+          561: Dead Code
+          563: Assignment to Variable without Use
+      887:
+        title: API
+        clusters:
+          1001: Use of an Improper API
+      889:
+        title: Exception Management
+        clusters:
+          960: Ambiguous Exception Type
+          961: Incorrect Exception Behavior
+          962: Unchecked Status Condition
+      890:
+        title: Memory Access
+        clusters:
+          970: Faulty Buffer Access
+          971: Faulty Pointer Use
+          972: Faulty String Expansion
+          973: Improper NULL Termination
+          974: Incorrect Buffer Length Computation
+      891:
+        title: Memory Management
+        clusters:
+          969: Faulty Memory Release
+      892:
+        title: Resource Management
+        clusters:
+          982: Failure to Release Resource
+          983: Faulty Resource Use
+          984: Life Cycle
+          985: Unrestricted Consumption
+      893:
+        title: Path Resolution
+        clusters:
+          979: Failed Chroot Jail
+          980: Link in Resource Name Resolution
+          981: Path Traversal
+      894:
+        title: Synchronization
+        clusters:
+          986: Missing Lock
+          987: Multiple Locks/Unlocks
+          988: Race Condition Window
+          989: Unrestricted Lock
+      895:
+        title: Information Leak
+        clusters:
+          963: Exposed Data
+          964: Exposure Temporary File
+          965: Insecure Session Management
+          966: Other Exposures
+          967: State Disclosure
+      896:
+        title: Tainted Input
+        clusters:
+          990: Tainted Input to Command
+          991: Tainted Input to Environment
+          992: Faulty Input Transformation
+          993: Incorrect Input Handling
+          994: Tainted Input to Variable
+      897:
+        title: Entry Points
+        clusters:
+          1002: Unexpected Entry Points
+      898:
+        title: Authentication
+        clusters:
+          947: Authentication Bypass
+          948: Digital Certificate
+          949: Faulty Endpoint Authentication
+          950: Hardcoded Sensitive Data
+          951: Insecure Authentication Policy
+          952: Missing Authentication
+          953: Missing Endpoint Authentication
+          954: Multiple Binds to the Same Port
+          955: Unrestricted Authentication
+      899:
+        title: Access Control
+        clusters:
+          944: Access Management
+          945: Insecure Resource Access
+          946: Insecure Resource Permissions
+      901:
+        title: Privilege
+        entries:
+          9: "J2EE Misconfiguration: Weak Access Permissions for EJB Methods"
+          250: Execution with Unnecessary Privileges
+          266: Incorrect Privilege Assignment
+          267: Privilege Defined With Unsafe Actions
+          268: Privilege Chaining
+          269: Improper Privilege Management
+          270: Privilege Context Switching Error
+          271: Privilege Dropping / Lowering Errors
+          272: Least Privilege Violation
+          274: Improper Handling of Insufficient Privileges
+          520: ".NET Misconfiguration: Use of Impersonation"
+          653: Improper Isolation or Compartmentalization
+      902:
+        title: Channel
+        clusters:
+          956: Channel Attack
+          957: Protocol Error
+      903:
+        title: Cryptography
+        clusters:
+          958: Broken Cryptography
+          959: Weak Cryptography
+      904:
+        title: Malware
+        entries:
+          69: Improper Handling of Windows ::DATA Alternate Data Stream
+          506: Embedded Malicious Code
+          507: Trojan Horse
+          508: Non-Replicating Malicious Code
+          509: Replicating Malicious Code (Virus or Worm)
+          510: Trapdoor
+          511: Logic/Time Bomb
+          512: Spyware
+        clusters:
+          968: "SFP Secondary Cluster: Covert Channel"
+      905:
+        title: Predictability
+        entries:
+          330: Use of Insufficiently Random Values
+          331: Insufficient Entropy
+          332: Insufficient Entropy in PRNG
+          333: Improper Handling of Insufficient Entropy in TRNG
+          334: Small Space of Random Values
+          335: Incorrect Usage of Seeds in Pseudo-Random Number Generator (PRNG)
+          336: Same Seed in Pseudo-Random Number Generator (PRNG)
+          337: Predictable Seed in Pseudo-Random Number Generator (PRNG)
+          338: Use of Cryptographically Weak Pseudo-Random Number Generator (PRNG)
+          339: Small Seed Space in PRNG
+          340: Generation of Predictable Numbers or Identifiers
+          341: Predictable from Observable State
+          342: Predictable Exact Value from Previous Values
+          343: Predictable Value Range from Previous Values
+          344: Use of Invariant Value in Dynamically Changing Context
+      906:
+        title: UI
+        clusters:
+          995: Feature
+          996: Security
+          997: Information Loss
+      907:
+        title: Other
+        clusters:
+          975: Architecture
+          976: Compiler
+          977: Design
+          978: Implementation
+      1237:
+        title: Faulty Resource Release
+        entries:
+          415: Double Free
+          762: Mismatched Memory Management Routines
+          763: Release of Invalid Pointer or Reference
+      1238:
+        title: Failure to Release Memory
+        entries:
+          401: Missing Release of Memory after Effective Lifetime
+
+    secondary:
+      944:
+        title: Access Management
+        entries:
+          282: Improper Ownership Management
+          283: Unverified Ownership
+          284: Improper Access Control
+          286: Incorrect User Management
+          708: Incorrect Ownership Assignment
+      945:
+        title: Insecure Resource Access
+        entries:
+          285: Improper Authorization
+          424: Improper Protection of Alternate Path
+          639: Authorization Bypass Through User-Controlled Key
+          650: Trusting HTTP Permission Methods on the Server Side
+      946:
+        title: Insecure Resource Permissions
+        entries:
+          276: Incorrect Default Permissions
+          277: Insecure Inherited Permissions
+          278: Insecure Preserved Inherited Permissions
+          279: Incorrect Execution-Assigned Permissions
+          281: Improper Preservation of Permissions
+          560: Use of umask() with chmod-style Argument
+          732: Incorrect Permission Assignment for Critical Resource
+      947:
+        title: Authentication Bypass
+        entries:
+          287: Improper Authentication
+          288: Authentication Bypass Using an Alternate Path or Channel
+          289: Authentication Bypass by Alternate Name
+          303: Incorrect Implementation of Authentication Algorithm
+          304: Missing Critical Step in Authentication
+          305: Authentication Bypass by Primary Weakness
+          308: Use of Single-factor Authentication
+          309: Use of Password System for Primary Authentication
+          603: Use of Client-Side Authentication
+      948:
+        title: Digital Certificate
+        entries:
+          296: Improper Following of a Certificates Chain of Trust
+          297: Improper Validation of Certificate with Host Mismatch
+          298: Improper Validation of Certificate Expiration
+          299: Improper Check for Certificate Revocation
+          593: "Authentication Bypass: OpenSSL CTX Object Modified after SSL Objects are Created"
+          599: Missing Validation of OpenSSL Certificate
+      949:
+        title: Faulty Endpoint Authentication
+        entries:
+          293: Using Referer Field for Authentication
+          302: Authentication Bypass by Assumed-Immutable Data
+          345: Insufficient Verification of Data Authenticity
+          346: Origin Validation Error
+          350: Reliance on Reverse DNS Resolution for a Security-Critical Action
+          360: Trust of System Event Data
+          551: "Incorrect Behavior Order: Authorization Before Parsing and Canonicalization"
+          565: Reliance on Cookies without Validation and Integrity Checking
+          647: Use of Non-Canonical URL Paths for Authorization Decisions
+      950:
+        title: Hardcoded Sensitive Data
+        entries:
+          258: Empty Password in Configuration File
+          259: Use of Hard-coded Password
+          321: Use of Hard-coded Cryptographic Key
+          547: Use of Hard-coded, Security-relevant Constants
+      951:
+        title: Insecure Authentication Policy
+        entries:
+          262: Not Using Password Aging
+          263: Password Aging with Long Expiration
+          521: Weak Password Requirements
+          556: "ASP.NET Misconfiguration: Use of Identity Impersonation"
+          613: Insufficient Session Expiration
+          645: Overly Restrictive Account Lockout Mechanism
+      952:
+        title: Missing Authentication
+        entries:
+          306: Missing Authentication for Critical Function
+          620: Unverified Password Change
+      953:
+        title: Missing Endpoint Authentication
+        entries:
+          422: Unprotected Windows Messaging Channel (Shatter)
+          425: Direct Request (Forced Browsing)
+      954:
+        title: Multiple Binds to the Same Port
+        entries:
+          605: Multiple Binds to the Same Port
+      955:
+        title: Unrestricted Authentication
+        entries:
+          307: Improper Restriction of Excessive Authentication Attempts
+      956:
+        title: Channel Attack
+        entries:
+          290: Authentication Bypass by Spoofing
+          294: Authentication Bypass by Capture-replay
+          300: Channel Accessible by Non-Endpoint
+          301: Reflection Attack in an Authentication Protocol
+          419: Unprotected Primary Channel
+          420: Unprotected Alternate Channel
+          421: Race Condition During Access to Alternate Channel
+          441: Unintended Proxy or Intermediary (Confused Deputy)
+      957:
+        title: Protocol Error
+        entries:
+          353: Missing Support for Integrity Check
+          435: Improper Interaction Between Multiple Correctly-Behaving Entities
+          436: Interpretation Conflict
+          437: Incomplete Model of Endpoint Features
+          757: Selection of Less-Secure Algorithm During Negotiation (Algorithm Downgrade)
+      958:
+        title: Broken Cryptography
+        entries:
+          325: Missing Cryptographic Step
+          327: Use of a Broken or Risky Cryptographic Algorithm
+          328: Use of Weak Hash
+          759: Use of a One-Way Hash without a Salt
+          760: Use of a One-Way Hash with a Predictable Salt
+      959:
+        title: Weak Cryptography
+        entries:
+          261: Weak Encoding for Password
+          322: Key Exchange without Entity Authentication
+          323: Reusing a Nonce, Key Pair in Encryption
+          324: Use of a Key Past its Expiration Date
+          326: Inadequate Encryption Strength
+          329: Generation of Predictable IV with CBC Mode
+          347: Improper Verification of Cryptographic Signature
+          640: Weak Password Recovery Mechanism for Forgotten Password
+      960:
+        title: Ambiguous Exception Type
+        entries:
+          396: Declaration of Catch for Generic Exception
+          397: Declaration of Throws for Generic Exception
+      961:
+        title: Incorrect Exception Behavior
+        entries:
+          392: Missing Report of Error Condition
+          393: Return of Wrong Status Code
+          455: Non-exit on Failed Initialization
+          460: Improper Cleanup on Thrown Exception
+          544: Missing Standardized Error Handling Mechanism
+          584: Return Inside Finally Block
+          636: Not Failing Securely (Failing Open)
+          703: Improper Check or Handling of Exceptional Conditions
+      962:
+        title: Unchecked Status Condition
+        entries:
+          248: Uncaught Exception
+          252: Unchecked Return Value
+          253: Incorrect Check of Function Return Value
+          273: Improper Check for Dropped Privileges
+          280: Improper Handling of Insufficient Permissions or Privileges
+          372: Incomplete Internal State Distinction
+          390: Detection of Error Condition Without Action
+          391: Unchecked Error Condition
+          394: Unexpected Status Code or Return Value
+          395: Use of NullPointerException Catch to Detect NULL Pointer Dereference
+          431: Missing Handler
+          478: Missing Default Case in Switch Statement
+          484: Omitted Break Statement in Switch
+          600: Uncaught Exception in Servlet
+          665: Improper Initialization
+          754: Improper Check for Unusual or Exceptional Conditions
+          755: Improper Handling of Exceptional Conditions
+      963:
+        title: Exposed Data
+        entries:
+          5: "J2EE Misconfiguration: Data Transmission Without Encryption"
+          7: "J2EE Misconfiguration: Missing Custom Error Page"
+          8: "J2EE Misconfiguration: Entity Bean Declared Remote"
+          11: "ASP.NET Misconfiguration: Creating Debug Binary"
+          12: "ASP.NET Misconfiguration: Missing Custom Error Page"
+          13: "ASP.NET Misconfiguration: Password in Configuration File"
+          14: Compiler Removal of Code to Clear Buffers
+          117: Improper Output Neutralization for Logs
+          200: Exposure of Sensitive Information to an Unauthorized Actor
+          201: Insertion of Sensitive Information Into Sent Data
+          209: Generation of Error Message Containing Sensitive Information
+          210: Self-generated Error Message Containing Sensitive Information
+          211: Externally-Generated Error Message Containing Sensitive Information
+          212: Improper Removal of Sensitive Information Before Storage or Transfer
+          213: Exposure of Sensitive Information Due to Incompatible Policies
+          214: Invocation of Process Using Visible Sensitive Information
+          215: Insertion of Sensitive Information Into Debugging Code
+          219: Storage of File with Sensitive Data Under Web Root
+          220: Storage of File With Sensitive Data Under FTP Root
+          226: Sensitive Information in Resource Not Removed Before Reuse
+          244: Improper Clearing of Heap Memory Before Release (Heap Inspection)
+          256: Plaintext Storage of a Password
+          257: Storing Passwords in a Recoverable Format
+          260: Password in Configuration File
+          311: Missing Encryption of Sensitive Data
+          312: Cleartext Storage of Sensitive Information
+          313: Cleartext Storage in a File or on Disk
+          314: Cleartext Storage in the Registry
+          315: Cleartext Storage of Sensitive Information in a Cookie
+          316: Cleartext Storage of Sensitive Information in Memory
+          317: Cleartext Storage of Sensitive Information in GUI
+          318: Cleartext Storage of Sensitive Information in Executable
+          319: Cleartext Transmission of Sensitive Information
+          374: Passing Mutable Objects to an Untrusted Method
+          375: Returning a Mutable Object to an Untrusted Caller
+          402: Transmission of Private Resources into a New Sphere (Resource Leak)
+          403: Exposure of File Descriptor to Unintended Control Sphere (File DescriptorLeak)
+          433: Unparsed Raw Web Content Delivery
+          495: Private Data Structure Returned From A Public Method
+          497: Exposure of Sensitive System Information to an Unauthorized Control Sphere
+          498: Cloneable Class Containing Sensitive Information
+          499: Serializable Class Containing Sensitive Data
+          501: Trust Boundary Violation
+          522: Insufficiently Protected Credentials
+          523: Unprotected Transport of Credentials
+          526: Exposure of Sensitive Information Through Environmental Variables
+          527: Exposure of Version-Control Repository to an Unauthorized Control Sphere
+          528: Exposure of Core Dump File to an Unauthorized Control Sphere
+          529: Exposure of Access Control List Files to an Unauthorized Control Sphere
+          530: Exposure of Backup File to an Unauthorized Control Sphere
+          532: Insertion of Sensitive Information into Log File
+          535: Exposure of Information Through Shell Error Message
+          536: Servlet Runtime Error Message Containing Sensitive Information
+          537: Java Runtime Error Message Containing Sensitive Information
+          538: Insertion of Sensitive Information into Externally-Accessible File or Directory
+          539: Use of Persistent Cookies Containing Sensitive Information
+          540: Inclusion of Sensitive Information in Source Code
+          541: Inclusion of Sensitive Information in an Include File
+          546: Suspicious Comment
+          548: Exposure of Information Through Directory Listing
+          550: Server-generated Error Message Containing Sensitive Information
+          552: Files or Directories Accessible to External Parties
+          555: "J2EE Misconfiguration: Plaintext Password in Configuration File"
+          591: Sensitive Data Storage in Improperly Locked Memory
+          598: Use of GET Request Method With Sensitive Query Strings
+          607: Public Static Final Field References Mutable Object
+          612: Improper Authorization of Index Containing Sensitive Information
+          615: Inclusion of Sensitive Information in Source Code Comments
+          642: External Control of Critical State Data
+          668: Exposure of Resource to Wrong Sphere
+          669: Incorrect Resource Transfer Between Spheres
+          756: Missing Custom Error Page
+          767: Access to Critical Private Variable via Public Method
+      964:
+        title: Exposure Temporary File
+        entries:
+          377: Insecure Temporary File
+          378: Creation of Temporary File With Insecure Permissions
+          379: Creation of Temporary File in Directory with Insecure Permissions
+      965:
+        title: Insecure Session Management
+        entries:
+          6: "J2EE Misconfiguration: Insufficient Session-ID Length"
+          488: Exposure of Data Element to Wrong Session
+          524: Use of Cache Containing Sensitive Information
+      966:
+        title: Other Exposures
+        entries:
+          453: Insecure Default Variable Initialization
+          487: Reliance on Package-level Scope
+          492: Use of Inner Class Containing Sensitive Data
+          525: Use of Web Browser Cache Containing Sensitive Information
+          614: Sensitive Cookie in HTTPS Session Without Secure Attribute
+          651: Exposure of WSDL File Containing Sensitive Information
+      967:
+        title: State Disclosure
+        entries:
+          202: Exposure of Sensitive Information Through Data Queries
+          203: Observable Discrepancy
+          204: Observable Response Discrepancy
+          205: Observable Behavioral Discrepancy
+          206: Observable Internal Behavioral Discrepancy
+          207: Observable Behavioral Discrepancy With Equivalent Products
+          208: Observable Timing Discrepancy
+      968:
+        title: Covert Channel
+        entries:
+          385: Covert Timing Channel
+          514: Covert Channel
+          515: Covert Storage Channel
+      969:
+        title: Faulty Memory Release
+        entries:
+          415: Double Free
+          590: Free of Memory not on the Heap
+          761: Free of Pointer not at Start of Buffer
+          763: Release of Invalid Pointer or Reference
+      970:
+        title: Faulty Buffer Access
+        entries:
+          118: Incorrect Access of Indexable Resource (Range Error)
+          120: Buffer Copy without Checking Size of Input (Classic Buffer Overflow)
+          121: Stack-based Buffer Overflow
+          122: Heap-based Buffer Overflow
+          124: Buffer Underwrite (Buffer Underflow)
+          126: Buffer Over-read
+          127: Buffer Under-read
+      971:
+        title: Faulty Pointer Use
+        entries:
+          416: Use After Free
+          476: NULL Pointer Dereference
+          588: Attempt to Access Child of a Non-structure Pointer
+      972:
+        title: Faulty String Expansion
+        entries:
+          785: Use of Path Manipulation Function without Maximum-sized Buffer
+      973:
+        title: Improper NULL Termination
+        entries:
+          170: Improper Null Termination
+      974:
+        title: Incorrect Buffer Length Computation
+        entries:
+          131: Incorrect Calculation of Buffer Size
+          135: Incorrect Calculation of Multi-Byte String Length
+          251: "Often Misused: String Management"
+          467: Use of sizeof() on a Pointer Type
+      975:
+        title: Architecture
+        entries:
+          348: Use of Less Trusted Source
+          359: Exposure of Private Personal Information to an Unauthorized Actor
+          602: Client-Side Enforcement of Server-Side Security
+          637: Unnecessary Complexity in Protection Mechanism (Not Using Economy of Mechanism)
+          649: Reliance on Obfuscation or Encryption of Security-Relevant Inputs without Integrity Checking
+          654: Reliance on a Single Factor in a Security Decision
+          656: Reliance on Security Through Obscurity
+          657: Violation of Secure Design Principles
+          671: Lack of Administrator Control over Security
+          693: Protection Mechanism Failure
+          749: Exposed Dangerous Method or Function
+      976:
+        title: Compiler
+        entries:
+          733: Compiler Optimization Removal or Modification of Security-critical Code
+      977:
+        title: Design
+        entries:
+          115: Misinterpretation of Input
+          187: Partial String Comparison
+          188: Reliance on Data/Memory Layout
+          193: Off-by-one Error
+          349: Acceptance of Extraneous Untrusted Data With Trusted Data
+          405: Asymmetric Resource Consumption (Amplification)
+          406: Insufficient Control of Network Message Volume (Network Amplification)
+          407: Inefficient Algorithmic Complexity
+          408: "Incorrect Behavior Order: Early Amplification"
+          409: Improper Handling of Highly Compressed Data (Data Amplification)
+          410: Insufficient Resource Pool
+          430: Deployment of Wrong Handler
+          462: Duplicate Key in Associative List (Alist)
+          463: Deletion of Data Structure Sentinel
+          464: Addition of Data Structure Sentinel
+          483: Incorrect Block Delimitation
+          581: "Object Model Violation: Just One of Equals and Hashcode Defined"
+          595: Comparison of Object References Instead of Object Contents
+          618: Exposed Unsafe ActiveX Method
+          648: Incorrect Use of Privileged APIs
+          670: Always-Incorrect Control Flow Implementation
+          682: Incorrect Calculation
+          691: Insufficient Control Flow Management
+          696: Incorrect Behavior Order
+          697: Incorrect Comparison
+          698: Execution After Redirect (EAR)
+          705: Incorrect Control Flow Scoping
+      978:
+        title: Implementation
+        entries:
+          358: Improperly Implemented Security Check for Standard
+          398: 7PK - Code Quality
+          623: Unsafe ActiveX Control Marked Safe For Scripting
+          710: Improper Adherence to Coding Standards
+      979:
+        title: Failed Chroot Jail
+        entries:
+          243: Creation of chroot Jail Without Changing Working Directory
+      980:
+        title: Link in Resource Name Resolution
+        entries:
+          59: Improper Link Resolution Before File Access (Link Following)
+          62: UNIX Hard Link
+          64: Windows Shortcut Following (.LNK)
+          65: Windows Hard Link
+          386: Symbolic Name not Mapping to Correct Object
+          610: Externally Controlled Reference to a Resource in Another Sphere
+      981:
+        title: Path Traversal
+        entries:
+          22: Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)
+          23: Relative Path Traversal
+          24: 'Path Traversal: ../filedir'
+          25: "Path Traversal: /../filedir"
+          26: "Path Traversal: /dir/../filename"
+          27: "Path Traversal: dir/../../filename"
+          28: "Path Traversal: ..\filedir"
+          29: 'Path Traversal: \\..\filename'
+          30: "Path Traversal: \\dir\\..\filename"
+          31: "Path Traversal: dir\\..\\..\filename"
+          32: "Path Traversal: ... (Triple Dot)"
+          33: "Path Traversal: .... (Multiple Dot)"
+          34: "Path Traversal: ....//"
+          35: "Path Traversal: .../...//"
+          36: Absolute Path Traversal
+          37: "Path Traversal: /absolute/pathname/here"
+          38: "Path Traversal: \absolute\\pathname\\here"
+          39: "Path Traversal: C:dirname"
+          40: "Path Traversal: \\UNC\\share\\name\\ (Windows UNC Share)"
+          41: Improper Resolution of Path Equivalence
+          42: "Path Equivalence: filename. (Trailing Dot)"
+          43: "Path Equivalence: filename.... (Multiple Trailing Dot)"
+          44: "Path Equivalence: file.name (Internal Dot)"
+          45: "Path Equivalence: file...name (Multiple Internal Dot)"
+          46: "Path Equivalence: filename  (Trailing Space)"
+          47: "Path Equivalence:  filename (Leading Space)"
+          48: "Path Equivalence: file name (Internal Whitespace)"
+          49: "Path Equivalence: filename/ (Trailing Slash)"
+          50: "Path Equivalence: //multiple/leading/slash"
+          51: "Path Equivalence: /multiple//internal/slash"
+          52: "Path Equivalence: /multiple/trailing/slash//"
+          53: "Path Equivalence: \\multiple\\internal\\backslash"
+          54: "Path Equivalence: filedir\ (Trailing Backslash)"
+          55: "Path Equivalence: /./ (Single Dot Directory)"
+          56: "Path Equivalence: filedir* (Wildcard)"
+          57: "Path Equivalence: fakedir/../realdir/filename"
+          58: "Path Equivalence: Windows 8.3 Filename"
+          66: Improper Handling of File Names that Identify Virtual Resources
+          67: Improper Handling of Windows Device Names
+          72: Improper Handling of Apple HFS+ Alternate Data Stream Path
+          73: External Control of File Name or Path
+          428: Unquoted Search Path or Element
+          706: Use of Incorrectly-Resolved Name or Reference
+      982:
+        title: Failure to Release Resource
+        entries:
+          404: Improper Resource Shutdown or Release
+          459: Incomplete Cleanup
+      983:
+        title: Faulty Resource Use
+        entries:
+          672: Operation on a Resource after Expiration or Release
+      984:
+        title: Life Cycle
+        entries:
+          664: Improper Control of a Resource Through its Lifetime
+          666: Operation on Resource in Wrong Phase of Lifetime
+          675: Multiple Operations on Resource in Single-Operation Context
+          694: Use of Multiple Resources with Duplicate Identifier
+      985:
+        title: Unrestricted Consumption
+        entries:
+          400: Uncontrolled Resource Consumption
+          674: Uncontrolled Recursion
+          770: Allocation of Resources Without Limits or Throttling
+          774: Allocation of File Descriptors or Handles Without Limits or Throttling
+      986:
+        title: Missing Lock
+        entries:
+          364: Signal Handler Race Condition
+          366: Race Condition within a Thread
+          368: Context Switching Race Condition
+          413: Improper Resource Locking
+          414: Missing Lock Check
+          543: Use of Singleton Pattern Without Synchronization in a Multithreaded Context
+          567: Unsynchronized Access to Shared Data in a Multithreaded Context
+          609: Double-Checked Locking
+          662: Improper Synchronization
+          663: Use of a Non-reentrant Function in a Concurrent Context
+          667: Improper Locking
+      987:
+        title: Multiple Locks/Unlocks
+        entries:
+          585: Empty Synchronized Block
+          764: Multiple Locks of a Critical Resource
+          765: Multiple Unlocks of a Critical Resource
+      988:
+        title: Race Condition Window
+        entries:
+          362: Concurrent Execution using Shared Resource with Improper Synchronization (Race Condition)
+          363: Race Condition Enabling Link Following
+          367: Time-of-check Time-of-use (TOCTOU) Race Condition
+          370: Missing Check for Certificate Revocation after Initial Check
+          638: Not Using Complete Mediation
+      989:
+        title: Unrestricted Lock
+        entries:
+          412: Unrestricted Externally Accessible Lock
+      990:
+        title: Tainted Input to Command
+        entries:
+          74: Improper Neutralization of Special Elements in Output Used by a Downstream Component (Injection)
+          75: Failure to Sanitize Special Elements into a Different Plane (Special Element Injection)
+          76: Improper Neutralization of Equivalent Special Elements
+          77: Improper Neutralization of Special Elements used in a Command (Command Injection)
+          78: Improper Neutralization of Special Elements used in an OS Command (OS Command Injection)
+          79: Improper Neutralization of Input During Web Page Generation (Cross-site Scripting)
+          80: Improper Neutralization of Script-Related HTML Tags in a Web Page (Basic XSS)
+          81: Improper Neutralization of Script in an Error Message Web Page
+          82: Improper Neutralization of Script in Attributes of IMG Tags in a Web Page
+          83: Improper Neutralization of Script in Attributes in a Web Page
+          84: Improper Neutralization of Encoded URI Schemes in a Web Page
+          85: Doubled Character XSS Manipulations
+          86: Improper Neutralization of Invalid Characters in Identifiers in Web Pages
+          87: Improper Neutralization of Alternate XSS Syntax
+          88: Improper Neutralization of Argument Delimiters in a Command (Argument Injection)
+          89: Improper Neutralization of Special Elements used in an SQL Command (SQL Injection)
+          90: Improper Neutralization of Special Elements used in an LDAP Query (LDAP Injection)
+          91: XML Injection (aka Blind XPath Injection)
+          93: Improper Neutralization of CRLF Sequences (CRLF Injection)
+          95: Improper Neutralization of Directives in Dynamically Evaluated Code (Eval Injection)
+          97: Improper Neutralization of Server-Side Includes (SSI) Within a Web Page
+          99: Improper Control of Resource Identifiers (Resource Injection)
+          102: "Struts: Duplicate Validation Forms"
+          103: "Struts: Incomplete validate() Method Definition"
+          104: "Struts: Form Bean Does Not Extend Validation Class"
+          105: "Struts: Form Field Without Validator"
+          106: "Struts: Plug-in Framework not in Use"
+          107: "Struts: Unused Validation Form"
+          108: "Struts: Unvalidated Action Form"
+          109: "Struts: Validator Turned Off"
+          110: "Struts: Validator Without Form Field"
+          112: Missing XML Validation
+          113: Improper Neutralization of CRLF Sequences in HTTP Headers (HTTP Request/Response Splitting)
+          130: Improper Handling of Length Parameter Inconsistency
+          134: Use of Externally-Controlled Format String
+          138: Improper Neutralization of Special Elements
+          140: Improper Neutralization of Delimiters
+          141: Improper Neutralization of Parameter/Argument Delimiters
+          142: Improper Neutralization of Value Delimiters
+          143: Improper Neutralization of Record Delimiters
+          144: Improper Neutralization of Line Delimiters
+          145: Improper Neutralization of Section Delimiters
+          146: Improper Neutralization of Expression/Command Delimiters
+          147: Improper Neutralization of Input Terminators
+          148: Improper Neutralization of Input Leaders
+          149: Improper Neutralization of Quoting Syntax
+          150: Improper Neutralization of Escape, Meta, or Control Sequences
+          151: Improper Neutralization of Comment Delimiters
+          152: Improper Neutralization of Macro Symbols
+          153: Improper Neutralization of Substitution Characters
+          154: Improper Neutralization of Variable Name Delimiters
+          155: Improper Neutralization of Wildcards or Matching Symbols
+          156: Improper Neutralization of Whitespace
+          157: Failure to Sanitize Paired Delimiters
+          158: Improper Neutralization of Null Byte or NUL Character
+          159: Improper Handling of Invalid Use of Special Elements
+          160: Improper Neutralization of Leading Special Elements
+          161: Improper Neutralization of Multiple Leading Special Elements
+          162: Improper Neutralization of Trailing Special Elements
+          163: Improper Neutralization of Multiple Trailing Special Elements
+          164: Improper Neutralization of Internal Special Elements
+          165: Improper Neutralization of Multiple Internal Special Elements
+          183: Permissive List of Allowed Inputs
+          184: Incomplete List of Disallowed Inputs
+          185: Incorrect Regular Expression
+          186: Overly Restrictive Regular Expression
+          444: Inconsistent Interpretation of HTTP Requests (HTTP Request/Response Smuggling)
+          553: Command Shell in Externally Accessible Directory
+          554: "ASP.NET Misconfiguration: Not Using Input Validation Framework"
+          564: "SQL Injection: Hibernate"
+          601: URL Redirection to Untrusted Site (Open Redirect)
+          611: Improper Restriction of XML External Entity Reference
+          619: Dangling Database Cursor (Cursor Injection)
+          621: Variable Extraction Error
+          624: Executable Regular Expression Error
+          625: Permissive Regular Expression
+          626: Null Byte Interaction Error (Poison Null Byte)
+          627: Dynamic Variable Evaluation
+          641: Improper Restriction of Names for Files and Other Resources
+          643: Improper Neutralization of Data within XPath Expressions (XPath Injection)
+          644: Improper Neutralization of HTTP Headers for Scripting Syntax
+          646: Reliance on File Name or Extension of Externally-Supplied File
+          652: Improper Neutralization of Data within XQuery Expressions (XQuery Injection)
+          687: Function Call With Incorrectly Specified Argument Value
+          707: Improper Neutralization
+      991:
+        title: Tainted Input to Environment
+        entries:
+          94: Improper Control of Generation of Code (Code Injection)
+          114: Process Control
+          427: Uncontrolled Search Path Element
+          470: Use of Externally-Controlled Input to Select Classes or Code (Unsafe Reflection)
+          471: Modification of Assumed-Immutable Data (MAID)
+          472: External Control of Assumed-Immutable Web Parameter
+          473: PHP External Variable Modification
+          494: Download of Code Without Integrity Check
+          622: Improper Validation of Function Hook Arguments
+          673: External Influence of Sphere Definition
+      992:
+        title: Faulty Input Transformation
+        entries:
+          116: Improper Encoding or Escaping of Output
+          166: Improper Handling of Missing Special Element
+          167: Improper Handling of Additional Special Element
+          168: Improper Handling of Inconsistent Special Elements
+          172: Encoding Error
+          173: Improper Handling of Alternate Encoding
+          174: Double Decoding of the Same Data
+          175: Improper Handling of Mixed Encoding
+          176: Improper Handling of Unicode Encoding
+          177: Improper Handling of URL Encoding (Hex Encoding)
+          178: Improper Handling of Case Sensitivity
+          179: "Incorrect Behavior Order: Early Validation"
+          180: "Incorrect Behavior Order: Validate Before Canonicalize"
+          181: "Incorrect Behavior Order: Validate Before Filter"
+          182: Collapse of Data into Unsafe Value
+      993:
+        title: Incorrect Input Handling
+        entries:
+          198: Use of Incorrect Byte Ordering
+          228: Improper Handling of Syntactically Invalid Structure
+          229: Improper Handling of Values
+          230: Improper Handling of Missing Values
+          231: Improper Handling of Extra Values
+          232: Improper Handling of Undefined Values
+          233: Improper Handling of Parameters
+          234: Failure to Handle Missing Parameter
+          235: Improper Handling of Extra Parameters
+          236: Improper Handling of Undefined Parameters
+          237: Improper Handling of Structural Elements
+          238: Improper Handling of Incomplete Structural Elements
+          239: Failure to Handle Incomplete Element
+          240: Improper Handling of Inconsistent Structural Elements
+          241: Improper Handling of Unexpected Data Type
+          351: Insufficient Type Distinction
+          354: Improper Validation of Integrity Check Value
+      994:
+        title: Tainted Input to Variable
+        entries:
+          15: External Control of System or Configuration Setting
+          20: Improper Input Validation
+          454: External Initialization of Trusted Variables or Data Stores
+          496: Public Data Assigned to Private Array-Typed Field
+          502: Deserialization of Untrusted Data
+          566: Authorization Bypass Through User-Controlled SQL Primary Key
+          606: Unchecked Input for Loop Condition
+          616: Incomplete Identification of Uploaded File Variables (PHP)
+      995:
+        title: Feature
+        entries:
+          447: Unimplemented or Unsupported Feature in UI
+          448: Obsolete Feature in UI
+          449: The UI Performs the Wrong Action
+          450: Multiple Interpretations of UI Input
+          451: User Interface (UI) Misrepresentation of Critical Information
+          549: Missing Password Field Masking
+          655: Insufficient Psychological Acceptability
+      996:
+        title: Security
+        entries:
+          356: Product UI does not Warn User of Unsafe Actions
+          357: Insufficient UI Warning of Dangerous Operations
+          446: UI Discrepancy for Security Feature
+      997:
+        title: Information Loss
+        entries:
+          221: Information Loss or Omission
+          222: Truncation of Security-relevant Information
+          223: Omission of Security-relevant Information
+          224: Obscured Security-relevant Information by Alternate Name
+      998:
+        title: Glitch in Computation
+        entries:
+          128: Wrap-around Error
+          190: Integer Overflow or Wraparound
+          191: Integer Underflow (Wrap or Wraparound)
+          194: Unexpected Sign Extension
+          195: Signed to Unsigned Conversion Error
+          196: Unsigned to Signed Conversion Error
+          197: Numeric Truncation Error
+          369: Divide By Zero
+          456: Missing Initialization of a Variable
+          457: Use of Uninitialized Variable
+          466: Return of Pointer Value Outside of Expected Range
+          468: Incorrect Pointer Scaling
+          469: Use of Pointer Subtraction to Determine Size
+          475: Undefined Behavior for Input to API
+          480: Use of Incorrect Operator
+          481: Assigning instead of Comparing
+          486: Comparison of classes by Name
+          562: Return of Stack Variable Address
+          570: Expression is Always False
+          571: Expression is Always True
+          579: "J2EE Bad Practices: Non-serializable Object Stored in Session"
+          587: Assignment of a Fixed Address to a Pointer
+          594: "J2EE Framework: Saving Unserializable Objects to Disk"
+          597: Use of Wrong Operator in String Comparison
+          628: Function Call with Incorrectly Specified Arguments
+          681: Incorrect Conversion between Numeric Types
+          683: Function Call With Incorrect Order of Arguments
+          685: Function Call With Incorrect Number of Arguments
+          686: Function Call With Incorrect Argument Type
+          688: Function Call With Incorrect Variable or Reference as Argument
+          704: Incorrect Type Conversion or Cast
+          768: Incorrect Short Circuit Evaluation
+      1001:
+        title: Use of an Improper API
+        entries:
+          111: Direct Use of Unsafe JNI
+          227: 7PK - API Abuse
+          242: Use of Inherently Dangerous Function
+          245: "J2EE Bad Practices: Direct Management of Connections"
+          246: "J2EE Bad Practices: Direct Use of Sockets"
+          382: "J2EE Bad Practices: Use of System.exit()"
+          383: "J2EE Bad Practices: Direct Use of Threads"
+          432: Dangerous Signal Handler not Disabled During Sensitive Operations
+          439: Behavioral Change in New Version or Environment
+          440: Expected Behavior Violation
+          474: Use of Function with Inconsistent Implementations
+          477: Use of Obsolete Function
+          479: Signal Handler Use of a Non-reentrant Function
+          558: Use of getlogin() in Multithreaded Application
+          572: Call to Thread run() instead of start()
+          573: Improper Following of Specification by Caller
+          574: "EJB Bad Practices: Use of Synchronization Primitives"
+          575: "EJB Bad Practices: Use of AWT Swing"
+          576: "EJB Bad Practices: Use of Java I/O"
+          577: "EJB Bad Practices: Use of Sockets"
+          578: "EJB Bad Practices: Use of class Loader"
+          586: Explicit Call to Finalize()
+          589: Call to Non-ubiquitous API
+          617: Reachable Assertion
+          676: Use of Potentially Dangerous Function
+          684: Incorrect Provision of Specified Functionality
+          695: Use of Low-Level Functionality
+          758: Reliance on Undefined, Unspecified, or Implementation-Defined Behavior
+      1002:
+        title: Unexpected Entry Points
+        entries:
+          489: Active Debug Code
+          491: Public cloneable() Method Without Final (Object Hijack)
+          493: Critical Public Variable Without Final Modifier
+          500: Public Static Field Not Marked Final
+          531: Inclusion of Sensitive Information in Test Code
+          568: finalize() Method Without super.finalize()
+          580: clone() Method Without super.clone()
+          582: Array Declared Public, Final, and Static
+          583: finalize() Method Declared Public
+          608: "Struts: Non-private Field in ActionForm Class"
+          766: Critical Data Element Declared Public
+
+    none:
+      999:
+        title: Weaknesses without Software Fault Patterns
+        entries:
+          5: 'J2EE Misconfiguration: Data Transmission Without Encryption'
+          6: 'J2EE Misconfiguration: Insufficient Session-ID Length'
+          7: 'J2EE Misconfiguration: Missing Custom Error Page'
+          9: 'J2EE Misconfiguration: Weak Access Permissions for EJB Methods'
+          11: 'ASP.NET Misconfiguration: Creating Debug Binary'
+          12: 'ASP.NET Misconfiguration: Missing Custom Error Page'
+          13: 'ASP.NET Misconfiguration: Password in Configuration File'
+          41: Improper Resolution of Path Equivalence
+          61: UNIX Symbolic Link (Symlink) Following
+          66: Improper Handling of File Names that Identify Virtual Resources
+          69: Improper Handling of Windows ::DATA Alternate Data Stream
+          72: Improper Handling of Apple HFS+ Alternate Data Stream Path
+          75: Failure to Sanitize Special Elements into a Different Plane (Special Element Injection)
+          76: Improper Neutralization of Equivalent Special Elements
+          88: Improper Neutralization of Argument Delimiters in a Command ('Argument Injection')
+          94: Improper Control of Generation of Code ('Code Injection')
+          96: Improper Neutralization of Directives in Statically Saved Code ('Static Code Injection')
+          97: Improper Neutralization of Server-Side Includes (SSI) Within a Web Page
+          98: Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion')
+          106: 'Struts: Plug-in Framework not in Use'
+          107: 'Struts: Unused Validation Form'
+          114: Process Control
+          115: Misinterpretation of Input
+          116: Improper Encoding or Escaping of Output
+          119: Improper Restriction of Operations within the Bounds of a Memory Buffer
+          123: Write-what-where Condition
+          125: Out-of-bounds Read
+          129: Improper Validation of Array Index
+          130: Improper Handling of Length Parameter Inconsistency
+          131: Incorrect Calculation of Buffer Size
+          166: Improper Handling of Missing Special Element
+          167: Improper Handling of Additional Special Element
+          168: Improper Handling of Inconsistent Special Elements
+          172: Encoding Error
+          173: Improper Handling of Alternate Encoding
+          174: Double Decoding of the Same Data
+          175: Improper Handling of Mixed Encoding
+          176: Improper Handling of Unicode Encoding
+          177: Improper Handling of URL Encoding (Hex Encoding)
+          178: Improper Handling of Case Sensitivity
+          179: 'Incorrect Behavior Order: Early Validation'
+          180: 'Incorrect Behavior Order: Validate Before Canonicalize'
+          181: 'Incorrect Behavior Order: Validate Before Filter'
+          182: Collapse of Data into Unsafe Value
+          183: Permissive List of Allowed Inputs
+          184: Incomplete List of Disallowed Inputs
+          185: Incorrect Regular Expression
+          186: Overly Restrictive Regular Expression
+          187: Partial String Comparison
+          188: Reliance on Data/Memory Layout
+          192: Integer Coercion Error
+          193: Off-by-one Error
+          198: Use of Incorrect Byte Ordering
+          200: Exposure of Sensitive Information to an Unauthorized Actor
+          201: Insertion of Sensitive Information Into Sent Data
+          202: Exposure of Sensitive Information Through Data Queries
+          203: Observable Discrepancy
+          204: Observable Response Discrepancy
+          205: Observable Behavioral Discrepancy
+          206: Observable Internal Behavioral Discrepancy
+          207: Observable Behavioral Discrepancy With Equivalent Products
+          208: Observable Timing Discrepancy
+          211: Externally-Generated Error Message Containing Sensitive Information
+          212: Improper Removal of Sensitive Information Before Storage or Transfer
+          213: Exposure of Sensitive Information Due to Incompatible Policies
+          219: Storage of File with Sensitive Data Under Web Root
+          220: Storage of File With Sensitive Data Under FTP Root
+          221: Information Loss or Omission
+          222: Truncation of Security-relevant Information
+          223: Omission of Security-relevant Information
+          224: Obscured Security-relevant Information by Alternate Name
+          228: Improper Handling of Syntactically Invalid Structure
+          229: Improper Handling of Values
+          230: Improper Handling of Missing Values
+          231: Improper Handling of Extra Values
+          232: Improper Handling of Undefined Values
+          233: Improper Handling of Parameters
+          234: Failure to Handle Missing Parameter
+          235: Improper Handling of Extra Parameters
+          236: Improper Handling of Undefined Parameters
+          237: Improper Handling of Structural Elements
+          238: Improper Handling of Incomplete Structural Elements
+          239: Failure to Handle Incomplete Element
+          240: Improper Handling of Inconsistent Structural Elements
+          241: Improper Handling of Unexpected Data Type
+          250: Execution with Unnecessary Privileges
+          258: Empty Password in Configuration File
+          260: Password in Configuration File
+          261: Weak Encoding for Password
+          262: Not Using Password Aging
+          263: Password Aging with Long Expiration
+          266: Incorrect Privilege Assignment
+          267: Privilege Defined With Unsafe Actions
+          268: Privilege Chaining
+          269: Improper Privilege Management
+          270: Privilege Context Switching Error
+          271: Privilege Dropping / Lowering Errors
+          274: Improper Handling of Insufficient Privileges
+          276: Incorrect Default Permissions
+          277: Insecure Inherited Permissions
+          278: Insecure Preserved Inherited Permissions
+          279: Incorrect Execution-Assigned Permissions
+          281: Improper Preservation of Permissions
+          282: Improper Ownership Management
+          283: Unverified Ownership
+          284: Improper Access Control
+          286: Incorrect User Management
+          287: Improper Authentication
+          288: Authentication Bypass Using an Alternate Path or Channel
+          289: Authentication Bypass by Alternate Name
+          290: Authentication Bypass by Spoofing
+          291: Reliance on IP Address for Authentication
+          294: Authentication Bypass by Capture-replay
+          295: Improper Certificate Validation
+          296: Improper Following of a Certificate's Chain of Trust
+          297: Improper Validation of Certificate with Host Mismatch
+          298: Improper Validation of Certificate Expiration
+          299: Improper Check for Certificate Revocation
+          300: Channel Accessible by Non-Endpoint
+          301: Reflection Attack in an Authentication Protocol
+          302: Authentication Bypass by Assumed-Immutable Data
+          303: Incorrect Implementation of Authentication Algorithm
+          304: Missing Critical Step in Authentication
+          305: Authentication Bypass by Primary Weakness
+          308: Use of Single-factor Authentication
+          309: Use of Password System for Primary Authentication
+          318: Cleartext Storage of Sensitive Information in Executable
+          322: Key Exchange without Entity Authentication
+          323: Reusing a Nonce, Key Pair in Encryption
+          324: Use of a Key Past its Expiration Date
+          325: Missing Cryptographic Step
+          326: Inadequate Encryption Strength
+          327: Use of a Broken or Risky Cryptographic Algorithm
+          328: Use of Weak Hash
+          329: Generation of Predictable IV with CBC Mode
+          330: Use of Insufficiently Random Values
+          331: Insufficient Entropy
+          332: Insufficient Entropy in PRNG
+          333: Improper Handling of Insufficient Entropy in TRNG
+          334: Small Space of Random Values
+          335: Incorrect Usage of Seeds in Pseudo-Random Number Generator (PRNG)
+          336: Same Seed in Pseudo-Random Number Generator (PRNG)
+          337: Predictable Seed in Pseudo-Random Number Generator (PRNG)
+          338: Use of Cryptographically Weak Pseudo-Random Number Generator (PRNG)
+          339: Small Seed Space in PRNG
+          340: Generation of Predictable Numbers or Identifiers
+          341: Predictable from Observable State
+          342: Predictable Exact Value from Previous Values
+          343: Predictable Value Range from Previous Values
+          344: Use of Invariant Value in Dynamically Changing Context
+          345: Insufficient Verification of Data Authenticity
+          346: Origin Validation Error
+          347: Improper Verification of Cryptographic Signature
+          348: Use of Less Trusted Source
+          349: Acceptance of Extraneous Untrusted Data With Trusted Data
+          351: Insufficient Type Distinction
+          352: Cross-Site Request Forgery (CSRF)
+          353: Missing Support for Integrity Check
+          354: Improper Validation of Integrity Check Value
+          356: Product UI does not Warn User of Unsafe Actions
+          357: Insufficient UI Warning of Dangerous Operations
+          358: Improperly Implemented Security Check for Standard
+          359: Exposure of Private Personal Information to an Unauthorized Actor
+          362: Concurrent Execution using Shared Resource with Improper Synchronization ('Race Condition')
+          368: Context Switching Race Condition
+          372: Incomplete Internal State Distinction
+          377: Insecure Temporary File
+          378: Creation of Temporary File With Insecure Permissions
+          379: Creation of Temporary File in Directory with Insecure Permissions
+          384: Session Fixation
+          385: Covert Timing Channel
+          386: Symbolic Name not Mapping to Correct Object
+          395: Use of NullPointerException Catch to Detect NULL Pointer Dereference
+          402: Transmission of Private Resources into a New Sphere ('Resource Leak')
+          405: Asymmetric Resource Consumption (Amplification)
+          406: Insufficient Control of Network Message Volume (Network Amplification)
+          407: Inefficient Algorithmic Complexity
+          408: 'Incorrect Behavior Order: Early Amplification'
+          409: Improper Handling of Highly Compressed Data (Data Amplification)
+          410: Insufficient Resource Pool
+          419: Unprotected Primary Channel
+          420: Unprotected Alternate Channel
+          421: Race Condition During Access to Alternate Channel
+          426: Untrusted Search Path
+          427: Uncontrolled Search Path Element
+          428: Unquoted Search Path or Element
+          430: Deployment of Wrong Handler
+          432: Dangerous Signal Handler not Disabled During Sensitive Operations
+          433: Unparsed Raw Web Content Delivery
+          434: Unrestricted Upload of File with Dangerous Type
+          435: Improper Interaction Between Multiple Correctly-Behaving Entities
+          436: Interpretation Conflict
+          437: Incomplete Model of Endpoint Features
+          439: Behavioral Change in New Version or Environment
+          440: Expected Behavior Violation
+          441: Unintended Proxy or Intermediary ('Confused Deputy')
+          444: Inconsistent Interpretation of HTTP Requests ('HTTP Request/Response Smuggling')
+          446: UI Discrepancy for Security Feature
+          447: Unimplemented or Unsupported Feature in UI
+          448: Obsolete Feature in UI
+          449: The UI Performs the Wrong Action
+          450: Multiple Interpretations of UI Input
+          451: User Interface (UI) Misrepresentation of Critical Information
+          453: Insecure Default Variable Initialization
+          455: Non-exit on Failed Initialization
+          460: Improper Cleanup on Thrown Exception
+          462: Duplicate Key in Associative List (Alist)
+          463: Deletion of Data Structure Sentinel
+          464: Addition of Data Structure Sentinel
+          470: Use of Externally-Controlled Input to Select Classes or Code ('Unsafe Reflection')
+          471: Modification of Assumed-Immutable Data (MAID)
+          472: External Control of Assumed-Immutable Web Parameter
+          473: PHP External Variable Modification
+          483: Incorrect Block Delimitation
+          487: Reliance on Package-level Scope
+          488: Exposure of Data Element to Wrong Session
+          492: Use of Inner Class Containing Sensitive Data
+          506: Embedded Malicious Code
+          507: Trojan Horse
+          508: Non-Replicating Malicious Code
+          509: Replicating Malicious Code (Virus or Worm)
+          510: Trapdoor
+          511: Logic/Time Bomb
+          512: Spyware
+          514: Covert Channel
+          515: Covert Storage Channel
+          520: 'NET Misconfiguration: Use of Impersonation'
+          521: Weak Password Requirements
+          522: Insufficiently Protected Credentials
+          524: Use of Cache Containing Sensitive Information
+          525: Use of Web Browser Cache Containing Sensitive Information
+          527: Exposure of Version-Control Repository to an Unauthorized Control Sphere
+          528: Exposure of Core Dump File to an Unauthorized Control Sphere
+          529: Exposure of Access Control List Files to an Unauthorized Control Sphere
+          530: Exposure of Backup File to an Unauthorized Control Sphere
+          535: Exposure of Information Through Shell Error Message
+          536: Servlet Runtime Error Message Containing Sensitive Information
+          537: Java Runtime Error Message Containing Sensitive Information
+          538: Insertion of Sensitive Information into Externally-Accessible File or Directory
+          539: Use of Persistent Cookies Containing Sensitive Information
+          540: Inclusion of Sensitive Information in Source Code
+          541: Inclusion of Sensitive Information in an Include File
+          544: Missing Standardized Error Handling Mechanism
+          546: Suspicious Comment
+          547: Use of Hard-coded, Security-relevant Constants
+          548: Exposure of Information Through Directory Listing
+          549: Missing Password Field Masking
+          550: Server-generated Error Message Containing Sensitive Information
+          551: 'Incorrect Behavior Order: Authorization Before Parsing and Canonicalization'
+          552: Files or Directories Accessible to External Parties
+          553: Command Shell in Externally Accessible Directory
+          555: 'J2EE Misconfiguration: Plaintext Password in Configuration File'
+          556: 'ASP.NET Misconfiguration: Use of Identity Impersonation'
+          560: Use of umask() with chmod-style Argument
+          573: Improper Following of Specification by Caller
+          581: 'Object Model Violation: Just One of Equals and Hashcode Defined'
+          593: 'Authentication Bypass: OpenSSL CTX Object Modified after SSL Objects are Created'
+          595: Comparison of Object References Instead of Object Contents
+          599: Missing Validation of OpenSSL Certificate
+          602: Client-Side Enforcement of Server-Side Security
+          603: Use of Client-Side Authentication
+          610: Externally Controlled Reference to a Resource in Another Sphere
+          612: Improper Authorization of Index Containing Sensitive Information
+          613: Insufficient Session Expiration
+          614: Sensitive Cookie in HTTPS Session Without 'Secure' Attribute
+          615: Inclusion of Sensitive Information in Source Code Comments
+          618: Exposed Unsafe ActiveX Method
+          623: Unsafe ActiveX Control Marked Safe For Scripting
+          625: Permissive Regular Expression
+          626: Null Byte Interaction Error (Poison Null Byte)
+          627: Dynamic Variable Evaluation
+          628: Function Call with Incorrectly Specified Arguments
+          636: Not Failing Securely ('Failing Open')
+          637: Unnecessary Complexity in Protection Mechanism (Not Using 'Economy of Mechanism')
+          639: Authorization Bypass Through User-Controlled Key
+          640: Weak Password Recovery Mechanism for Forgotten Password
+          645: Overly Restrictive Account Lockout Mechanism
+          646: Reliance on File Name or Extension of Externally-Supplied File
+          647: Use of Non-Canonical URL Paths for Authorization Decisions
+          648: Incorrect Use of Privileged APIs
+          649: Reliance on Obfuscation or Encryption of Security-Relevant Inputs without Integrity Checking
+          650: Trusting HTTP Permission Methods on the Server Side
+          651: Exposure of WSDL File Containing Sensitive Information
+          653: Improper Isolation or Compartmentalization
+          654: Reliance on a Single Factor in a Security Decision
+          655: Insufficient Psychological Acceptability
+          656: Reliance on Security Through Obscurity
+          657: Violation of Secure Design Principles
+          663: Use of a Non-reentrant Function in a Concurrent Context
+          664: Improper Control of a Resource Through its Lifetime
+          666: Operation on Resource in Wrong Phase of Lifetime
+          668: Exposure of Resource to Wrong Sphere
+          669: Incorrect Resource Transfer Between Spheres
+          670: Always-Incorrect Control Flow Implementation
+          671: Lack of Administrator Control over Security
+          673: External Influence of Sphere Definition
+          675: Multiple Operations on Resource in Single-Operation Context
+          680: Integer Overflow to Buffer Overflow
+          682: Incorrect Calculation
+          683: Function Call With Incorrect Order of Arguments
+          684: Incorrect Provision of Specified Functionality
+          688: Function Call With Incorrect Variable or Reference as Argument
+          689: Permission Race Condition During Resource Copy
+          690: Unchecked Return Value to NULL Pointer Dereference
+          691: Insufficient Control Flow Management
+          692: Incomplete Denylist to Cross-Site Scripting
+          693: Protection Mechanism Failure
+          694: Use of Multiple Resources with Duplicate Identifier
+          695: Use of Low-Level Functionality
+          696: Incorrect Behavior Order
+          697: Incorrect Comparison
+          698: Execution After Redirect (EAR)
+          703: Improper Check or Handling of Exceptional Conditions
+          705: Incorrect Control Flow Scoping
+          706: Use of Incorrectly-Resolved Name or Reference
+          707: Improper Neutralization
+          708: Incorrect Ownership Assignment
+          710: Improper Adherence to Coding Standards
+          732: Incorrect Permission Assignment for Critical Resource
+          733: Compiler Optimization Removal or Modification of Security-critical Code
+          749: Exposed Dangerous Method or Function
+          754: Improper Check for Unusual or Exceptional Conditions
+          755: Improper Handling of Exceptional Conditions
+          756: Missing Custom Error Page
+          757: Selection of Less-Secure Algorithm During Negotiation ('Algorithm Downgrade')
+          758: Reliance on Undefined, Unspecified, or Implementation-Defined Behavior
+          759: Use of a One-Way Hash without a Salt
+          760: Use of a One-Way Hash with a Predictable Salt
+          770: Allocation of Resources Without Limits or Throttling
+          771: Missing Reference to Active Allocated Resource
+          772: Missing Release of Resource after Effective Lifetime
+          773: Missing Reference to Active File Descriptor or Handle
+          775: Missing Release of File Descriptor or Handle after Effective Lifetime
+          776: Improper Restriction of Recursive Entity References in DTDs ('XML Entity Expansion')
+          777: Regular Expression without Anchors
+          778: Insufficient Logging
+          779: Logging of Excessive Data
+          780: Use of RSA Algorithm without OAEP
+          781: Improper Address Validation in IOCTL with METHOD_NEITHER I/O Control Code
+          782: Exposed IOCTL with Insufficient Access Control
+          783: Operator Precedence Logic Error
+          784: Reliance on Cookies without Validation and Integrity Checking in a Security Decision
+          786: Access of Memory Location Before Start of Buffer
+          787: Out-of-bounds Write
+          788: Access of Memory Location After End of Buffer
+          789: Memory Allocation with Excessive Size Value
+          790: Improper Filtering of Special Elements
+          791: Incomplete Filtering of Special Elements
+          792: Incomplete Filtering of One or More Instances of Special Elements
+          793: Only Filtering One Instance of a Special Element
+          794: Incomplete Filtering of Multiple Instances of Special Elements
+          795: Only Filtering Special Elements at a Specified Location
+          796: Only Filtering Special Elements Relative to a Marker
+          797: Only Filtering Special Elements at an Absolute Position
+          798: Use of Hard-coded Credentials
+          799: Improper Control of Interaction Frequency
+          804: Guessable CAPTCHA
+          805: Buffer Access with Incorrect Length Value
+          806: Buffer Access Using Size of Source Buffer
+          807: Reliance on Untrusted Inputs in a Security Decision
+          820: Missing Synchronization
+          821: Incorrect Synchronization
+          822: Untrusted Pointer Dereference
+          823: Use of Out-of-range Pointer Offset
+          824: Access of Uninitialized Pointer
+          825: Expired Pointer Dereference
+          826: Premature Release of Resource During Expected Lifetime
+          827: Improper Control of Document Type Definition
+          828: Signal Handler with Functionality that is not Asynchronous-Safe
+          829: Inclusion of Functionality from Untrusted Control Sphere
+          830: Inclusion of Web Functionality from an Untrusted Source
+          831: Signal Handler Function Associated with Multiple Signals
+          832: Unlock of a Resource that is not Locked
+          833: Deadlock
+          834: Excessive Iteration
+          835: Loop with Unreachable Exit Condition ('Infinite Loop')
+          836: Use of Password Hash Instead of Password for Authentication
+          837: Improper Enforcement of a Single, Unique Action
+          838: Inappropriate Encoding for Output Context
+          839: Numeric Range Comparison Without Minimum Check
+          841: Improper Enforcement of Behavioral Workflow
+          842: Placement of User into Incorrect Group
+          843: Access of Resource Using Incompatible Type ('Type Confusion')
+          862: Missing Authorization
+          863: Incorrect Authorization
+          908: Use of Uninitialized Resource
+          909: Missing Initialization of Resource
+          910: Use of Expired File Descriptor
+          911: Improper Update of Reference Count
+          912: Hidden Functionality
+          913: Improper Control of Dynamically-Managed Code Resources
+          914: Improper Control of Dynamically-Identified Variables
+          915: Improperly Controlled Modification of Dynamically-Determined Object Attributes
+          916: Use of Password Hash With Insufficient Computational Effort
+          917: Improper Neutralization of Special Elements used in an Expression Language Statement ('Expression Language Injection')
+          918: Server-Side Request Forgery (SSRF)
+          920: Improper Restriction of Power Consumption
+          921: Storage of Sensitive Data in a Mechanism without Access Control
+          922: Insecure Storage of Sensitive Information
+          923: Improper Restriction of Communication Channel to Intended Endpoints
+          924: Improper Enforcement of Message Integrity During Transmission in a Communication Channel
+          925: Improper Verification of Intent by Broadcast Receiver
+          926: Improper Export of Android Application Components
+          927: Use of Implicit Intent for Sensitive Communication
+          939: Improper Authorization in Handler for Custom URL Scheme
+          940: Improper Verification of Source of a Communication Channel
+          941: Incorrectly Specified Destination in a Communication Channel
+          942: Permissive Cross-domain Policy with Untrusted Domains
+          943: Improper Neutralization of Special Elements in Data Query Logic
+          1004: Sensitive Cookie Without 'HttpOnly' Flag
+          1007: Insufficient Visual Distinction of Homoglyphs Presented to User
+          1021: Improper Restriction of Rendered UI Layers or Frames
+          1022: Use of Web Link to Untrusted Target with window.opener Access
+          1023: Incomplete Comparison with Missing Factors
+          1024: Comparison of Incompatible Types
+          1025: Comparison Using Wrong Factors
+          1037: Processor Optimization Removal or Modification of Security-critical Code
+          1038: Insecure Automated Optimizations
+          1039: Automated Recognition Mechanism with Inadequate Detection or Handling of Adversarial Input Perturbations
+          1041: Use of Redundant Code
+          1042: Static Member Data Element outside of a Singleton Class Element
+          1043: Data Element Aggregating an Excessively Large Number of Non-Primitive Elements
+          1044: Architecture with Number of Horizontal Layers Outside of Expected Range
+          1045: Parent Class with a Virtual Destructor and a Child Class without a Virtual Destructor
+          1046: Creation of Immutable Text Using String Concatenation
+          1047: Modules with Circular Dependencies
+          1048: Invokable Control Element with Large Number of Outward Calls
+          1049: Excessive Data Query Operations in a Large Data Table
+          1050: Excessive Platform Resource Consumption within a Loop
+          1051: Initialization with Hard-Coded Network Resource Configuration Data
+          1052: Excessive Use of Hard-Coded Literals in Initialization
+          1053: Missing Documentation for Design
+          1054: Invocation of a Control Element at an Unnecessarily Deep Horizontal Layer
+          1055: Multiple Inheritance from Concrete Classes
+          1056: Invokable Control Element with Variadic Parameters
+          1057: Data Access Operations Outside of Expected Data Manager Component
+          1058: Invokable Control Element in Multi-Thread Context with non-Final Static Storable or Member Element
+          1059: Insufficient Technical Documentation
+          1060: Excessive Number of Inefficient Server-Side Data Accesses
+          1061: Insufficient Encapsulation
+          1062: Parent Class with References to Child Class
+          1063: Creation of Class Instance within a Static Code Block
+          1064: Invokable Control Element with Signature Containing an Excessive Number of Parameters
+          1065: Runtime Resource Management Control Element in a Component Built to Run on Application Servers
+          1066: Missing Serialization Control Element
+          1067: Excessive Execution of Sequential Searches of Data Resource
+          1068: Inconsistency Between Implementation and Documented Design
+          1069: Empty Exception Block
+          1070: Serializable Data Element Containing non-Serializable Item Elements
+          1071: Empty Code Block
+          1072: Data Resource Access without Use of Connection Pooling
+          1073: Non-SQL Invokable Control Element with Excessive Number of Data Resource Accesses
+          1074: Class with Excessively Deep Inheritance
+          1075: Unconditional Control Flow Transfer outside of Switch Block
+          1076: Insufficient Adherence to Expected Conventions
+          1077: Floating Point Comparison with Incorrect Operator
+          1078: Inappropriate Source Code Style or Formatting
+          1079: Parent Class without Virtual Destructor Method
+          1080: Source Code File with Excessive Number of Lines of Code
+          1082: Class Instance Self Destruction Control Element
+          1083: Data Access from Outside Expected Data Manager Component
+          1084: Invokable Control Element with Excessive File or Data Access Operations
+          1085: Invokable Control Element with Excessive Volume of Commented-out Code
+          1086: Class with Excessive Number of Child Classes
+          1087: Class with Virtual Method without a Virtual Destructor
+          1088: Synchronous Access of Remote Resource without Timeout
+          1089: Large Data Table with Excessive Number of Indices
+          1090: Method Containing Access of a Member Element from Another Class
+          1091: Use of Object without Invoking Destructor Method
+          1092: Use of Same Invokable Control Element in Multiple Architectural Layers
+          1093: Excessively Complex Data Representation
+          1094: Excessive Index Range Scan for a Data Resource
+          1095: Loop Condition Value Update within the Loop
+          1096: Singleton Class Instance Creation without Proper Locking or Synchronization
+          1097: Persistent Storable Data Element without Associated Comparison Control Element
+          1098: Data Element containing Pointer Item without Proper Copy Control Element
+          1099: Inconsistent Naming Conventions for Identifiers
+          1100: Insufficient Isolation of System-Dependent Functions
+          1101: Reliance on Runtime Component in Generated Code
+          1102: Reliance on Machine-Dependent Data Representation
+          1103: Use of Platform-Dependent Third Party Components
+          1104: Use of Unmaintained Third Party Components
+          1105: Insufficient Encapsulation of Machine-Dependent Functionality
+          1106: Insufficient Use of Symbolic Constants
+          1107: Insufficient Isolation of Symbolic Constant Definitions
+          1108: Excessive Reliance on Global Variables
+          1109: Use of Same Variable for Multiple Purposes
+          1110: Incomplete Design Documentation
+          1111: Incomplete I/O Documentation
+          1112: Incomplete Documentation of Program Execution
+          1113: Inappropriate Comment Style
+          1114: Inappropriate Whitespace Style
+          1115: Source Code Element without Standard Prologue
+          1116: Inaccurate Comments
+          1117: Callable with Insufficient Behavioral Summary
+          1118: Insufficient Documentation of Error Handling Techniques
+          1119: Excessive Use of Unconditional Branching
+          1120: Excessive Code Complexity
+          1121: Excessive McCabe Cyclomatic Complexity
+          1122: Excessive Halstead Complexity
+          1123: Excessive Use of Self-Modifying Code
+          1124: Excessively Deep Nesting
+          1125: Excessive Attack Surface
+          1126: Declaration of Variable with Unnecessarily Wide Scope
+          1127: Compilation with Insufficient Warnings or Errors
+          1164: Irrelevant Code
+          1173: Improper Use of Validation Framework
+          1174: 'ASP.NET Misconfiguration: Improper Model Validation'
+          1176: Inefficient CPU Computation
+          1177: Use of Prohibited Code
+          1188: Insecure Default Initialization of Resource
+          1189: Improper Isolation of Shared Resources on System-on-a-Chip (SoC)
+          1190: DMA Device Enabled Too Early in Boot Phase
+          1191: On-Chip Debug and Test Interface With Improper Access Control
+          1192: System-on-Chip (SoC) Using Components without Unique, Immutable Identifiers
+          1193: Power-On of Untrusted Execution Core Before Enabling Fabric Access Control
+          1204: Generation of Weak Initialization Vector (IV)
+          1209: Failure to Disable Reserved Bits
+          1220: Insufficient Granularity of Access Control
+          1221: Incorrect Register Defaults or Module Parameters
+          1222: Insufficient Granularity of Address Regions Protected by Register Locks
+          1223: Race Condition for Write-Once Attributes
+          1224: Improper Restriction of Write-Once Bit Fields
+          1229: Creation of Emergent Resource
+          1230: Exposure of Sensitive Information Through Metadata
+          1231: Improper Prevention of Lock Bit Modification
+          1232: Improper Lock Behavior After Power State Transition
+          1233: Security-Sensitive Hardware Controls with Missing Lock Bit Protection
+          1234: Hardware Internal or Debug Modes Allow Override of Locks
+          1235: Incorrect Use of Autoboxing and Unboxing for Performance Critical Operations
+          1236: Improper Neutralization of Formula Elements in a CSV File
+          1239: Improper Zeroization of Hardware Register
+          1240: Use of a Cryptographic Primitive with a Risky Implementation
+          1241: Use of Predictable Algorithm in Random Number Generator
+          1242: Inclusion of Undocumented Features or Chicken Bits
+          1243: Sensitive Non-Volatile Information Not Protected During Debug
+          1244: Internal Asset Exposed to Unsafe Debug Access Level or State
+          1245: Improper Finite State Machines (FSMs) in Hardware Logic
+          1246: Improper Write Handling in Limited-write Non-Volatile Memories
+          1247: Improper Protection Against Voltage and Clock Glitches
+          1248: Semiconductor Defects in Hardware Logic with Security-Sensitive Implications
+          1249: Application-Level Admin Tool with Inconsistent View of Underlying Operating System
+          1250: Improper Preservation of Consistency Between Independent Representations of Shared State
+          1251: Mirrored Regions with Different Values
+          1252: CPU Hardware Not Configured to Support Exclusivity of Write and Execute Operations
+          1253: Incorrect Selection of Fuse Values
+          1254: Incorrect Comparison Logic Granularity
+          1255: Comparison Logic is Vulnerable to Power Side-Channel Attacks
+          1256: Improper Restriction of Software Interfaces to Hardware Features
+          1257: Improper Access Control Applied to Mirrored or Aliased Memory Regions
+          1258: Exposure of Sensitive System Information Due to Uncleared Debug Information
+          1259: Improper Restriction of Security Token Assignment
+          1260: Improper Handling of Overlap Between Protected Memory Ranges
+          1261: Improper Handling of Single Event Upsets
+          1262: Improper Access Control for Register Interface
+          1263: Improper Physical Access Control
+          1264: Hardware Logic with Insecure De-Synchronization between Control and Data Channels
+          1265: Unintended Reentrant Invocation of Non-reentrant Code Via Nested Calls
+          1266: Improper Scrubbing of Sensitive Data from Decommissioned Device
+          1267: Policy Uses Obsolete Encoding
+          1268: Policy Privileges are not Assigned Consistently Between Control and Data Agents
+          1269: Product Released in Non-Release Configuration
+          1270: Generation of Incorrect Security Tokens
+          1271: Uninitialized Value on Reset for Registers Holding Security Settings
+          1272: Sensitive Information Uncleared Before Debug/Power State Transition
+          1273: Device Unlock Credential Sharing
+          1274: Improper Access Control for Volatile Memory Containing Boot Code
+          1275: Sensitive Cookie with Improper SameSite Attribute
+          1276: Hardware Child Block Incorrectly Connected to Parent System
+          1277: Firmware Not Updateable
+          1278: Missing Protection Against Hardware Reverse Engineering Using Integrated Circuit (IC) Imaging Techniques
+          1279: Cryptographic Operations are run Before Supporting Units are Ready
+          1280: Access Control Check Implemented After Asset is Accessed
+          1281: Sequence of Processor Instructions Leads to Unexpected Behavior
+          1282: Assumed-Immutable Data is Stored in Writable Memory
+          1283: Mutable Attestation or Measurement Reporting Data
+          1284: Improper Validation of Specified Quantity in Input
+          1285: Improper Validation of Specified Index, Position, or Offset in Input
+          1286: Improper Validation of Syntactic Correctness of Input
+          1287: Improper Validation of Specified Type of Input
+          1288: Improper Validation of Consistency within Input
+          1289: Improper Validation of Unsafe Equivalence in Input
+          1290: Incorrect Decoding of Security Identifiers
+          1291: Public Key Re-Use for Signing both Debug and Production Code
+          1292: Incorrect Conversion of Security Identifiers
+          1293: Missing Source Correlation of Multiple Independent Data
+          1294: Insecure Security Identifier Mechanism
+          1295: Debug Messages Revealing Unnecessary Information
+          1296: Incorrect Chaining or Granularity of Debug Components
+          1297: Unprotected Confidential Information on Device is Accessible by OSAT Vendors
+          1298: Hardware Logic Contains Race Conditions
+          1299: Missing Protection Mechanism for Alternate Hardware Interface
+          1300: Improper Protection of Physical Side Channels
+          1301: Insufficient or Incomplete Data Removal within Hardware Component
+          1302: Missing Security Identifier
+          1303: Non-Transparent Sharing of Microarchitectural Resources
+          1304: Improperly Preserved Integrity of Hardware Configuration State During a Power Save/Restore Operation
+          1310: Missing Ability to Patch ROM Code
+          1311: Improper Translation of Security Attributes by Fabric Bridge
+          1312: Missing Protection for Mirrored Regions in On-Chip Fabric Firewall
+          1313: Hardware Allows Activation of Test or Debug Logic at Runtime
+          1314: Missing Write Protection for Parametric Data Values
+          1315: Improper Setting of Bus Controlling Capability in Fabric End-point
+          1316: Fabric-Address Map Allows Programming of Unwarranted Overlaps of Protected and Unprotected Ranges
+          1317: Missing Security Checks in Fabric Bridge
+          1318: Missing Support for Security Features in On-chip Fabrics or Buses
+          1319: Improper Protection against Electromagnetic Fault Injection (EM-FI)
+          1320: Improper Protection for Out of Bounds Signal Level Alerts
+          1321: Improperly Controlled Modification of Object Prototype Attributes ('Prototype Pollution')
+          1322: Use of Blocking Code in Single-threaded, Non-blocking Context
+          1323: Improper Management of Sensitive Trace Data
+          1324: Sensitive Information Accessible by Physical Probing of JTAG Interface
+          1325: Improperly Controlled Sequential Memory Allocation
+          1326: Missing Immutable Root of Trust in Hardware
+          1327: Binding to an Unrestricted IP Address
+          1328: Security Version Number Mutable to Older Versions
+          1329: Reliance on Component That is Not Updateable
+          1330: Remanent Data Readable after Memory Erase
+          1331: Improper Isolation of Shared Resources in Network On Chip (NoC)
+          1332: Improper Handling of Faults that Lead to Instruction Skips
+          1333: Inefficient Regular Expression Complexity
+          1334: Unauthorized Error Injection Can Degrade Hardware Redundancy
+          1335: Incorrect Bitwise Shift of Integer
+          1336: Improper Neutralization of Special Elements Used in a Template Engine
+          1338: Improper Protections Against Hardware Overheating
+          1339: Insufficient Precision or Accuracy of a Real Number
+          1341: Multiple Releases of Same Resource or Handle
+          1342: Information Exposure through Microarchitectural State after Transient Execution
+          1351: Improper Handling of Hardware Behavior in Exceptionally Cold Environments
+          1357: Reliance on Uncontrolled Component
+          1384: Improper Handling of Physical or Environmental Conditions
+          1385: Missing Origin Validation in WebSockets
+          1386: Insecure Operation on Windows Junction / Mount Point

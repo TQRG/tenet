@@ -5,6 +5,7 @@ from abc import abstractmethod
 
 from securityaware.handlers.code_parser import CodeParserHandler
 from securityaware.handlers.container import ContainerHandler
+from securityaware.handlers.cwe_list import CWEListHandler
 from securityaware.handlers.github import GithubHandler
 from securityaware.handlers.node import NodeHandler
 from securityaware.handlers.runner import MultiTaskHandler
@@ -24,6 +25,7 @@ class PluginHandler(NodeHandler):
         self._code_parser_handler: CodeParserHandler = None
         self._container_handler: ContainerHandler = None
         self._github_handler: GithubHandler = None
+        self._cwe_list_handler: CWEListHandler = None
 
     @property
     def github_handler(self):
@@ -34,6 +36,16 @@ class PluginHandler(NodeHandler):
     @github_handler.deleter
     def github_handler(self):
         self._github_handler = None
+
+    @property
+    def cwe_list_handler(self):
+        if not self._cwe_list_handler:
+            self._cwe_list_handler = self.app.handler.get('handlers', 'cwe_list', setup=True)
+        return self._cwe_list_handler
+
+    @cwe_list_handler.deleter
+    def cwe_list_handler(self):
+        self._cwe_list_handler = None
 
     @property
     def multi_task_handler(self):
