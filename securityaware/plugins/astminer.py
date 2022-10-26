@@ -11,7 +11,7 @@ from securityaware.data.schema import ContainerCommand
 from securityaware.handlers.plugin import PluginHandler
 
 re_plain = '(?P<label>(\w+)),(?P<hash>(\w+)),(?P<fpath>([\w\/\.\_\-]+)),(?P<sline>(\d+)),(?P<scol>(\d+)),(?P<eline>(\d+)),(?P<ecol>(\d+))'
-re_context_paths = '(?P<fpath>([\w\/\.\_-]+))\_(?P<sline>(\d+))\_(?P<scol>(\d+))\_(?P<eline>(\d+))\_(?P<ecol>(\d+)) (?P<label>(\w+)) (?P<hash>(\w+)) (?P<input>([\w ,|]+))'
+re_context_paths = '(?P<fpath>([\w\/\.\_-]+))\_(?P<sline>(\d+))\_(?P<scol>(\d+))\_(?P<eline>(\d+))\_(?P<ecol>(\d+)) (?P<label>(\w+)) (?P<hash>(\w+)) (?P<context_paths>([\w ,|]+))'
 
 
 class ASTMinerHandler(PluginHandler):
@@ -26,6 +26,7 @@ class ASTMinerHandler(PluginHandler):
         super().__init__(**kw)
         self.path_context_file = None
         self.extract_cp = None
+        self.raw_files_path = None
 
     def run(self, dataset: pd.DataFrame, extract_cp: bool = True, image_name: str = "astminer",
             max_old_space_size: int = 8192, mutations: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
@@ -41,28 +42,48 @@ class ASTMinerHandler(PluginHandler):
             self.app.log.warning(f"path to dataset with fn boundaries not instantiated.")
             return None
 
+        self.raw_files_path = Path(str(self.get('raw_files_path')).replace(str(self.app.workdir), str(self.app.bind)))
+
         if not self.path_context_file.exists():
             # TODO: fix the node name
             container = self.container_handler.run(image_name=image_name, node_name=self.node.name)
-            export_cmd = ContainerCommand(org=f"export NODE_OPTIONS=\"--max-old-space-size={max_old_space_size}\"")
+            self.run_astminer(container, max_old_space_size, mutations)
 
-            raw_files_path = Path(str(self.get('raw_files_path')).replace(str(self.app.workdir), str(self.app.bind)))
-            raw_fn_bounds_file = Path(str(self.get('raw_fn_bounds_file')).replace(str(self.app.workdir), str(self.app.bind)))
+        results = self.parse_path_context_file()
 
-            max_old_space_size_gb = round(max_old_space_size / 1024)
-            max_mem = f"-Xmx{max_old_space_size_gb}g"
-            max_size = f"-Xms{max_old_space_size_gb}g"
+        if not results:
+            raise AssertionError('Could not parse path context file')
 
-            astminer_jar_path = "../../../astminer/build/shadow/astminer.jar"
-            astminer_cmd = ContainerCommand(org=f"java -jar {max_size} {max_mem} {astminer_jar_path}")
+        return self.convert_to_dataframe(results)
 
-            astminer_cmd.org += ' ' + ('code2vec' if extract_cp else 'codebert')
-            astminer_cmd.org += f" {raw_files_path} {self.container_handler.working_dir} {raw_fn_bounds_file} {1 if mutations else 0}"
+    def run_astminer(self, container, max_old_space_size: int, mutations: bool):
+        export_cmd = ContainerCommand(org=f"export NODE_OPTIONS=\"--max-old-space-size={max_old_space_size}\"")
 
-            self.container_handler.run_cmds(container.id, [export_cmd, astminer_cmd])
-            self.container_handler.stop(container)
+        raw_fn_bounds_file = Path(
+            str(self.get('raw_fn_bounds_file')).replace(str(self.app.workdir), str(self.app.bind)))
 
-        return self.parse_path_context_file()
+        max_old_space_size_gb = round(max_old_space_size / 1024)
+        max_mem = f"-Xmx{max_old_space_size_gb}g"
+        max_size = f"-Xms{max_old_space_size_gb}g"
+
+        astminer_jar_path = "../../../astminer/build/shadow/astminer.jar"
+        astminer_cmd = ContainerCommand(org=f"java -jar {max_size} {max_mem} {astminer_jar_path}")
+
+        astminer_cmd.org += ' ' + ('code2vec' if self.extract_cp else 'codebert')
+        astminer_cmd.org += f" {self.raw_files_path} {self.container_handler.working_dir} {raw_fn_bounds_file} {1 if mutations else 0}"
+
+        self.container_handler.run_cmds(container.id, [export_cmd, astminer_cmd])
+        self.container_handler.stop(container)
+
+    def parse_full_file_path(self, fpath: str):
+        fpath_split = fpath.replace(str(self.raw_files_path), '').split('/')
+
+        if fpath_split[0] == '':
+            fpath_split = fpath[1:]
+
+        owner, project, version, *file, = fpath_split
+
+        return owner, project, version, '/'.join(file)
 
     def parse_path_context_file(self):
         results = []
@@ -79,34 +100,28 @@ class ASTMinerHandler(PluginHandler):
                 else:
                     raise ValueError(f"Could not match line {i} {line}")
 
-        if not results:
-            raise AssertionError('Could not parse path context file')
+        return results
 
+    def convert_to_dataframe(self, results: list):
         df = pd.DataFrame(results)
         df.drop_duplicates(subset=['hash'], inplace=True)
         self.app.log.info(f'Initial size: {len(results)} | Without duplicates: {len(df)}')
 
-        df['fpath'] = df.fpath.apply(lambda x: x.replace(str(self.app.bind), str(self.app.workdir)))
-
-        if 'input' not in df.columns:
-            df['input'] = [None] * len(df)
-
+        df['owner'], df['project'], df['version'], df['fpath'] = df.fpath.apply(self.parse_full_file_path)
+        df['input'] = [None] * len(df)
         loc_cols = ['sline', 'scol', 'eline', 'ecol']
 
         if all([col in df.columns for col in loc_cols]):
             # Convert function locations to integer
             df[loc_cols] = df[loc_cols].apply(pd.to_numeric, errors='coerce').fillna(0).astype(np.int64)
+            df = self.get_functions(df)
 
-            if not self.extract_cp:
-                df = self.get_functions(df)
+            if not df.empty and 'input' in df.columns:
+                df['fsize'] = df.apply(lambda r: len(r.input.splitlines()), axis=1)
 
-                if not df.empty and 'input' in df.columns:
-                    df['fsize'] = df.apply(lambda r: len(r.input.splitlines()), axis=1)
-            else:
-                # Calculate function size
-                df['fsize'] = df.apply(lambda r: 1 if r.sline == r.eline else r.eline - r.sline, axis=1)
+            if self.extract_cp:
                 # Calculate context paths size
-                df['cp_size'] = df.apply(lambda r: len(r.input.split()), axis=1)
+                df['cp_size'] = df.apply(lambda r: len(r['context_paths'].split()), axis=1)
 
         if 'cp_size' in df.columns:
             Plotter(self.path).histogram_pairs(df, column='cp_size', x_label='Context paths size', filter_outliers=True)
@@ -143,8 +158,8 @@ class ASTMinerHandler(PluginHandler):
         initial_size = len(funcs_df)
         funcs_df.reset_index(inplace=True)
 
-        for target_file, rows in tqdm(funcs_df.groupby(['fpath'])):
-            target_file = Path(target_file)
+        for target_file, rows in tqdm(funcs_df.groupby(['owner', 'project', 'version', 'fpath'])):
+            target_file = self.raw_files_path / target_file
 
             if not target_file.exists():
                 self.app.log.warning(f"{target_file} not found")

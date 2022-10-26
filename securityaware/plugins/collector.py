@@ -58,7 +58,7 @@ class Collector(PluginHandler):
         self.app.log.info(f"Creating {len(dataset)} tasks.")
         for i, proj in tqdm(dataset.iterrows()):
             self.multi_task_handler.add(repo_path=proj.repo, fix_sha=proj.fix_sha, parent_sha=proj.parent_sha,
-                                        label=proj['cwe'].replace('\r\n', '|'))
+                                        label=proj['cwe'])
 
         self.multi_task_handler(func=self.parse_diffs)
         diffs = self.multi_task_handler.results(expand=True)
