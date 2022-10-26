@@ -79,7 +79,7 @@ class ASTMinerHandler(PluginHandler):
         fpath_split = fpath.replace(str(self.raw_files_path), '').split('/')
 
         if fpath_split[0] == '':
-            fpath_split = fpath[1:]
+            fpath_split = fpath_split[1:]
 
         owner, project, version, *file, = fpath_split
 
@@ -159,7 +159,7 @@ class ASTMinerHandler(PluginHandler):
         funcs_df.reset_index(inplace=True)
 
         for target_file, rows in tqdm(funcs_df.groupby(['owner', 'project', 'version', 'fpath'])):
-            target_file = self.raw_files_path / target_file
+            target_file = self.get('raw_files_path') / '/'.join(target_file)
 
             if not target_file.exists():
                 self.app.log.warning(f"{target_file} not found")
