@@ -107,7 +107,7 @@ class ASTMinerHandler(PluginHandler):
         df.drop_duplicates(subset=['hash'], inplace=True)
         self.app.log.info(f'Initial size: {len(results)} | Without duplicates: {len(df)}')
 
-        df['owner'], df['project'], df['version'], df['fpath'] = df.fpath.apply(self.parse_full_file_path)
+        df['owner'], df['project'], df['version'], df['fpath'] = zip(*df.fpath.apply(self.parse_full_file_path))
         df['input'] = [None] * len(df)
         loc_cols = ['sline', 'scol', 'eline', 'ecol']
 
