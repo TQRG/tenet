@@ -533,6 +533,26 @@ def split_data(dataset: pd.DataFrame, seed) -> Tuple[pd.DataFrame, pd.DataFrame,
     return train, val, test
 
 
+def stratified_pair_hash(dataset: pd.DataFrame, seed) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    unique_pair_hashes = dataset['pair_hash'].unique()
+    print("Splitting dataset pair hashes into train and test...")
+    train_hashes, test_hashes = sklearn.model_selection.train_test_split(unique_pair_hashes,
+                                                                         test_size=0.1, random_state=seed)
+    print("Splitting train set pair hashes into train and validation...")
+    # (1/9) x 0.9 = 0.1
+    train_hashes, val_hashes = sklearn.model_selection.train_test_split(train_hashes, test_size=1/9, random_state=seed)
+
+    train = dataset[dataset['pair_hash'].isin(train_hashes)]
+    test = dataset[dataset['pair_hash'].isin(test_hashes)]
+    val = dataset[dataset['pair_hash'].isin(val_hashes)]
+
+    calculate_labels_dist(train, 'train')
+    calculate_labels_dist(val, 'val')
+    calculate_labels_dist(test, 'test')
+
+    return train, val, test
+
+
 def oversampling(X_dataset: Dataset, Y_dataset: Dataset, seed) -> Tuple[XYDataset, XYDataset, XYDataset]:
     print("Splitting dataset into train and test...")
     X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split(X_dataset.rows, Y_dataset.rows,

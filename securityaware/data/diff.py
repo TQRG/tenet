@@ -14,6 +14,7 @@ class InlineDiff:
     eline: int
     ecol: int
     label: str
+    pair_hash: str
 
     def is_null(self):
         return pd.isnull(self.sline) and pd.isnull(self.scol) and pd.isnull(self.eline) and pd.isnull(self.ecol)
@@ -45,7 +46,8 @@ class InlineDiff:
 
     def to_dict(self, **kwargs):
         il_dict = {'owner': self.owner, 'version': self.version, 'project': self.project, 'fpath': self.fpath,
-                   'sline': self.sline, 'scol': self.scol, 'eline': self.eline, 'ecol': self.ecol, 'label': self.label}
+                   'sline': self.sline, 'scol': self.scol, 'eline': self.eline, 'ecol': self.ecol, 'label': self.label,
+                   'pair_hash': self.pair_hash}
 
         if kwargs:
             il_dict.update(kwargs)
@@ -54,17 +56,18 @@ class InlineDiff:
 
     def to_list(self):
         return [self.owner, self.project, self.version, self.fpath, self.sline, self.scol, self.eline, self.ecol,
-                self.label]
+                self.label, self.pair_hash]
 
     def __str__(self):
         return f"{self.owner},{self.project},{self.version},{self.fpath},{self.sline},{self.scol},{self.eline}," \
-               f"{self.ecol},{self.label}"
+               f"{self.ecol},{self.label},{self.pair_hash}"
 
 
 @dataclass
 class FunctionBoundary(InlineDiff):
     ftype: str = None
     label: str = ''
+    pair_hash: str = ''
 
     @staticmethod
     def parse_fn_inline_diffs(fn_boundaries: dict, owner: str, project: str, version: str, fpath: str):

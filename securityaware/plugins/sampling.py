@@ -1,12 +1,9 @@
 import pandas as pd
 
-from typing import Union
+from typing import Union, Tuple
 from pathlib import Path
 
-from securityaware.core.sampling.balance import oversampling, disjoint_smote, disjoint_smote_hash, \
-    random_undersampling, split_data, one_one_ratio, disjoint, disjoint_hash, unique, unique_hash
-from securityaware.data.dataset import XYDataset, Dataset
-
+from securityaware.core.sampling.balance import split_data, stratified_pair_hash
 from securityaware.handlers.plugin import PluginHandler
 
 
@@ -21,10 +18,43 @@ class SamplingHandler(PluginHandler):
     def __init__(self, **kw):
         super().__init__(**kw)
         self.token = None
-        self.balance_techniques = ['over', 'disj_over', 'disj_smote', 'unique', 'undersampling', 'stratified', '1_to_1']
+        self.balance_techniques = ['stratified_pair_hash']
 
-    def run(self, dataset: pd.DataFrame, technique: str = "", seed: int = 0, offset: bool = False,
-            only_single: bool = False, only_multiple: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
+    def __call__(self, technique: str, seed: int, dataset: pd.DataFrame) \
+            -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        # TODO: adapt rest of techniques
+        '''
+                if technique == 'over':
+                    return oversampling(x, y, seed)
+                elif technique == 'disj_smote':
+                    if offset:
+                        return disjoint_smote_hash(x, y, seed)
+                    else:
+                        return disjoint_smote(x, y, seed)
+                elif technique == 'disj_over':
+                    if offset:
+                        return disjoint_hash(x, y, seed)
+                    else:
+                        return disjoint(x, y, seed)
+                elif technique == 'unique':
+                    if offset:
+                        return unique_hash(x, y, seed)
+                    else:
+                        return unique(x, y, seed)
+                elif technique == '1_to_1':
+                    return one_one_ratio(x, y, seed)
+                elif technique == 'random_undersampling':
+                    return random_undersampling(x, y, seed)
+        '''
+
+        if technique == 'stratified_pair_hash':
+            return stratified_pair_hash(dataset=dataset, seed=seed)
+
+        self.app.log.info('No balancing technique applied.')
+        return split_data(dataset=dataset, seed=seed)
+
+    def run(self, dataset: pd.DataFrame, technique: str = "", seed: int = 0, only_single: bool = False,
+            only_multiple: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
 
@@ -59,7 +89,7 @@ class SamplingHandler(PluginHandler):
                     for i, row in rows.iterrows():
                         dataset.loc[i, 'label'] = 'safe'
 
-        train, val, test = split_data(dataset=dataset, seed=seed)
+        train, val, test = self.__call__(dataset=dataset, seed=seed, technique=technique)
 
         self.app.log.info("Writing split to files...")
         self.app.log.info(f"Train: {len(train)} ({train.label.value_counts()})\n"
@@ -71,38 +101,6 @@ class SamplingHandler(PluginHandler):
         test.to_csv(str(test_data_path))
 
         return dataset
-
-    '''
-    # TODO: adapt rest of techniques
-        def __call__(self, technique: str, seed: int, dataset: pd.DataFrame) \
-                -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-            # TODO: adapt rest of techniques
-            if technique == 'over':
-                return oversampling(x, y, seed)
-            elif technique == 'disj_smote':
-                if offset:
-                    return disjoint_smote_hash(x, y, seed)
-                else:
-                    return disjoint_smote(x, y, seed)
-            elif technique == 'disj_over':
-                if offset:
-                    return disjoint_hash(x, y, seed)
-                else:
-                    return disjoint(x, y, seed)
-            elif technique == 'unique':
-                if offset:
-                    return unique_hash(x, y, seed)
-                else:
-                    return unique(x, y, seed)
-            elif technique == '1_to_1':
-                return one_one_ratio(x, y, seed)
-            elif technique == 'random_undersampling':
-                return random_undersampling(x, y, seed)
-            else:
-
-            self.app.log.info('No balancing technique applied.')
-            return split_data(dataset=dataset, seed=seed)
-    '''
 
 
 def load(app):

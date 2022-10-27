@@ -1,3 +1,4 @@
+import hashlib
 import re
 import pandas as pd
 import numpy as np
@@ -10,7 +11,7 @@ from securityaware.core.plotter import Plotter
 from securityaware.data.schema import ContainerCommand
 from securityaware.handlers.plugin import PluginHandler
 
-re_plain = '(?P<label>(\w+)),(?P<hash>(\w+)),(?P<fpath>([\w\/\.\_\-]+)),(?P<sline>(\d+)),(?P<scol>(\d+)),(?P<eline>(\d+)),(?P<ecol>(\d+))'
+re_plain = '(?P<label>(\w+)),(?P<hash>(\w+)),(?P<pair_hash>(\w*)),(?P<fpath>([\w\/\.\_\-]+)),(?P<sline>(\d+)),(?P<scol>(\d+)),(?P<eline>(\d+)),(?P<ecol>(\d+))'
 re_context_paths = '(?P<fpath>([\w\/\.\_-]+))\_(?P<sline>(\d+))\_(?P<scol>(\d+))\_(?P<eline>(\d+))\_(?P<ecol>(\d+)) (?P<label>(\w+)) (?P<hash>(\w+)) (?P<context_paths>([\w ,|]+))'
 
 
@@ -102,6 +103,14 @@ class ASTMinerHandler(PluginHandler):
 
         return results
 
+    @staticmethod
+    def compute_missing_hash(row) -> str:
+        if row['pair_hash'] == '' or pd.isnull(row['pair_hash']) or pd.isna(row['pair_hash']):
+            row_str = f"{row.owner}_{row.project}_{row.version}_{row.fpath}_{row.sline}_{row.scol}_{row.eline}_{row.ecol}"
+            return hashlib.md5(row_str.encode()).hexdigest()
+
+        return row['pair_hash']
+
     def convert_to_dataframe(self, results: list):
         df = pd.DataFrame(results)
         df.drop_duplicates(subset=['hash'], inplace=True)
@@ -109,6 +118,7 @@ class ASTMinerHandler(PluginHandler):
 
         df['owner'], df['project'], df['version'], df['fpath'] = zip(*df.fpath.apply(self.parse_full_file_path))
         df['input'] = [None] * len(df)
+        df['pair_hash'] = df.apply(self.compute_missing_hash, axis=1)
         loc_cols = ['sline', 'scol', 'eline', 'ecol']
 
         if all([col in df.columns for col in loc_cols]):

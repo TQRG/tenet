@@ -145,7 +145,7 @@ class CodeQLExtractLabelsHandler(PluginHandler):
                 return None
 
             return {'owner': owner, 'project': project, 'version': version, 'fpath': '/'.join(file), 'sline': sline,
-                    'scol': scol, 'eline': eline, 'ecol': ecol, 'label': 'unsafe', 'rule_id': rule_id}
+                    'scol': scol, 'eline': eline, 'ecol': ecol, 'label': 'unsafe', 'rule_id': rule_id, 'pair_hash': None}
         return None
 
 

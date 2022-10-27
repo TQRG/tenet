@@ -126,6 +126,7 @@ class JSCodeShiftHandler(PluginHandler):
             for fn_dec in fn_decs:
                 if fn_dec.is_contained(inline_diff):
                     fn_dec.label = inline_diff.label
+                    fn_dec.pair_hash = inline_diff.pair_hash
                     fn_bound = fn_dec
 
             if fn_bound:
@@ -135,6 +136,7 @@ class JSCodeShiftHandler(PluginHandler):
             for fn_exp in fn_exps:
                 if fn_exp.is_contained(inline_diff):
                     fn_exp.label = inline_diff.label
+                    fn_exp.pair_hash = inline_diff.pair_hash
                     fn_bound = fn_exp
 
             if fn_bound:

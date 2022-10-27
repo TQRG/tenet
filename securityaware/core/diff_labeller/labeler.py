@@ -1,5 +1,6 @@
 import difflib
 import jsbeautifier
+import hashlib
 
 from pathlib import Path
 from typing import List, Tuple
@@ -104,7 +105,7 @@ class Labeler:
                 self.b_formatted = bpf.read()
 
     def add_inline_diffs(self, owner: str, project: str, version: str, file_path: str, formatted_range: List,
-                         linenos: List[int], label: str):
+                         linenos: List[int], label: str, pair_hash: str):
         """
             Adds the InlineDiff instances.
             :param owner: The repository owner.
@@ -114,11 +115,13 @@ class Labeler:
             :param formatted_range: The InlineDiff instance.
             :param linenos: The InlineDiff instance.
             :param label: The InlineDiff instance.
+            :param pair_hash: sha1 hex digest to match inline diffs and functions
         """
         for i, inlineno in enumerate(linenos):
             inline_diff = InlineDiff(owner=owner, project=project, version=version, fpath=file_path, label=label,
                                      sline=formatted_range[inlineno - 1][0], scol=formatted_range[inlineno - 1][1],
-                                     eline=formatted_range[inlineno - 1][2], ecol=formatted_range[inlineno - 1][3])
+                                     eline=formatted_range[inlineno - 1][2], ecol=formatted_range[inlineno - 1][3],
+                                     pair_hash=pair_hash)
 
             self.inline_diffs.append(inline_diff)
 
@@ -134,16 +137,27 @@ class Labeler:
                 a_del_linenos, b_add_linenos, _, _ = get_row_diff_range(inline_lines, diff_bound, diff_id)
                 self.a_del_line_cnt += len(a_del_linenos)
                 self.b_add_line_cnt += len(b_add_linenos)
+                pair_hash = self.get_pair_sha(a_del_linenos, b_add_linenos)
 
                 self.add_inline_diffs(owner=self.entry.owner, project=self.entry.project, version=self.entry.a_version,
-                                      file_path=self.entry.diff_block.a_path, label=unsafe_label,
+                                      file_path=self.entry.diff_block.a_path, label=unsafe_label, pair_hash=pair_hash,
                                       linenos=a_del_linenos, formatted_range=self.a_formatted_range)
 
                 self.add_inline_diffs(owner=self.entry.owner, project=self.entry.project, version=self.entry.b_version,
-                                      file_path=self.entry.diff_block.b_path, label='safe',
+                                      file_path=self.entry.diff_block.b_path, label='safe', pair_hash=pair_hash,
                                       linenos=b_add_linenos, formatted_range=self.b_formatted_range)
 
         return self.inline_diffs
+
+    def get_pair_sha(self, a_del_lines: list, b_add_lines: list):
+        sha = hashlib.sha1()
+        sha_str = f'{self.entry.owner}_{self.entry.project}_{self.entry.diff_block.a_path}'
+        a_del_lines_str = '_'.join([str(l) for l in a_del_lines])
+        sha_str += f'_{self.entry.a_version}_{a_del_lines_str}'
+        b_add_lines_str = '_'.join([str(l) for l in b_add_lines])
+        sha_str += f'_{self.entry.b_version}_{b_add_lines_str}'
+        sha.update(sha_str.encode())
+        return sha.hexdigest()
 
     def calc_sim_ratio(self) -> float:
         """
