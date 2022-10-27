@@ -12,7 +12,7 @@ from securityaware.data.schema import ContainerCommand
 from securityaware.handlers.plugin import PluginHandler
 
 re_plain = '(?P<label>(\w+)),(?P<hash>(\w+)),(?P<pair_hash>(\w*)),(?P<fpath>([\w\/\.\_\-]+)),(?P<sline>(\d+)),(?P<scol>(\d+)),(?P<eline>(\d+)),(?P<ecol>(\d+))'
-re_context_paths = '(?P<fpath>([\w\/\.\_-]+))\_(?P<sline>(\d+))\_(?P<scol>(\d+))\_(?P<eline>(\d+))\_(?P<ecol>(\d+)) (?P<label>(\w+)) (?P<hash>(\w+)) (?P<context_paths>([\w ,|]+))'
+re_context_paths = '(?P<fpath>([\w\/\.\_-]+))\_(?P<sline>(\d+))\_(?P<scol>(\d+))\_(?P<eline>(\d+))\_(?P<ecol>(\d+)) (?P<label>(\w+)) (?P<hash>(\w+)) (?P<pair_hash>(\w*)) (?P<context_paths>([\w ,|]+))'
 
 
 class ASTMinerHandler(PluginHandler):
