@@ -26,7 +26,7 @@ class HybridHandler(PluginHandler):
         join_type = 'inner' if inner_join else 'outer'
         dataset['label'] = dataset['da_label']
 
-        for i, row in dataset[dataset['da_label'] == 'unsafe' or dataset['sa_label'] == 'unsafe'].iterrows():
+        for i, row in dataset[(dataset['da_label'] == 'unsafe') | (dataset['sa_label'] == 'unsafe')].iterrows():
             if row['da_label'] == 'unsafe' and row['sa_label'] == 'safe':
                 self.app.log.info(f"Updating label for {row.fpath}")
                 dataset.at[i, 'label'] = hybrid_label

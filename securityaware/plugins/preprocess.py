@@ -72,14 +72,14 @@ class PreprocessHandler(PluginHandler):
         val_data = pd.read_csv(str(val_data_path))
 
         self.app.log.info("Creating histogram from training data")
-        word_vocab, path_vocab = get_histograms(train_data['input'].to_list())
+        word_vocab, path_vocab = get_histograms(train_data['context_paths'].to_list())
         word_to_count: dict = word_vocab(max_size=word_vocab_size)
         path_to_count: dict = path_vocab(max_size=path_vocab_size)
         target_to_count: dict = train_data['label'].value_counts().to_dict()
         cp_truncator = ContextPathsTruncator(max_vectors=max_contexts, word_to_count=word_to_count,
                                              path_to_count=path_to_count)
         self.app.log.info("Truncating train data")
-        train_context_paths, train_data_info = cp_truncator(context_paths=train_data['input'].to_list(),
+        train_context_paths, train_data_info = cp_truncator(context_paths=train_data['context_paths'].to_list(),
                                                             labels=train_data['label'].to_list(), path=train_output_path)
         self.app.log.info(f'Train data info: {train_data_info}')
 
@@ -91,7 +91,7 @@ class PreprocessHandler(PluginHandler):
                           target_to_count=target_to_count, num_training_examples=train_data_info.total)
 
         self.app.log.info("Truncating test data")
-        test_context_paths, test_data_info = cp_truncator(context_paths=test_data['input'].to_list(),
+        test_context_paths, test_data_info = cp_truncator(context_paths=test_data['context_paths'].to_list(),
                                                           labels=test_data['label'].to_list(), path=test_output_path)
         self.app.log.info(f'Test data info: {test_data_info}')
 
@@ -100,7 +100,7 @@ class PreprocessHandler(PluginHandler):
                 f.write(f"{cp}\n")
 
         self.app.log.info("Truncating validation data")
-        val_context_paths, val_data_info = cp_truncator(context_paths=val_data['input'].to_list(),
+        val_context_paths, val_data_info = cp_truncator(context_paths=val_data['context_paths'].to_list(),
                                                         labels=val_data['label'].to_list(), path=val_output_path)
         self.app.log.info(f'Val data info: {val_data_info}')
 
