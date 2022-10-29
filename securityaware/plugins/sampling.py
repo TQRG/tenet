@@ -78,13 +78,13 @@ class SamplingHandler(PluginHandler):
         self.app.log.info(f"Dataset has {len(dataset)} samples.")
 
         if only_single:
-            for g, rows in dataset[dataset.label == 'unsafe'].groupby(['owner', 'project', 'version', 'fpath']):
+            for g, rows in dataset[dataset.label == 'unsafe'].groupby(['owner', 'project', 'version']):
                 if len(rows) > 1:
                     for i, row in rows.iterrows():
                         dataset.loc[i, 'label'] = 'safe'
 
         elif only_multiple:
-            for g, rows in dataset[dataset.label == 'unsafe'].groupby(['owner', 'project', 'version', 'fpath']):
+            for g, rows in dataset[dataset.label == 'unsafe'].groupby(['owner', 'project', 'version']):
                 if len(rows) == 1:
                     for i, row in rows.iterrows():
                         dataset.loc[i, 'label'] = 'safe'
