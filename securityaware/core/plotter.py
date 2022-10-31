@@ -88,11 +88,9 @@ class Plotter:
         if not title:
             title = f"Bar plot of {x_label}"
 
-        counts = df[column].value_counts()
+        labels, counts = zip(*df[column].value_counts().items())
         colors = list(mcolors.TABLEAU_COLORS.keys())[:len(counts)]
-
-        for label, count, color in zip(counts.items(), colors):
-            plt.bar(count, alpha=0.5, label=label, color=color)
+        plt.bar(labels, counts, alpha=0.5, color=colors)
 
         plt.legend(loc='upper right')
         plt.title(title)
