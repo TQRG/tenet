@@ -128,8 +128,9 @@ class CWEListHandler(HandlersInterface, Handler):
 
         if isinstance(cwe_id, str):
             match = re.search('\d+', cwe_id)
-            self.app.log.warning(f"Could not find integers in {cwe_id}")
+
             if not match:
+                self.app.log.warning(f"Could not find integers in {cwe_id}")
                 return None
 
             cwe_id = int(match.group())
