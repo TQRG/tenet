@@ -83,3 +83,22 @@ class Plotter:
         plt.xlabel(x_label)
         plt.savefig(str(self.path / f"{x_label.lower().replace(' ', '_')}_histogram.png"))
         plt.clf()
+
+    def bar_labels(self, df: pd.DataFrame, column: str, x_label: str, y_label: str, title: str = None):
+        if not title:
+            title = f"Bar plot of {x_label}"
+
+        counts = df[column].value_counts()
+        colors = list(mcolors.TABLEAU_COLORS.keys())[:len(counts)]
+
+        for label, count, color in zip(counts.items(), colors):
+            plt.bar(count, alpha=0.5, label=label, color=color)
+
+        plt.legend(loc='upper right')
+        plt.title(title)
+        plt.xticks(rotation=30)
+        plt.tight_layout()
+        plt.ylabel(y_label)
+        plt.xlabel(x_label)
+        plt.savefig(str(self.path / f"{x_label.lower().replace(' ', '_')}_histogram.png"))
+        plt.clf()

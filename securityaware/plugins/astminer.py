@@ -60,17 +60,14 @@ class ASTMinerHandler(PluginHandler):
         return self.add_cwe_ids(df, labels_df=dataset)
 
     def plot(self, dataset: pd.DataFrame, **kwargs):
+        unsafe_samples = dataset[dataset.label == 'unsafe']
+
         if 'cwe' in dataset.columns:
-            unsafe_samples = dataset[dataset.label == 'unsafe']
             unsafe_samples['cwe'] = unsafe_samples.cwe.apply(lambda x: f"CWE-{x}")
-            Plotter(self.path).histogram_columns(unsafe_samples, columns=['cwe'], y_label='Occurrences', x_label='CWE-ID',
-                                                 bins=20, labels=unsafe_samples.cwe.unique(), title='CWE Histogram')
+            Plotter(self.path).bar_labels(unsafe_samples, column='cwe', y_label='Occurrences', x_label='CWE-ID')
         if 'sfp' in dataset.columns:
-            unsafe_samples = dataset[dataset.label == 'unsafe']
             unsafe_samples['sfp'] = unsafe_samples.sfp.apply(lambda x: self.cwe_list_handler.get_sfp_title(x))
-            Plotter(self.path).histogram_columns(unsafe_samples, columns=['sfp'], y_label='Occurrences', bins=20,
-                                                 x_label='SFP Cluster', labels=unsafe_samples.sfp.unique(),
-                                                 title='SFP Histogram')
+            Plotter(self.path).bar_labels(unsafe_samples, column='sfp', y_label='Occurrences', x_label='SFP Cluster')
         if 'cp_size' in dataset.columns:
             Plotter(self.path).histogram_pairs(dataset, column='cp_size', x_label='Context paths size',
                                                filter_outliers=True)
@@ -135,9 +132,9 @@ class ASTMinerHandler(PluginHandler):
         labels_df.rename(columns={'label': "cwe"}, inplace=True)
 
         unsafe_labels_df = labels_df[labels_df["cwe"] != 'safe']
-        unsafe_labels_df['cwe'] = unsafe_labels_df.cwe.apply(lambda x: int(x.split('-')[-1]) if x else None).astype('int')
+        unsafe_labels_df['cwe'] = unsafe_labels_df.cwe.apply(lambda x: int(x.split('-')[-1]) if x else None)
         # add primary software fault pattern clusters
-        unsafe_labels_df['sfp'] = unsafe_labels_df.cwe.apply(lambda x: self.cwe_list_handler.find_primary_sfp_cluster(x, only_id=True)).astype('int')
+        unsafe_labels_df['sfp'] = unsafe_labels_df.cwe.apply(lambda x: self.cwe_list_handler.find_primary_sfp_cluster(x, only_id=True))
         before_match_cwes = len(unsafe_labels_df)
         merge_on = ['owner', 'project', 'version', 'fpath', 'sline', 'scol', 'eline', 'ecol']
         unsafe_labels_df = unsafe_labels_df[merge_on + ['cwe', 'sfp']]
