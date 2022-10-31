@@ -47,7 +47,7 @@ class Plotter:
         plt.clf()
 
     def histogram_columns(self, df: pd.DataFrame, columns: list, x_label: str, y_label: str, labels: list,
-                          bins: int = 20, title: str = None, filter_outliers: bool = False):
+                          bins: int = 20, title: str = None, filter_outliers: bool = False, mean: bool = False):
 
         if filter_outliers:
             # without outliers
@@ -73,8 +73,9 @@ class Plotter:
         linestyles = self.linestyles[:len(labels)]
         plt.hist([s.to_list() for s in series], bins, alpha=0.5, label=labels, color=colors)
 
-        for s, l, c, ls in zip(series, labels, reversed(colors), linestyles):
-            plt.axvline(x=s.mean(), color=c, alpha=0.5, linestyle=ls, label=f"{l} mean")
+        if mean:
+            for s, l, c, ls in zip(series, labels, reversed(colors), linestyles):
+                plt.axvline(x=s.mean(), color=c, alpha=0.5, linestyle=ls, label=f"{l} mean")
 
         plt.legend(loc='upper right')
         plt.title(title)

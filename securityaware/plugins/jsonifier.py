@@ -71,6 +71,7 @@ class JSONifierHandler(PluginHandler):
 
             funcs_df = pd.read_csv(split_file)
             funcs_df.rename(columns={'input': 'code'}, inplace=True)
+            funcs_df['code'] = funcs_df.code.apply(lambda x: self.code_parser_handler.filter_comments(x))
             funcs_df['label'] = self.convert_labels(funcs_df['label'])
 
             with jsonlines.open(str(jsonlines_file), mode='a') as output_file:

@@ -20,6 +20,25 @@ class CWEListHandler(HandlersInterface, Handler):
         self._sfp_category_abstractions = None
         self._listing = None
 
+    def has_sfp(self, cwe_id: int) -> bool:
+        return cwe_id in self.sfp_primary_entries or cwe_id in self.sfp_secondary_entries or \
+               cwe_id in self.sfp_none_entries or cwe_id in self.sfp_primary_clusters
+
+    def get_sfp_title(self, cwe_id: int) -> str:
+        if not cwe_id:
+            return "Unknown"
+
+        elif cwe_id in self.sfp_primary_entries:
+            return self.sfp_primary_entries[cwe_id]['title']
+        elif cwe_id in self.sfp_primary_clusters:
+            return self.sfp_primary_clusters[cwe_id]['title']
+        elif cwe_id in self.sfp_secondary_entries:
+            return self.sfp_secondary_entries[cwe_id]['title']
+        elif cwe_id in self.sfp_none_entries:
+            return self.sfp_none_entries[cwe_id]['title']
+        else:
+            return "Unk"
+
     @property
     def mappings(self) -> dict:
         return self.app.config.get_section_dict('mappings')
@@ -83,6 +102,10 @@ class CWEListHandler(HandlersInterface, Handler):
         return self._sfp_primary_clusters
 
     @property
+    def sfp_primary_ids(self):
+        return list(self.sfp_primary_entries.keys()) + list(self.sfp_primary_clusters.keys())
+
+    @property
     def sfp_secondary_entries(self):
         if self._sfp_secondary_entries is None:
             secondary_entries = self.software_fault_pattern['secondary']
@@ -96,17 +119,17 @@ class CWEListHandler(HandlersInterface, Handler):
             self._sfp_none_entries = {_id: el for _id, el in none_entries.items() if 'entries' in el}
         return self._sfp_none_entries
 
-    def find_sfp_cluster(self, cwe_id: int):
+    def find_primary_sfp_cluster(self, cwe_id: int, only_id: bool = False):
         for _c, cluster in self.sfp_primary_entries.items():
             if cwe_id in cluster['entries']:
-                return f"CWE-{_c}: {cluster['title']}"
+                return _c if only_id else f"CWE-{_c}: {cluster['title']}"
 
         for _c, cluster in self.sfp_secondary_entries.items():
             if cwe_id in cluster['entries']:
                 # return _c + ': ' + cluster['title']
                 for _c1, cluster1 in self.sfp_primary_clusters.items():
                     if _c in cluster1['clusters']:
-                        return f"CWE-{_c1}: {cluster1['title']}"
+                        return _c1 if only_id else f"CWE-{_c1}: {cluster1['title']}"
 
         #for _c, cluster in self.sfp_none_entries.items():
         #    if cwe_id in cluster['entries']:

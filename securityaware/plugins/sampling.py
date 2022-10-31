@@ -54,7 +54,7 @@ class SamplingHandler(PluginHandler):
         return split_data(dataset=dataset, seed=seed)
 
     def run(self, dataset: pd.DataFrame, technique: str = "", seed: int = 0, only_single: bool = False,
-            only_multiple: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
+            target_primary_sfp: int = None, only_multiple: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
 
@@ -77,6 +77,22 @@ class SamplingHandler(PluginHandler):
         self.app.log.info((f"Sampling with {technique}.\n" if technique else "") + f"Saving results to {self.path}")
         self.app.log.info(f"Dataset has {len(dataset)} samples.")
 
+        if target_primary_sfp:
+            if target_primary_sfp not in self.cwe_list_handler.sfp_primary_ids:
+                self.app.log.error(f"Could not found SFP ID {target_primary_sfp}")
+                return None
+
+            if 'sfp' not in dataset.columns:
+                self.app.log.error(f"'sfp' column with primary sfp type not found in the dataset")
+                return None
+
+            for i, row in dataset[dataset.label == 'unsafe'].iterrows():
+                if isinstance(row.sfp, list):
+                    if all([int(sfp) != target_primary_sfp for sfp in row.sfp]):
+                        dataset.loc[i, 'label'] = 'safe'
+                elif int(row.sfp) != target_primary_sfp:
+                    dataset.loc[i, 'label'] = 'safe'
+
         if only_single:
             for g, rows in dataset[dataset.label == 'unsafe'].groupby(['owner', 'project', 'version']):
                 if len(rows) > 1:
@@ -88,6 +104,9 @@ class SamplingHandler(PluginHandler):
                 if len(rows) == 1:
                     for i, row in rows.iterrows():
                         dataset.loc[i, 'label'] = 'safe'
+
+        if len(dataset[dataset.label == 'unsafe']) == 0:
+            self.app.log.warning(f"No samples with 'unsafe' label in the dataset")
 
         train, val, test = self.__call__(dataset=dataset, seed=seed, technique=technique)
 

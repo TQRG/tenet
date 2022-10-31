@@ -6,7 +6,8 @@ from sklearn.svm import SVC
 hyperparameters = {
     'KNN': {
         '__weights': ['uniform', 'distance'],
-        '__n_neighbors': [2, 3, 4, 5, 10, 20]
+        '__n_neighbors': [2, 3, 4, 5, 10, 20],
+        '__metric': ['minkowski', 'euclidean', 'manhattan']
     },
     'SVC': {
         '__C': [0.01, 0.1, 1, 10],

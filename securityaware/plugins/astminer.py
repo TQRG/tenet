@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Union
 from tqdm import tqdm
 
+from securityaware.core.exc import SecurityAwareError
 from securityaware.core.plotter import Plotter
 from securityaware.data.schema import ContainerCommand
 from securityaware.handlers.plugin import PluginHandler
@@ -55,7 +56,26 @@ class ASTMinerHandler(PluginHandler):
         if not results:
             raise AssertionError('Could not parse path context file')
 
-        return self.convert_to_dataframe(results)
+        df = self.convert_to_dataframe(results)
+        return self.add_cwe_ids(df, labels_df=dataset)
+
+    def plot(self, dataset: pd.DataFrame, **kwargs):
+        if 'cwe' in dataset.columns:
+            unsafe_samples = dataset[dataset.label == 'unsafe']
+            unsafe_samples['cwe'] = unsafe_samples.cwe.apply(lambda x: f"CWE-{x}")
+            Plotter(self.path).histogram_columns(unsafe_samples, columns=['cwe'], y_label='Occurrences', x_label='CWE-ID',
+                                                 bins=20, labels=unsafe_samples.cwe.unique(), title='CWE Histogram')
+        if 'sfp' in dataset.columns:
+            unsafe_samples = dataset[dataset.label == 'unsafe']
+            unsafe_samples['sfp'] = unsafe_samples.sfp.apply(lambda x: self.cwe_list_handler.get_sfp_title(x))
+            Plotter(self.path).histogram_columns(unsafe_samples, columns=['sfp'], y_label='Occurrences', bins=20,
+                                                 x_label='SFP Cluster', labels=unsafe_samples.sfp.unique(),
+                                                 title='SFP Histogram')
+        if 'cp_size' in dataset.columns:
+            Plotter(self.path).histogram_pairs(dataset, column='cp_size', x_label='Context paths size',
+                                               filter_outliers=True)
+        if 'fsize' in dataset.columns:
+            Plotter(self.path).histogram_pairs(dataset, column='fsize', x_label='Function size', filter_outliers=True)
 
     def run_astminer(self, container, max_old_space_size: int, mutations: bool):
         export_cmd = ContainerCommand(org=f"export NODE_OPTIONS=\"--max-old-space-size={max_old_space_size}\"")
@@ -111,32 +131,53 @@ class ASTMinerHandler(PluginHandler):
 
         return row['pair_hash']
 
+    def add_cwe_ids(self, dataset: pd.DataFrame, labels_df: pd.DataFrame):
+        labels_df.rename(columns={'label': "cwe"}, inplace=True)
+
+        unsafe_labels_df = labels_df[labels_df["cwe"] != 'safe']
+        unsafe_labels_df['cwe'] = unsafe_labels_df.cwe.apply(lambda x: int(x.split('-')[-1]) if x else None).astype('int')
+        # add primary software fault pattern clusters
+        unsafe_labels_df['sfp'] = unsafe_labels_df.cwe.apply(lambda x: self.cwe_list_handler.find_primary_sfp_cluster(x, only_id=True)).astype('int')
+        before_match_cwes = len(unsafe_labels_df)
+        merge_on = ['owner', 'project', 'version', 'fpath', 'sline', 'scol', 'eline', 'ecol']
+        unsafe_labels_df = unsafe_labels_df[merge_on + ['cwe', 'sfp']]
+
+        df = pd.merge(dataset, unsafe_labels_df, on=merge_on,  how='left')
+        after_match_cwes = len(df[~df["cwe"].isnull()])
+        difference = before_match_cwes - after_match_cwes
+        df.drop_duplicates(inplace=True)
+
+        if difference > 0:
+            self.app.log.warning(f"Could not match {difference} unsafe functions.")
+
+        self.app.log.info(f"After labels match: {len(df)}")
+
+        return df
+
     def convert_to_dataframe(self, results: list):
         df = pd.DataFrame(results)
+        loc_cols = ['sline', 'scol', 'eline', 'ecol']
+
+        if not all([col in df.columns for col in loc_cols]):
+            raise SecurityAwareError(f"Columns not found {loc_cols} in the astminer output.")
+
         df.drop_duplicates(subset=['hash'], inplace=True)
         self.app.log.info(f'Initial size: {len(results)} | Without duplicates: {len(df)}')
 
         df['owner'], df['project'], df['version'], df['fpath'] = zip(*df.fpath.apply(self.parse_full_file_path))
         df['input'] = [None] * len(df)
         df['pair_hash'] = df.apply(self.compute_missing_hash, axis=1)
-        loc_cols = ['sline', 'scol', 'eline', 'ecol']
 
-        if all([col in df.columns for col in loc_cols]):
-            # Convert function locations to integer
-            df[loc_cols] = df[loc_cols].apply(pd.to_numeric, errors='coerce').fillna(0).astype(np.int64)
-            df = self.get_functions(df)
+        # Convert function locations to integer
+        df[loc_cols] = df[loc_cols].apply(pd.to_numeric, errors='coerce').fillna(0).astype(np.int64)
+        df = self.get_functions(df)
 
-            if not df.empty and 'input' in df.columns:
-                df['fsize'] = df.apply(lambda r: len(r.input.splitlines()), axis=1)
+        if not df.empty and 'input' in df.columns:
+            df['fsize'] = df.apply(lambda r: len(r.input.splitlines()), axis=1)
 
-            if self.extract_cp:
-                # Calculate context paths size
-                df['cp_size'] = df.apply(lambda r: len(r['context_paths'].split()), axis=1)
-
-        if 'cp_size' in df.columns:
-            Plotter(self.path).histogram_pairs(df, column='cp_size', x_label='Context paths size', filter_outliers=True)
-        if 'fsize' in df.columns:
-            Plotter(self.path).histogram_pairs(df, column='fsize', x_label='Function size', filter_outliers=True)
+        if self.extract_cp:
+            # Calculate context paths size
+            df['cp_size'] = df.apply(lambda r: len(r['context_paths'].split()), axis=1)
 
         return df
 
@@ -155,7 +196,6 @@ class ASTMinerHandler(PluginHandler):
                     code[0] = code[0][row.scol:row.ecol]
 
                 code = ''.join(code)
-                code = self.code_parser_handler.filter_comments(code)
                 rows.loc[idx, 'input'] = code
 
                 if code is None:

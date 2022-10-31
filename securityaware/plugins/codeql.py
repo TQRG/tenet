@@ -22,11 +22,25 @@ class CodeQLExtractLabelsHandler(PluginHandler):
         super().__init__(**kw)
         self.language_mapping = {'js': 'javascript', 'c++': 'cpp', 'c#': 'csharp', 'py': 'python', 'go': 'go',
                                  'java': 'java', 'rb': 'ruby', 'swift': 'swift'}
+        self.rule_id_cwe_mapping = {'js/xss-through-dom': 'CWE-79', 'js/untrusted-data-to-external-api': 'CWE-20',
+                                    'js/html-constructed-from-input': 'CWE-79', 'js/xss': 'CWE-79',
+                                    'js/regex/missing-regexp-anchor': 'CWE-20', 'js/unsafe-jquery-plugin': 'CWE-79',
+                                    'js/path-injection': 'CWE-22', 'js/incomplete-url-scheme-check': 'CWE-20',
+                                    'js/useless-regexp-character-escape': 'CWE-20', 'js/overly-large-range': 'CWE-20',
+                                    'js/incomplete-url-substring-sanitization': 'CWE-20', 'js/reflected-xss': 'CWE-79',
+                                    'js/biased-cryptographic-random': 'CWE-327', 'js/server-crash': 'CWE-730',
+                                    'js/remote-property-injection': 'CWE-400', 'js/unnecessary-use-of-cat': 'CWE-78',
+                                    'js/client-side-unvalidated-url-redirection': 'CWE-601', 'js/stored-xss': 'CWE-79',
+                                    'js/disabling-certificate-validation': 'CWE-295', 'js/request-forgery': 'CWE-918',
+                                    'js/server-side-unvalidated-url-redirection': 'CWE-601', 'js/zipslip': 'CWE-22',
+                                    'js/incorrect-suffix-check': 'CWE-20', 'js/weak-cryptographic-algorithm': 'CWE-327',
+                                    'js/file-access-to-http': 'CWE-200', 'js/exposure-of-private-files': 'CWE-200',
+                                    'js/code-injection': 'CWE-94'
+                                    }
+
         self.cwes = [20, 22, 73, 78, 79, 89, 94, 1004, 116, 117, 1275, 134, 178, 200, 201, 209, 295, 300, 312,
                      313, 326, 327, 338, 346, 347, 352, 367, 377, 384, 400, 451, 502, 506, 598, 601, 611, 614, 640,
                      643, 730, 754, 770, 776, 798, 807, 829, 830, 834, 843, 862, 912, 915, 916, 918]
-        self.parent_commits = []
-        self.fix_commits = []
         self.parent_files = True
         self.fix_files = True
 
@@ -63,8 +77,6 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             :param parent_files: flag to include warnings for parent files
             :param fix_files: flag to include warnings for fix files
         """
-        self.parent_files = parent_files
-        self.fix_files = fix_files
         codeql_db_path = self.container_handler.working_dir / 'db'
         report_file = self.path / f"{self.output.stem}_report.json"
         report_file_container = self.container_handler.working_dir / f"{self.output.stem}_report.json"
@@ -101,16 +113,12 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             self.app.log.warning(f"CodeQL report file not found.")
             return None
 
-        self.parent_commits = dataset['a_version'].to_list()
-        self.fix_commits = dataset['b_version'].to_list()
-
         with report_file.open(mode='r') as rf:
             json_report = json.loads(rf.read())
             result = jq.all(r'.runs[0].results', json_report)
             data_points = jq.iter(r'.[]', result[0])
-            self.app.log.info(f"Creating {len(data_points)} tasks")
 
-            for i, data_point in tqdm.tqdm(data_points):
+            for data_point in tqdm.tqdm(data_points):
                 self.multi_task_handler.add(data_point=data_point)
 
             self.multi_task_handler(func=self.parse_data_point)
@@ -118,7 +126,15 @@ class CodeQLExtractLabelsHandler(PluginHandler):
         new_dataset = self.multi_task_handler.results()
 
         if new_dataset:
-            return pd.DataFrame.from_dict(new_dataset)
+            df = pd.DataFrame.from_dict(new_dataset)
+            commits = []
+
+            if parent_files:
+                commits.extend(dataset['a_version'].to_list())
+            if fix_files:
+                commits.extend(dataset['b_version'].to_list())
+
+            return df[df.version.isin(commits)]
 
         return None
 
@@ -137,15 +153,16 @@ class CodeQLExtractLabelsHandler(PluginHandler):
                 eline = sline
 
             owner, project, version, *file = fpath.replace(str(self.app.bind) + '/', '').split('/')
+            cwe_id = self.rule_id_cwe_mapping.get(rule_id, None)
 
-            if self.parent_files and (version not in self.parent_commits):
-                return None
-
-            if self.fix_files and (version not in self.fix_commits):
-                return None
+            if cwe_id is None:
+                self.app.log.warning(f"No cwe found for rule {rule_id}")
+                cwe_id = 'unsafe'
 
             return {'owner': owner, 'project': project, 'version': version, 'fpath': '/'.join(file), 'sline': sline,
-                    'scol': scol, 'eline': eline, 'ecol': ecol, 'label': 'unsafe', 'rule_id': rule_id, 'pair_hash': None}
+                    'scol': scol, 'eline': eline, 'ecol': ecol, 'label': cwe_id, 'rule_id': rule_id,
+                    'pair_hash': None}
+
         return None
 
 

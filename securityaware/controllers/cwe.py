@@ -41,4 +41,4 @@ class CWE(Controller):
         ]
     )
     def sfp_cluster(self):
-        self.app.log.info(self.cwe_list_handler.find_sfp_cluster(self.app.pargs.id))
+        self.app.log.info(self.cwe_list_handler.find_primary_sfp_cluster(self.app.pargs.id))

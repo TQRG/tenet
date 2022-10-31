@@ -72,6 +72,8 @@ class WorkflowHandler(HandlersInterface, Handler):
                 if node_handler.is_skippable:
                     self.app.log.info(f"{node_handler.edge.name}: dataset {node_handler.output} exists.")
                     dataframe = pd.read_csv(node_handler.output)
+                    self.app.log.info(f"{node_handler.edge.name} plotting...")
+                    node_handler.plot(dataframe)
                     continue
 
                 kwargs = node_handler.node.kwargs
@@ -81,20 +83,24 @@ class WorkflowHandler(HandlersInterface, Handler):
 
                 try:
                     dataframe = node_handler.run(dataset=dataframe, **kwargs)
+
+                    if dataframe is not None:
+                        dataframe.to_csv(str(node_handler.output), index=False)
+                        self.app.log.warning(f"Saving dataset {node_handler.output}.")
+                    else:
+                        self.app.log.warning(f"Node {node_handler} returned no dataframe. Stopping execution.")
+                        break
+
+                    node_handler.plot(dataframe)
                 except Skip as se:
                     self.app.log.warning(f"{se} Skipping {node_handler}.")
                     dataframe = node_handler.load_dataset()
+                    node_handler.plot(dataframe)
                     continue
                 except Exception:
                     self.app.log.error(f"Plugin '{node_handler.node.name}' raised exception with {traceback.format_exc()}\nStopped execution.")
                     exit(1)
 
-                if dataframe is not None:
-                    dataframe.to_csv(str(node_handler.output), index=False)
-                    self.app.log.warning(f"Saving dataset {node_handler.output}.")
-                else:
-                    self.app.log.warning(f"Node {node_handler} returned no dataframe. Stopping execution.")
-                    break
             else:
                 skip = False
 

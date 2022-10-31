@@ -66,9 +66,6 @@ class Collector(PluginHandler):
         if diffs:
             df = pd.DataFrame.from_dict(diffs)
 
-            if 'a_file_size' in df.columns and 'b_file_size' in df.columns:
-                Plotter(self.path).histogram_columns(df, columns=['a_file_size', 'b_file_size'], y_label='Occurrences',
-                                                     x_label='File size (bytes)',  labels=['Fix', 'Parent'], bins=20)
             if max_size:
                 self.app.log.info(f"Size before filter: {len(df)}")
                 df = df[df.apply(lambda x: (x['a_file_size'] + x['b_file_size']) / 2 < max_size, axis=1)]
@@ -77,6 +74,11 @@ class Collector(PluginHandler):
             return df
 
         return None
+
+    def plot(self, dataset: pd.DataFrame, **kwargs):
+        if 'a_file_size' in dataset.columns and 'b_file_size' in dataset.columns:
+            Plotter(self.path).histogram_columns(dataset, columns=['a_file_size', 'b_file_size'], y_label='Occurrences',
+                                                 x_label='File size (bytes)', labels=['Fix', 'Parent'], bins=20)
 
     def parse_diffs(self, repo_path: str, fix_sha: str, parent_sha: str, label: str):
         try:

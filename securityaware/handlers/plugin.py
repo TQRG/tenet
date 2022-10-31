@@ -89,6 +89,15 @@ class PluginHandler(NodeHandler):
         """
         pass
 
+    def plot(self, dataset: pd.DataFrame, **kwargs):
+        """
+            Plots resulting dataframe
+
+            :param dataset: dataframe with the dataset resulting from the previous node
+            :return: dataframe with the processed dataset
+        """
+        pass
+
     def convert_labels(self, labels: pd.Series):
         label_map = self.app.get_config('labels_map')
         return labels.apply(lambda l: label_map[l])

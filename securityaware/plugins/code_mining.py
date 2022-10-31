@@ -65,8 +65,9 @@ class CodeMining(PluginHandler):
         test_data = pd.read_csv(str(test_data_path))
 
         # select only code as train/test data
-        x_train = train_data.input.apply(lambda x: np.str_(x))
-        x_test = test_data.input.apply(lambda x: np.str_(x))
+        self.app.log.info(f"Removing comments from code...")
+        x_train = train_data.input.apply(lambda x: self.code_parser_handler.filter_comments(np.str_(x)))
+        x_test = test_data.input.apply(lambda x: self.code_parser_handler.filter_comments(np.str_(x)))
 
         # save labels
         train_data.label.to_csv(str(train_labels_path))
@@ -105,22 +106,14 @@ class CodeMining(PluginHandler):
         return dataset
 
     def get_vectorizer(self, vectorize=False):
-
-        def tokenizer(code):
-            # Tokenize, remove comments and blank lines
-            import codeprep.api.text as cp_text
-            tokens = cp_text.nosplit(code, no_spaces=True, no_com=True, extension=self.extension)
-            # remove placeholders
-            return list(filter(lambda x: x not in ['<comment>'], tokens))
-
         # Build a code vectorizer
         if self.vectorizer_type == 'cv':
             vectorizer = CountVectorizer(stop_words=None, ngram_range=(1, 1), max_features=self.max_features,
-                                         lowercase=False, tokenizer=tokenizer, vocabulary=None)
+                                         lowercase=False, tokenizer=self.code_parser_handler.tokenize, vocabulary=None)
         else:
             vectorizer = TfidfVectorizer(stop_words=None, ngram_range=(1, 1), use_idf=False,
                                          max_features=self.max_features, norm=None, smooth_idf=False,
-                                         lowercase=False, tokenizer=tokenizer, vocabulary=None)
+                                         lowercase=False, tokenizer=self.code_parser_handler.tokenize, vocabulary=None)
 
         if vectorize:
             return vectorizer

@@ -148,6 +148,9 @@ class MultiTaskHandler(HandlersInterface, Handler):
         while worker.is_alive():
             time.sleep(1)
 
+        # sort by the order of insertion in the queue
+        self.runner.finished.sort(key=lambda task: task.id)
+
     def results(self, expand: bool = False, skip_none: bool = True):
         if not self._results:
             self._results = self.runner.results(skip_none)

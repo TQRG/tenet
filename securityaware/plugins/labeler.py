@@ -19,7 +19,6 @@ class Labeler(PluginHandler):
 
     def __init__(self, **kw):
         super().__init__(**kw)
-        self.multi_label = False
         self.file_size_limit = None
         self.inline_dir = None
         self.sim_ratio_thresh = None
@@ -41,8 +40,8 @@ class Labeler(PluginHandler):
 
         raise ValueError(f"File {file} not found.")
 
-    def run(self, dataset: pd.DataFrame, multi_label: bool = False, file_size_limit: int = None,
-            sim_ratio_tresh: float = 0.8, **kwargs) -> Union[pd.DataFrame, None]:
+    def run(self, dataset: pd.DataFrame, file_size_limit: int = None, sim_ratio_tresh: float = 0.8,
+            **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
@@ -54,7 +53,6 @@ class Labeler(PluginHandler):
             self.app.log.warning(f"Train data file not found.")
             return None
 
-        self.multi_label = multi_label
         self.sim_ratio_thresh = sim_ratio_tresh
         self.set('dataset', str(self.output))
         self.set_dirs()
@@ -86,7 +84,7 @@ class Labeler(PluginHandler):
             b_str = self.get_file_str(file=self.get('raw_files_path') / entry.full_b_path)
             # Perform pretty-printing and diff comparison
             labeler = DiffLabeler(entry=entry, a_str=a_str, b_str=b_str, inline_proj_dir=inline_proj_dir)
-            labeler(unsafe_label='unsafe' if not self.multi_label else entry.label)
+            labeler(unsafe_label=entry.label)
 
             # Calc and check similarity ratio
             if labeler.calc_sim_ratio() < self.sim_ratio_thresh:
