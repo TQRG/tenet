@@ -122,13 +122,13 @@ class CWEListHandler(HandlersInterface, Handler):
             self._sfp_none_entries = {_id: el for _id, el in none_entries.items() if 'entries' in el}
         return self._sfp_none_entries
 
-    def find_primary_sfp_cluster(self, cwe_id: Union[int, str], as_string: bool = False, only_id: bool = False):
+    def find_primary_sfp_cluster(self, cwe_id: Union[int, str], only_id: bool = False):
         if cwe_id is None:
             return None
 
         if isinstance(cwe_id, str):
             match = re.search('\d+', cwe_id)
-
+            self.app.log.warning(f"Could not find integers in {cwe_id}")
             if not match:
                 return None
 
@@ -136,22 +136,14 @@ class CWEListHandler(HandlersInterface, Handler):
 
         for _c, cluster in self.sfp_primary_entries.items():
             if cwe_id in cluster['entries']:
-                if only_id:
-                    if as_string:
-                        return str(_c)
-                    return _c
-                return f"CWE-{_c}: {cluster['title']}"
+                return str(_c) if only_id else f"CWE-{_c}: {cluster['title']}"
 
         for _c, cluster in self.sfp_secondary_entries.items():
             if cwe_id in cluster['entries']:
                 # return _c + ': ' + cluster['title']
                 for _c1, cluster1 in self.sfp_primary_clusters.items():
                     if _c in cluster1['clusters']:
-                        if only_id:
-                            if as_string:
-                                return str(_c1)
-                            return _c1
-                        return f"CWE-{_c1}: {cluster1['title']}"
+                        return str(_c1) if only_id else f"CWE-{_c1}: {cluster1['title']}"
 
         #for _c, cluster in self.sfp_none_entries.items():
         #    if cwe_id in cluster['entries']:
