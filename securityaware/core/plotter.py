@@ -90,11 +90,17 @@ class Plotter:
 
         labels, counts = zip(*df[column].value_counts().items())
         colors = list(mcolors.TABLEAU_COLORS.keys())[:len(counts)]
-        plt.bar(labels, counts, alpha=0.5, color=colors)
+        fig, ax = plt.subplots(1, 1)
+        # aligned rotation on x-axis
+        ax.bar(labels, counts, color=colors)
+        ax.set_xticklabels(labels, rotation=40, ha='right', rotation_mode='anchor')
+
+        # add values on each bar
+        for x_tick, height, color in zip(ax.get_xticks(), counts, colors):
+            ax.text(x_tick + .25, height + 5, str(height), color=color)
 
         plt.legend(loc='upper right')
         plt.title(title)
-        plt.xticks(rotation=30)
         plt.tight_layout()
         plt.ylabel(y_label)
         plt.xlabel(x_label)
