@@ -87,10 +87,12 @@ class SamplingHandler(PluginHandler):
                 return None
 
             for i, row in dataset[dataset.label == 'unsafe'].iterrows():
-                if isinstance(row.sfp, list):
-                    if all([int(sfp) != target_primary_sfp for sfp in row.sfp]):
+                if isinstance(row.sfp, str):
+                    if all([int(sfp) != target_primary_sfp for sfp in row.sfp.split('|')]):
+                        self.app.log.info(f"Changed label for {row.sfp} to safe")
                         dataset.loc[i, 'label'] = 'safe'
                 elif int(row.sfp) != target_primary_sfp:
+                    self.app.log.info(f"Changed label for {row.sfp} to safe")
                     dataset.loc[i, 'label'] = 'safe'
 
         if only_single:

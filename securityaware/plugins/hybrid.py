@@ -41,8 +41,8 @@ class HybridHandler(PluginHandler):
                 dataset.at[i, 'sfp'] = row['sa_sfp']
             elif row['sa_label'] == 'unsafe' and row['diff_label'] == 'unsafe':
                 if row['sa_cwe'] != row['diff_cwe']:
-                    dataset.at[i, 'cwe'] = [row['diff_cwe'], row['sa_cwe']]
-                    dataset.at[i, 'cwe'] = [row['diff_sfp'], row['sa_sfp']]
+                    dataset.at[i, 'cwe'] = f"{row['diff_cwe']}|{row['sa_cwe']}"
+                    dataset.at[i, 'cwe'] = f"{row['diff_sfp']}|{row['sa_sfp']}"
                 else:
                     dataset.at[i, 'cwe'] = row['diff_cwe']
 
