@@ -47,13 +47,13 @@ class FusionHandler(PluginHandler):
                                                                                  dest_analysis='sa_label',
                                                                                  common_hashes=common_hashes)
 
-        static_safe_uncommon_fns, static_safe_uncommon_fns = self.get_uncommon_fns(static_labelled_data,
-                                                                                   target_analysis='sa_label',
-                                                                                   dest_analysis='diff_label',
-                                                                                   common_hashes=common_hashes)
+        static_safe_uncommon_fns, static_unsafe_uncommon_fns = self.get_uncommon_fns(static_labelled_data,
+                                                                                     target_analysis='sa_label',
+                                                                                     dest_analysis='diff_label',
+                                                                                     common_hashes=common_hashes)
 
         dataset = pd.concat([common_fns, diff_safe_uncommon_fns, diff_unsafe_uncommon_fns, static_safe_uncommon_fns,
-                             static_safe_uncommon_fns])
+                             static_unsafe_uncommon_fns])
 
         dataset.reset_index(inplace=True)
         self.app.log.info(f"Total functions after fusion: {len(dataset)}")
