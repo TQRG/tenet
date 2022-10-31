@@ -63,7 +63,6 @@ class ASTMinerHandler(PluginHandler):
         unsafe_samples = dataset[dataset.label == 'unsafe']
 
         if 'cwe' in dataset.columns:
-            unsafe_samples['cwe'] = unsafe_samples.cwe.apply(lambda x: f"CWE-{x}")
             Plotter(self.path).bar_labels(unsafe_samples, column='cwe', y_label='Occurrences', x_label='CWE-ID')
         if 'sfp' in dataset.columns:
             unsafe_samples['sfp'] = unsafe_samples.sfp.apply(lambda x: self.cwe_list_handler.get_sfp_title(x))
