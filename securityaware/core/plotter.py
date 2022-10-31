@@ -98,5 +98,5 @@ class Plotter:
         plt.tight_layout()
         plt.ylabel(y_label)
         plt.xlabel(x_label)
-        plt.savefig(str(self.path / f"{x_label.lower().replace(' ', '_')}_histogram.png"))
+        plt.savefig(str(self.path / f"{x_label.lower().replace(' ', '_')}_bar.png"))
         plt.clf()
