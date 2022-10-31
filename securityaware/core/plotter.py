@@ -97,7 +97,7 @@ class Plotter:
 
         # add values on each bar
         for x_tick, height, color in zip(ax.get_xticks(), counts, colors):
-            ax.text(x_tick + .25, height + 5, str(height), color=color)
+            ax.text(x_tick + .25, height + 0.25, str(height), color=color)
 
         plt.legend(loc='upper right')
         plt.title(title)
