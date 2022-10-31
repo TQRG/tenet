@@ -132,9 +132,8 @@ class ASTMinerHandler(PluginHandler):
         labels_df.rename(columns={'label': "cwe"}, inplace=True)
 
         unsafe_labels_df = labels_df[labels_df["cwe"] != 'safe']
-        unsafe_labels_df['cwe'] = unsafe_labels_df.cwe.apply(lambda x: int(x.split('-')[-1]) if x else None)
         # add primary software fault pattern clusters
-        unsafe_labels_df['sfp'] = unsafe_labels_df.cwe.apply(lambda x: self.cwe_list_handler.find_primary_sfp_cluster(x, only_id=True))
+        unsafe_labels_df['sfp'] = unsafe_labels_df.cwe.apply(lambda x: self.cwe_list_handler.find_primary_sfp_cluster(x, as_string=True, only_id=True))
         before_match_cwes = len(unsafe_labels_df)
         merge_on = ['owner', 'project', 'version', 'fpath', 'sline', 'scol', 'eline', 'ecol']
         unsafe_labels_df = unsafe_labels_df[merge_on + ['cwe', 'sfp']]
