@@ -180,7 +180,10 @@ def filter_commits_by_source(df: pd.DataFrame, source: str, commits_col: str = '
 
     # get commits from source
     for idx, row in df.iterrows():
-        refs, commits = eval(row[code_refs_col]), []
+        refs, commits = row[code_refs_col], []
+
+        if isinstance(refs, str):
+            refs = eval(refs)
 
         for ref in refs:
             if source in ref:
@@ -193,3 +196,107 @@ def filter_commits_by_source(df: pd.DataFrame, source: str, commits_col: str = '
 
     # drop rows without commits for source
     return df.dropna(subset=[commits_col])
+
+
+def transform_to_commits(df):
+    new_df = pd.DataFrame()
+
+    for _, row in df.iterrows():
+        chain = list(row["chain"])
+        patch_type = "MULTI" if len(chain) > 1 else "SINGLE"
+
+        for i, _ in enumerate(chain):
+            row["commit_href"] = chain[i]
+            row["project"] = "/".join(chain[i].split("/")[0:5])
+            sha = re.sub(r"http(s)?://github.com/.*/commit(s)?/", "", chain[i])
+            row["commit_sha"] = sha
+            row["patch"] = patch_type
+            new_df = new_df.append(row, ignore_index=True)
+
+    return new_df
+
+
+def split_github_commits(chain):
+    new_chain = set()
+    for ref in eval(chain):
+        if "http://" in ref:
+            protocol = "http://"
+        else:
+            protocol = "https://"
+
+        count = ref.count(protocol)
+        if count > 1:
+            if "," in ref:
+                new_chain = set.union(
+                    new_chain, set([r for r in ref.split(",") if "github.com" in r])
+                )
+            else:
+                new_chain = set.union(
+                    new_chain,
+                    set(
+                        [
+                            f"{protocol}{r}"
+                            for r in ref.split(protocol)
+                            if "github.com" in r
+                        ]
+                    ),
+                )
+        else:
+            new_chain = set.union(new_chain, set([ref]))
+    return new_chain if len(new_chain) > 0 else np.nan
+
+
+def clean_github_commits(refs):
+    chain = set()
+
+    for ref in refs:
+        # FIXME: github links to diffs are not considered for now; looking into a solution for it e.g.,
+        #  https://github.com/WBCE/WBCE_CMS/commit/0da620016aec17ac2d2f3a22c55ab8c2b55e691e#diff
+        #  -7b380285e285160d0070863099baabe0
+        if "#diff" in ref:
+            continue
+        # e.g., https://github.com/SerenityOS/serenity/commit/c841012f569dba4fa72e9eb8989bb847be4535bc
+        # :889e1d3db9fe19197a4d22c9bfb2e67b3937a0c5
+        if re.match(r".*github.com.*:.*", ref):
+            continue
+        # clean files and functions lines
+        # e.g., https://github.com/liblime/LibLime-Koha/commit/8ea6f7bc37d05a9ec25b5afbea011cf9de5f1e49#C4/Output.pm
+        elif "#" in ref:
+            chain.add(ref.split("#")[0])
+        # clean commits when the commit key is not available
+        # e.g., https://github.com/nats-io/nats-server/commits/master
+        elif not re.match(re.compile(r".*[0-9a-f]{6,40}.*"), ref):
+            continue
+        elif "?w=1" in ref:
+            chain.add(ref.replace("?w=1", ""))
+        elif "?branch=" in ref:
+            chain.add(ref.split("?branch=")[0])
+        elif "?diff=split" in ref:
+            chain.add(ref.replace("?diff=split", ""))
+        elif re.match(r".*(,|/)$", ref):
+            if "/" in ref:
+                chain.add(ref[0:-1])
+            else:
+                chain.add(ref.replace(",", ""))
+        elif ")" in ref:
+            chain.add(ref.replace(")", ""))
+        else:
+            chain.add(ref)
+
+    return chain if len(chain) > 0 else np.nan
+
+
+def project_from_chain(refs):
+    proj = None
+
+    for ref in refs:
+        proj = re.split("/commit/|/commits/", ref)[0]
+
+        if "pull" in proj:
+            proj = re.split("/pull/", proj)[0]
+
+    return proj
+
+
+def parse_published_date(datetime):
+    return datetime.split("T")[0]

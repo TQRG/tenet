@@ -1,16 +1,19 @@
 import ast
+import requests
+import sys
+
 from pathlib import Path
 
-import requests
 from cement import Handler
 from github import Github
 from typing import Union, List, Tuple
 
 from github.Commit import Commit
-from github.GithubException import GithubException
+from github.GithubException import GithubException, RateLimitExceededException
 from github.Repository import Repository
 
 from securityaware.core.diff_labeller.misc import safe_write
+from securityaware.core.exc import SecurityAwareError
 from securityaware.core.interfaces import HandlersInterface
 from securityaware.data.diff import DiffBlock
 
@@ -158,3 +161,38 @@ class GithubHandler(HandlersInterface, Handler):
                         blocks.append(diff_block)
 
         return blocks
+
+    def normalize_sha(self, chain: list):
+        new_chain = []
+
+        for commit_str in chain:
+
+            # FIXME: WTF? Find why...
+            if "//commit" in commit_str:
+                commit_str = commit_str.replace("//commit", "/commit")
+
+            if "pull/" in commit_str:
+                owner, project, _, _, _, sha = commit_str.split("/")[3::]
+            else:
+                owner, project, _, sha = commit_str.split("/")[3:7]
+
+            if len(sha) != 40:
+                try:
+                    repo_path = "{}/{}".format(owner, project)
+                    self.app.log.info(f"Getting repo {repo_path}")
+                    repo = self.git_api.get_repo(repo_path)
+                except RateLimitExceededException:
+                    raise SecurityAwareError("Unexpected error: {}".format(sys.exc_info()))
+                    # TODO: Update git token and continue execution
+
+                try:
+                    self.app.log.info(f"Getting commit {sha}")
+                    commit = repo.get_commit(sha=sha.strip())
+                    new_chain.append(f"https://github.com/{owner}/{project}/commit/{commit.commit.sha}")
+                except RateLimitExceededException:
+                    raise SecurityAwareError("Unexpected error: {}".format(sys.exc_info()))
+                    # TODO: Update git token and continue execution
+            else:
+                new_chain.append(commit_str)
+
+        return set(new_chain)

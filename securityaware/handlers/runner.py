@@ -2,9 +2,10 @@ import time
 import inspect
 
 from queue import Queue
-from typing import Callable
+from typing import Callable, Union
 from threading import Thread
 
+import pandas as pd
 from cement import Handler
 from cement.core.log import LogHandler
 from tqdm import tqdm
@@ -105,6 +106,8 @@ class MultiTaskHandler(HandlersInterface, Handler):
         task.assets = kwargs
         self.runner.add(task)
 
+        return task
+
     def __call__(self, func: Callable):
         if not isinstance(func, Callable):
             raise SecurityAwareError(f"func argument must be a 'Callable'")
@@ -159,3 +162,13 @@ class MultiTaskHandler(HandlersInterface, Handler):
                 self._results = [res for task in self._results for res in task]
 
         return self._results
+
+    def get_tasks(self, as_dict: bool = False, as_frame: bool = False) -> Union[list, pd.DataFrame]:
+        if as_dict:
+            return [t.to_dict() for t in self.runner.tasks]
+
+        if as_frame:
+            df = pd.DataFrame([t.to_dict() for t in self.runner.tasks])
+            return df.set_index(df['id']).drop(columns=['id'])
+
+        return self.runner.tasks

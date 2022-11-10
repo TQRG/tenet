@@ -1,11 +1,20 @@
 nodes:
   - plugin:
       name: nvd_source
+  - plugin:
+      name: nvd_prepare
 
 layers:
   collect:
     - nvd_raw:
         node: nvd_source
 
-workflow: [collect]
+  prepare:
+    - nvd_prepare:
+        node: nvd_prepare
+        kwargs:
+          token: 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
+
+
+workflow: [collect, prepare]
 

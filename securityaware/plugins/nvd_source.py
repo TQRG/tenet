@@ -25,7 +25,7 @@ class NVDSource(PluginHandler):
         """ Print commits statistics. """
 
         # get number of commits involved in each patch
-        dataset['n_commits'] = dataset['code_refs'].transform(lambda x: len(eval(x)))
+        dataset['n_commits'] = dataset['code_refs'].transform(lambda x: len(x))
 
         self.app.log.info(f"Plotting bar chart with number of commits for each fix")
         Plotter(path=self.path).bar_labels(df=dataset, column='n_commits', y_label='Count', x_label='#commits',
@@ -45,7 +45,7 @@ class NVDSource(PluginHandler):
                 print(f"{source}\t\t{n_source}\t\t{(n_source / len(sources)) * 100:.2f}%")
 
     def run(self, dataset: pd.DataFrame, years: Union[Tuple, List] = (2002, 2022), normalize: bool = True,
-            code_source: str = None,
+            code_source: str = 'github',
             base_url: str = 'https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-{year}.json.zip',
             **kwargs) -> Union[pd.DataFrame, None]:
         """
@@ -86,24 +86,34 @@ class NVDSource(PluginHandler):
         self.app.log.info(f"Size after nan refs drop: {len(df)}")
 
         if normalize:
-            # normalize refs
-            df['refs'] = df['refs'].apply(lambda ref: split_commits(ref))
-            # drop cases with no refs
-            df = df.dropna(subset=['refs'])
-            self.app.log.info(f"Size after null refs drop: {len(df)}")
-            df = filter_references(df)
-            self.app.log.info(f"Size after filtering refs: {len(df)}")
-            df = normalize_commits(df)
-            self.app.log.info(f"Size after normalizing refs: {len(df)}")
+            df = self.normalize(df, code_source)
 
-            if code_source:
-                df = filter_commits_by_source(df, source=code_source)
+        return df
+
+    def normalize(self, df: pd.DataFrame, code_source: str):
+        # normalize refs
+        df['refs'] = df['refs'].apply(lambda ref: split_commits(ref))
+        # drop cases with no refs
+        df = df.dropna(subset=['refs'])
+        self.app.log.info(f"Size after null refs drop: {len(df)}")
+        df = filter_references(df)
+        self.app.log.info(f"Size after filtering refs: {len(df)}")
+        df = normalize_commits(df)
+        self.app.log.info(f"Size after normalizing refs: {len(df)}")
+
+        if code_source:
+            df = filter_commits_by_source(df, source=code_source)
 
         return df
 
     def parse_json(self, file_path: Path) -> pd.DataFrame:
         df_data = []
         self.app.log.info(f"Parsing {file_path}...")
+        df_file_path = self.path / f"{file_path.stem}.csv"
+
+        if df_file_path.exists():
+            return pd.read_csv(str(df_file_path))
+
         with file_path.open(mode='r') as f:
             cve_ids = json.load(f)["CVE_Items"]
 
@@ -121,7 +131,11 @@ class NVDSource(PluginHandler):
                 }
                 df_data.append(cve_data)
 
-            return pd.DataFrame(df_data)
+            df = pd.DataFrame(df_data)
+            self.app.log.info(f"Saving to {df_file_path}")
+            df.to_csv(str(df_file_path))
+
+            return df
 
     @staticmethod
     def get_cwe_ids(cve):

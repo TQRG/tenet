@@ -35,6 +35,13 @@ class Task(Store):
     err: AnyStr = None
     result: Any = None
 
+    def update_id(self, idx: int):
+        self.id = idx
+
+    def to_dict(self):
+        return {'id': self.id, 'status': self.status, 'start_date': self.start_date, 'end_date': self.end_date,
+                'err': self.err, 'result': self.result}
+
     def duration(self):
         if self.start_date and self.end_date:
             return (self.end_date - self.start_date).total_seconds()
