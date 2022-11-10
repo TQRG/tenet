@@ -1,7 +1,17 @@
-import pandas as pd
+import functools
+import shutil
 
-from typing import Union
+import pandas as pd
+import requests
+import validators
+
+from typing import Union, Tuple
 from abc import abstractmethod
+from urllib.parse import urlparse
+
+from tqdm import tqdm
+from requests import Response
+from pathlib import Path
 
 from securityaware.handlers.code_parser import CodeParserHandler
 from securityaware.handlers.container import ContainerHandler
@@ -101,3 +111,37 @@ class PluginHandler(NodeHandler):
     def convert_labels(self, labels: pd.Series):
         label_map = self.app.get_config('labels_map')
         return labels.apply(lambda l: label_map[l])
+
+    def download_file_from_url(self, url: str, extract: bool = False) -> Union[Tuple[Response, Path], None]:
+        if not validators.url(url):
+            self.app.lof.warning(f"URL {url} is not valid.")
+            return None
+
+        file_path = self.path / Path(urlparse(url).path).name
+        extract_file_path = self.path / file_path.stem
+        response = requests.get(url, stream=True, allow_redirects=True)
+
+        if response.status_code != 200:
+            self.app.log.error(f"Request to {url} returned status code {response.status_code}")
+            return None
+
+        total_size_in_bytes = int(response.headers.get('Content-Length', 0))
+
+        if file_path.exists() and file_path.stat().st_size == total_size_in_bytes:
+            self.app.log.warning(f"File {file_path} exists. Skipping download...")
+        else:
+            desc = "(Unknown total file size)" if total_size_in_bytes == 0 else ""
+            response.raw.read = functools.partial(response.raw.read, decode_content=True)  # Decompress if needed
+
+            with tqdm.wrapattr(response.raw, "read", total=total_size_in_bytes, desc=desc) as r_raw:
+                with file_path.open("wb") as f:
+                    shutil.copyfileobj(r_raw, f)
+
+        if extract:
+            if not extract_file_path.exists():
+                self.app.log.info(f"Extracting file {extract_file_path}...")
+                shutil.unpack_archive(file_path, self.path)
+
+            return response, extract_file_path
+
+        return response, file_path

@@ -84,20 +84,26 @@ class Plotter:
         plt.savefig(str(self.path / f"{x_label.lower().replace(' ', '_')}_histogram.png"))
         plt.clf()
 
-    def bar_labels(self, df: pd.DataFrame, column: str, x_label: str, y_label: str, title: str = None):
+    def bar_labels(self, df: pd.DataFrame, column: str, x_label: str, y_label: str, title: str = None,
+                   bar_value_label: bool = True, rotate_labels: bool = True):
         if not title:
             title = f"Bar plot of {x_label}"
 
         labels, counts = zip(*df[column].value_counts().items())
         colors = list(mcolors.TABLEAU_COLORS.keys())[:len(counts)]
         fig, ax = plt.subplots(1, 1)
-        # aligned rotation on x-axis
         ax.bar(labels, counts, color=colors)
-        ax.set_xticklabels(labels, rotation=40, ha='right', rotation_mode='anchor')
 
-        # add values on each bar
-        for x_tick, height, color in zip(ax.get_xticks(), counts, colors):
-            ax.text(x_tick - .25, height + 5, str(height), color=color)
+        if rotate_labels:
+            # aligned rotation on x-axis
+            ax.set_xticklabels(labels, rotation=40, ha='right', rotation_mode='anchor')
+        else:
+            plt.xticks(labels)
+
+        if bar_value_label:
+            # add values on each bar
+            for x_tick, height, color in zip(ax.get_xticks(), counts, colors):
+                ax.text(x_tick - .25, height + 5, str(height), color=color)
 
         plt.legend(loc='upper right')
         plt.title(title)
