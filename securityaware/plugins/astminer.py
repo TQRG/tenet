@@ -83,7 +83,7 @@ class ASTMinerHandler(PluginHandler):
         max_mem = f"-Xmx{max_old_space_size_gb}g"
         max_size = f"-Xms{max_old_space_size_gb}g"
 
-        astminer_jar_path = "../../../astminer/build/shadow/astminer.jar"
+        astminer_jar_path = "/astminer/build/shadow/astminer.jar"
         astminer_cmd = ContainerCommand(org=f"java -jar {max_size} {max_mem} {astminer_jar_path}")
 
         astminer_cmd.org += ' ' + ('code2vec' if self.extract_cp else 'codebert')
