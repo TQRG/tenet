@@ -1,0 +1,11 @@
+nodes:
+  - plugin:
+      name: nvd_source
+
+layers:
+  collect:
+    - nvd_raw:
+        node: nvd_source
+
+workflow: [collect]
+
