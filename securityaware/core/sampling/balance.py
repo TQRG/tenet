@@ -549,7 +549,7 @@ def stratified_pair_hash(dataset: pd.DataFrame, seed: int, undersample_safe: flo
 
     if undersample_safe:
         np.random.seed(seed)
-        non_pairs = train['pair_hash'][~train['pair_hash'].duplicated()].index.to_list()
+        non_pairs = train[train['label'] == 'safe']['pair_hash'][~train['pair_hash'].duplicated()].index.to_list()
         drop_indices = np.random.choice(non_pairs, round(len(non_pairs)*undersample_safe), replace=False)
         train = train.drop(drop_indices)
 
