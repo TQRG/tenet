@@ -20,7 +20,7 @@ class SamplingHandler(PluginHandler):
         self.token = None
         self.balance_techniques = ['stratified_pair_hash']
 
-    def __call__(self, technique: str, seed: int, dataset: pd.DataFrame) \
+    def __call__(self, technique: str, seed: int, dataset: pd.DataFrame, undersample_safe: float = None) \
             -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         # TODO: adapt rest of techniques
         '''
@@ -48,13 +48,14 @@ class SamplingHandler(PluginHandler):
         '''
 
         if technique == 'stratified_pair_hash':
-            return stratified_pair_hash(dataset=dataset, seed=seed)
+            return stratified_pair_hash(dataset=dataset, seed=seed, undersample_safe=undersample_safe)
 
         self.app.log.info('No balancing technique applied.')
         return split_data(dataset=dataset, seed=seed)
 
     def run(self, dataset: pd.DataFrame, technique: str = "", seed: int = 0, only_single: bool = False,
-            target_primary_sfp: int = None, only_multiple: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
+            target_primary_sfp: int = None, only_multiple: bool = False, undersample_safe: float = None,
+            **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
 
@@ -113,7 +114,8 @@ class SamplingHandler(PluginHandler):
         if len(dataset[dataset.label == 'unsafe']) == 0:
             self.app.log.warning(f"No samples with 'unsafe' label in the dataset")
 
-        train, val, test = self.__call__(dataset=dataset, seed=seed, technique=technique)
+        train, val, test = self.__call__(dataset=dataset, seed=seed, technique=technique,
+                                         undersample_safe=undersample_safe)
 
         self.app.log.info("Writing split to files...")
         self.app.log.info(f"Train: {len(train)} ({train.label.value_counts()})\n"

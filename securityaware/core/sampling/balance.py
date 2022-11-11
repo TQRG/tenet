@@ -533,7 +533,8 @@ def split_data(dataset: pd.DataFrame, seed) -> Tuple[pd.DataFrame, pd.DataFrame,
     return train, val, test
 
 
-def stratified_pair_hash(dataset: pd.DataFrame, seed) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def stratified_pair_hash(dataset: pd.DataFrame, seed: int, undersample_safe: float = None) \
+        -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     unique_pair_hashes = dataset['pair_hash'].unique()
     print("Splitting dataset pair hashes into train and test...")
     train_hashes, test_hashes = sklearn.model_selection.train_test_split(unique_pair_hashes,
@@ -545,6 +546,12 @@ def stratified_pair_hash(dataset: pd.DataFrame, seed) -> Tuple[pd.DataFrame, pd.
     train = dataset[dataset['pair_hash'].isin(train_hashes)]
     test = dataset[dataset['pair_hash'].isin(test_hashes)]
     val = dataset[dataset['pair_hash'].isin(val_hashes)]
+
+    if undersample_safe:
+        np.random.seed(seed)
+        non_pairs = train['pair_hash'][~train['pair_hash'].duplicated()].index.to_list()
+        drop_indices = np.random.choice(non_pairs, round(len(non_pairs)*undersample_safe), replace=False)
+        train = train.drop(drop_indices)
 
     calculate_labels_dist(train, 'train')
     calculate_labels_dist(val, 'val')
