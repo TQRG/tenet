@@ -12,8 +12,9 @@ layers:
   prepare:
     - nvd_prepare:
         node: nvd_prepare
+        sources: [metadata_path, normalized_path]
         kwargs:
-          token: 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
+          tokens: [token_1, token_2]
 
 
 workflow: [collect, prepare]
