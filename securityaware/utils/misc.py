@@ -209,6 +209,11 @@ def transform_to_commits(df):
             row["commit_href"] = chain[i]
             row["project"] = "/".join(chain[i].split("/")[0:5])
             sha = re.sub(r"http(s)?://github.com/.*/commit(s)?/", "", chain[i])
+
+            # FIXME: one of the source vulns still has the href in the commit_sha column when it reaches here.
+            #       For some reason this is not fixed in the normalization phase. Find why!
+            sha = sha.split('/')[-1] if 'http' in sha else sha
+            
             row["commit_sha"] = sha
             row["patch"] = patch_type
             new_df = new_df.append(row, ignore_index=True)
@@ -300,3 +305,4 @@ def project_from_chain(refs):
 
 def parse_published_date(datetime):
     return datetime.split("T")[0]
+

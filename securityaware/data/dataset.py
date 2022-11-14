@@ -4,6 +4,44 @@ from typing import List
 
 
 @dataclass
+class CommitMetadata:
+    author: str
+    message: str
+    files: dict
+    stats: dict
+    comments: dict
+
+    def to_dict(self):
+        return {'author': self.author, 'message': self.message, 'files': self.files, 'comments': self.comments,
+                'stats': self.stats}
+
+
+@dataclass
+class ChainMetadata:
+    commit_metadata: CommitMetadata
+    commit_sha: str
+    chain_ord: list
+    before_first_fix_commit: set
+    last_fix_commit: str
+    chain_ord_pos: int
+    commit_datetime: str
+
+    def to_dict(self, ravel: bool = False):
+        chain_metadata = {'before_first_fix_commit': self.before_first_fix_commit, 'chain_ord_pos': self.chain_ord_pos,
+                          'last_fix_commit': self.last_fix_commit, 'commit_datetime': self.commit_datetime,
+                          'commit_sha': self.commit_sha, 'chain_ord': self.chain_ord}
+
+        commit_metadata = self.commit_metadata.to_dict()
+
+        if ravel:
+            chain_metadata.update(commit_metadata)
+        else:
+            chain_metadata.update({'commit_metadata': commit_metadata})
+
+        return chain_metadata
+
+
+@dataclass
 class Dataset:
     rows: List = field(default_factory=lambda: [])
 
