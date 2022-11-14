@@ -1,5 +1,9 @@
 # Fine-grained approach to detect and patch vulnerabilities
 
+## Requirements
+
+- Docker (https://docs.docker.com/get-docker/)  
+
 ## Installation
 
 ```
