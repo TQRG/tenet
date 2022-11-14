@@ -13,7 +13,9 @@ nodes:
   - plugin:
       name: function_boundary
   - plugin:
-      name: astminer  
+      name: astminer
+      kwargs:
+        image_name: epicosy/securityaware:astminer
   - plugin:
       name: sampling
   - plugin:
@@ -53,7 +55,6 @@ layers:
             files_path: raw_files_path
           jscodeshift:
              dataset_path: raw_fn_bounds_file
-        sources: [path, output]
     - sampling_c2v:
         node: sampling
         sources: [train_data, val_data, test_data]
