@@ -55,9 +55,6 @@ plugin.collector:
 plugin.compare:
   enabled: true
 
-plugin.codeql_extract_labels:
-  enabled: true
-
 plugin.match_location:
   enabled: true
 
