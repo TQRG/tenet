@@ -16,6 +16,7 @@ from pathlib import Path
 from securityaware.handlers.code_parser import CodeParserHandler
 from securityaware.handlers.container import ContainerHandler
 from securityaware.handlers.cwe_list import CWEListHandler
+from securityaware.handlers.file_parser import FileParserHandler
 from securityaware.handlers.github import GithubHandler
 from securityaware.handlers.node import NodeHandler
 from securityaware.handlers.runner import MultiTaskHandler
@@ -36,6 +37,7 @@ class PluginHandler(NodeHandler):
         self._container_handler: ContainerHandler = None
         self._github_handler: GithubHandler = None
         self._cwe_list_handler: CWEListHandler = None
+        self._file_parser_handler: FileParserHandler = None
 
     @property
     def github_handler(self):
@@ -88,6 +90,16 @@ class PluginHandler(NodeHandler):
     @container_handler.deleter
     def container_handler(self):
         self._container_handler = None
+
+    @property
+    def file_parser_handler(self):
+        if not self._file_parser_handler:
+            self._file_parser_handler = self.app.handler.get('handlers', 'file_parser', setup=True)
+        return self._file_parser_handler
+
+    @file_parser_handler.deleter
+    def file_parser_handler(self):
+        self._file_parser_handler = None
 
     @abstractmethod
     def run(self, dataset: pd.DataFrame, **kwargs) -> Union[pd.DataFrame, None]:

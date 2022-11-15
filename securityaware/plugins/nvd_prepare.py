@@ -1,11 +1,9 @@
 import pandas as pd
 
-from typing import Union, List
+from typing import Union
 
-from github.Repository import Repository
 from tqdm import tqdm
 
-from securityaware.data.dataset import ChainMetadata
 from securityaware.handlers.plugin import PluginHandler
 from securityaware.utils.misc import split_github_commits, clean_github_commits, project_from_chain, \
     parse_published_date, transform_to_commits
@@ -19,8 +17,8 @@ class NVDPrepare(PluginHandler):
     class Meta:
         label = "nvd_prepare"
 
-    def run(self, dataset: pd.DataFrame, tokens: Union[str, list] = None, metadata: bool = True,
-            **kwargs) -> Union[pd.DataFrame, None]:
+    def run(self, dataset: pd.DataFrame, tokens: Union[str, list] = None, metadata: bool = True, language: bool = True,
+            extension: bool = True, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
@@ -73,7 +71,21 @@ class NVDPrepare(PluginHandler):
 
             self.app.log.info(f"Size after merging with metadata: {len(dataset)}")
 
+        if extension:
+            dataset["files_extension"] = dataset["files"].apply(lambda x: self.file_parser_handler.get_files_extension(x))
+
+        if language:
+            dataset = self.add_language(dataset)
+
         return dataset
+
+    def add_language(self, df: pd.DataFrame):
+        if 'file_extension' not in df:
+            df["files_extension"] = df["files"].apply(lambda x: self.file_parser_handler.get_files_extension(x))
+
+        df["language"] = df["files_extension"].apply(lambda x: self.file_parser_handler.get_language(x))
+
+        return df
 
     def normalize(self, df: pd.DataFrame):
         self.app.log.info("Normalizing NVD ...")

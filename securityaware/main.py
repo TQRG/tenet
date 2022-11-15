@@ -15,6 +15,7 @@ from securityaware.handlers.plugin_loader import PluginLoader
 from securityaware.handlers.container import ContainerHandler
 from securityaware.handlers.code_parser import CodeParserHandler
 from securityaware.handlers.cwe_list import CWEListHandler
+from securityaware.handlers.file_parser import FileParserHandler
 
 
 class SecurityAware(App):
@@ -60,7 +61,7 @@ class SecurityAware(App):
         # register handlers
         handlers = [
             Base, Plugin, CWE, PluginLoader, ContainerHandler, CommandHandler, WorkflowHandler, CodeParserHandler,
-            MultiTaskHandler, GithubHandler, CWEListHandler
+            MultiTaskHandler, GithubHandler, CWEListHandler, FileParserHandler
         ]
 
     def get_config(self, key: str):
