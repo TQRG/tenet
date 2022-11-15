@@ -1,10 +1,11 @@
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union, Generator
 
 from docker.errors import APIError, NotFound
 from docker.models.containers import Container
+from tqdm import tqdm
 
 from securityaware.data.output import CommandData
 from securityaware.core.exc import SecurityAwareError, CommandError
@@ -24,6 +25,24 @@ class ContainerHandler(NodeHandler):
             self.app.log.error(str(nf))
 
             return None
+
+    def log_pull_stream(self, stream: Generator):
+        output = []
+
+        for step in stream:
+            progress = step.get('progress', None)
+            layer_id = step.get('id', None)
+
+            if progress:
+                self.app.log.info(f"{step['status']} {layer_id}: {progress}")
+            elif layer_id:
+                self.app.log.info(f"{step['status']} {layer_id}")
+            else:
+                self.app.log.info(step['status'])
+
+            output.append(step)
+
+        return output
 
     @property
     def working_dir(self):
@@ -151,12 +170,16 @@ class ContainerHandler(NodeHandler):
 
         return True, cmds_data
 
-    def run(self, image_name: str, node_name: str = None):
+    def run(self, image_name: str, node_name: str = None, pull_image: bool = True):
         # TODO: Fix this, folder set to the layer name (astminer container inside layer gets codeql folder)
         container_name = f"{self.app.workdir.name}_{node_name if node_name else self.node.name}"
         container = self[container_name]
 
         if not container:
+
+            if pull_image:
+                self.pull(image_name, raise_err=True)
+
             self.app.log.warning(f"Container {container_name} not found.")
             _id = self.create(image_name, container_name)
             container = self[container_name]
@@ -173,6 +196,37 @@ class ContainerHandler(NodeHandler):
         if container and container.status == "running":
             self.app.log.warning(f"Stopping running container {container.name}")
             container.stop()
+
+    def pull(self, image_name: str, raise_err: bool = False) -> Union[list, dict, None]:
+        self.app.log.info(f"Searching {image_name} locally...")
+        images = self.app.docker.api.images(image_name)
+
+        if len(images) > 0:
+            return images
+
+        self.app.log.warning(f'Image {image_name} not found.')
+        self.app.log.info(f"Searching {image_name} on Docker Hub...")
+
+        results = self.app.docker.api.search(image_name.split(':')[0])
+        # TODO: consider edge cases for search, e.g. non-existing image id or multiple results
+        err_msg = f"Could not pull {image_name}"
+
+        if len(results) > 0:
+            self.app.log.info(f"Found {results}. ")
+
+            try:
+                stream = self.app.docker.api.pull(image_name, stream=True, decode=True)
+                return self.log_pull_stream(stream)
+
+            except APIError as ae:
+                err_msg = f"Could not pull {image_name}: {ae}"
+
+        if raise_err:
+            raise SecurityAwareError(err_msg)
+
+        self.app.log.error(err_msg)
+
+        return None
 
     def create(self, image: str, name: str) -> str:
         """
