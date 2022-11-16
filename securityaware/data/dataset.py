@@ -26,14 +26,14 @@ class ChainMetadata:
     chain_ord_pos: int
     commit_datetime: str
 
-    def to_dict(self, ravel: bool = False):
+    def to_dict(self, flatten: bool = False):
         chain_metadata = {'before_first_fix_commit': self.before_first_fix_commit, 'chain_ord_pos': self.chain_ord_pos,
                           'last_fix_commit': self.last_fix_commit, 'commit_datetime': self.commit_datetime,
                           'commit_sha': self.commit_sha, 'chain_ord': self.chain_ord}
 
         commit_metadata = self.commit_metadata.to_dict()
 
-        if ravel:
+        if flatten:
             chain_metadata.update(commit_metadata)
         else:
             chain_metadata.update({'commit_metadata': commit_metadata})

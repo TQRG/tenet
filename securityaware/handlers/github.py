@@ -38,7 +38,7 @@ class GithubHandler(HandlersInterface, Handler):
         self._tokens: deque = None
         self.lock = threading.Lock()
 
-    def exhausted(self):
+    def has_rate_available(self):
         git_api_rate_limit = self.git_api.get_rate_limit()
         used = git_api_rate_limit.core.limit - git_api_rate_limit.core.remaining
 
@@ -98,7 +98,7 @@ class GithubHandler(HandlersInterface, Handler):
         except RateLimitExceededException as rle:
             del self.git_api
 
-            if not self.exhausted():
+            if not self.has_rate_available():
                 # TODO: must update repo before calling
                 return repo.get_commit(sha=commit_sha)
 
@@ -122,7 +122,7 @@ class GithubHandler(HandlersInterface, Handler):
         except RateLimitExceededException as rle:
             del self.git_api
 
-            if not self.exhausted():
+            if not self.has_rate_available():
                 return self.git_api.get_repo(repo_path)
 
             err_msg = f"Rate limit exhausted: {rle}"
@@ -360,7 +360,7 @@ class GithubHandler(HandlersInterface, Handler):
 
             chain_metadata = self.get_chain_metadata(commit_sha=commit_sha, chain_ord=chain_ord,
                                                      chain_datetime=chain_datetime)
-            chain_metadata_dict = chain_metadata.to_dict(ravel=True)
+            chain_metadata_dict = chain_metadata.to_dict(flatten=True)
             chain_metadata_dict.update({'index': idx})
             chain_metadata_entries.append(chain_metadata_dict)
 
