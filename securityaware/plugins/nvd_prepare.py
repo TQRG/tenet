@@ -18,7 +18,7 @@ class NVDPrepare(PluginHandler):
         label = "nvd_prepare"
 
     def run(self, dataset: pd.DataFrame, tokens: Union[str, list] = None, metadata: bool = True, language: bool = True,
-            extension: bool = True, **kwargs) -> Union[pd.DataFrame, None]:
+            extension: bool = True, include_comments: bool = True, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
@@ -57,8 +57,8 @@ class NVDPrepare(PluginHandler):
             if not metadata_path.exists():
                 del self.multi_task_handler
                 for project, rows in tqdm(dataset.groupby(['project'])):
-                    self.multi_task_handler.add(project=project, chains=rows['chain'].to_list(),
-                                                commits=rows['commit_sha'].to_list(), indexes=rows.index)
+                    self.multi_task_handler.add(project=project, chains=rows['chain'].to_list(), indexes=rows.index,
+                                                include_comments=include_comments, commits=rows['commit_sha'].to_list())
 
                 self.multi_task_handler(func=self.github_handler.get_project_metadata)
                 metadata_df = pd.concat(self.multi_task_handler.results())

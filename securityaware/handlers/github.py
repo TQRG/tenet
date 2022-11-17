@@ -290,11 +290,30 @@ class GithubHandler(HandlersInterface, Handler):
     def get_commit_parents(commit: Commit) -> set:
         return set([c.sha for c in commit.commit.parents])
 
-    @staticmethod
-    def get_commit_comments(commit: Commit) -> dict:
+    def get_commit_comments(self, commit: Commit, raise_err: bool = False) -> dict:
         comments, count = {}, 1
+        err_msg = None
+        commit_comments = []
 
-        for comment in commit.get_comments():
+        try:
+            commit_comments = commit.get_comments()
+        except RateLimitExceededException as rle:
+            del self.git_api
+
+            if not self.has_rate_available():
+                commit_comments = commit.get_comments()
+
+            err_msg = f"Rate limit exhausted: {rle}"
+        except Exception:
+            err_msg = f"Unexpected error {sys.exc_info()}"
+
+        if err_msg:
+            if raise_err:
+                raise SecurityAwareError(err_msg)
+
+            self.app.log.error(err_msg)
+
+        for comment in commit_comments:
             comments[f'com_{count}'] = {
                 'author': comment.user.login,
                 'datetime': comment.created_at.strftime("%m/%d/%Y, %H:%M:%S"),
@@ -320,15 +339,16 @@ class GithubHandler(HandlersInterface, Handler):
 
         return files
 
-    def get_commit_metadata(self, commit: Commit) -> CommitMetadata:
-        comments = self.get_commit_comments(commit)
+    def get_commit_metadata(self, commit: Commit, include_comments: bool = True) -> CommitMetadata:
+        comments = self.get_commit_comments(commit) if include_comments else {}
         files = self.get_commit_files(commit)
         stats = {'additions': commit.stats.additions, 'deletions': commit.stats.deletions, 'total': commit.stats.total}
 
         return CommitMetadata(author=commit.commit.author.name.strip(), message=commit.commit.message.strip(),
                               comments=str(comments) if len(comments) > 0 else np.nan, files=files, stats=stats)
 
-    def get_chain_metadata(self, commit_sha: str, chain_ord: list, chain_datetime: list) -> ChainMetadata:
+    def get_chain_metadata(self, commit_sha: str, chain_ord: list, chain_datetime: list,
+                           include_comments: bool = True) -> ChainMetadata:
         chain_ord_sha = [commit.commit.sha for commit in chain_ord]
         self.app.log.info(f"Chain order: {chain_ord_sha}")
 
@@ -336,13 +356,14 @@ class GithubHandler(HandlersInterface, Handler):
         parents = self.get_commit_parents(chain_ord[-1])
 
         commit_datetime = chain_datetime[chain_idx].strftime("%m/%d/%Y, %H:%M:%S")
-        commit_metadata = self.get_commit_metadata(chain_ord[chain_idx])
+        commit_metadata = self.get_commit_metadata(chain_ord[chain_idx], include_comments=include_comments)
 
         return ChainMetadata(commit_metadata=commit_metadata, chain_ord=chain_ord_sha, before_first_fix_commit=parents,
                              chain_ord_pos=chain_idx + 1, last_fix_commit=chain_ord[-1].commit.sha,
                              commit_sha=commit_sha, commit_datetime=commit_datetime)
 
-    def get_project_metadata(self, project: str, chains: list, commits: list, indexes: list) -> Union[pd.DataFrame, None]:
+    def get_project_metadata(self, project: str, chains: list, commits: list, indexes: list,
+                             include_comments: bool = True) -> Union[pd.DataFrame, None]:
         repo = self.get_repo_from_link(project)
 
         if not repo:
@@ -359,7 +380,7 @@ class GithubHandler(HandlersInterface, Handler):
                 continue
 
             chain_metadata = self.get_chain_metadata(commit_sha=commit_sha, chain_ord=chain_ord,
-                                                     chain_datetime=chain_datetime)
+                                                     chain_datetime=chain_datetime, include_comments=include_comments)
             chain_metadata_dict = chain_metadata.to_dict(flatten=True)
             chain_metadata_dict.update({'index': idx})
             chain_metadata_entries.append(chain_metadata_dict)
