@@ -107,7 +107,6 @@ class SecurityAwareTest(TestApp, SecurityAware):
 
 def main():
     with SecurityAware() as app:
-        
         if not app.config.has_section('mappings'):
             app.log.error(f"Views mappings not found, make sure ~/.securityaware/config/mappings.yml exists")
             exit(1)
