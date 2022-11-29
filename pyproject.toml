@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "securityaware"
+version = "0.0.1"
+description = "Fine-grained approach to detect and patch vulnerabilities."
+authors = [
+    {name = "Eduard Pinconschi", email="eduard.pinconschi@tecnico.ulisboa.pt"},
+    {name = "Sofia Reis", email="sofia.o.reis@tecnico.ulisboa.pt"}
+]
+readme = "README.md"
+keywords = ["machine learning", "security", "program analysis", "framework"]
+license = {file = "LICENSE.txt"}
+classifiers = [
+    "Topic :: Software Development",
+    "Programming Language :: Python",
+    "Environment :: Console",
+    "Intended Audience :: Developers"
+]
+
+[project.urls]
+repository = "https://github.com/cmusv/SecurityAware_framework"
+homepage = "https://github.com/cmusv/SecurityAware_framework"
+
+[options.exclude_package_data]
+"*" = ["ez_setup", "tests*"]
+
+[tool.setuptools.packages.find]
+where = ["securityaware"]
+
+[tool.setuptools.package-data]
+securityaware = ["templates/*"]
+
+[project.scripts]
+securityaware = "securityaware.main:main"
