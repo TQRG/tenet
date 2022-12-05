@@ -4,9 +4,8 @@ clean:
 	find . -name '*.py[co]' -delete
 
 virtualenv:
-	virtualenv --prompt '|> securityaware <| ' env
+	virtualenv -p python3.10.7 --prompt '|> securityaware <| ' env
 	env/bin/pip install -r requirements-dev.txt
-	env/bin/python setup.py develop
 	@echo
 	@echo "VirtualENV Setup Complete. Now run: source env/bin/activate"
 	@echo
