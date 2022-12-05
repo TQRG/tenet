@@ -6,9 +6,17 @@
 
 ## Installation
 
+Clone repo:
 ```
-$ git clone https://github.com/cmusv/SecurityAware
-$ cd SecurityAware
+$ git clone https://github.com/cmusv/SecurityAware_framework.git
+```
+
+Set virtualenv and install:
+
+```
+$ virtualenv -p python3.10.7 venv
+$ source venv/bin/activate
+$ cd SecurityAware_framework
 $ pip install -r requirements.txt
 $ pip install .
 $ ./setup.sh

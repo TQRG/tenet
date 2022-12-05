@@ -3,14 +3,12 @@ from pathlib import Path
 import schema
 import yaml
 from cement import Controller, ex
-from cement.utils.version import get_version_banner
-from ..core.version import get_version
+from securityaware import __version__
 from ..data.schema import parse_pipeline
 
 VERSION_BANNER = """
-Fine-grained approach to detect and patch vulnerabilities %s
-%s
-""" % (get_version(), get_version_banner())
+Fine-grained approach to detect and patch vulnerabilities (v%s)
+""" % (__version__)
 
 
 class Base(Controller):
