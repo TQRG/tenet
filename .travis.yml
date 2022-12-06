@@ -1,7 +1,9 @@
 language: python
+python:
+  "3.9.13"
 install:
   - pip install -r requirements.txt
   - pip install .
   - ./setup.sh
 script:
-  - make test
+  - python -m pytest
