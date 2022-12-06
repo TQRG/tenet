@@ -17,9 +17,9 @@ def test_securityaware_debug():
         assert app.debug is True
 
 # TODO: Fix test
-def test_command1():
-    # test command1 without arguments
-    argv = ['command1']
+# def test_command1():
+#     # test command1 without arguments
+#     argv = ['command1']
     # with SecurityAwareTest(argv=argv) as app:
     #     app.run()
     #     data,output = app.last_rendered
