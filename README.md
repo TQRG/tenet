@@ -1,4 +1,4 @@
-# Fine-grained approach to detect and patch vulnerabilities
+# Fine-grained approach to detect and patch vulnerabilities [![Build Status](https://app.travis-ci.com/TQRG/SecurityAware_framework.svg?token=aJfMSaZphxwpscMRnZJm&branch=main)](https://app.travis-ci.com/TQRG/SecurityAware_framework)
 
 ## Requirements
 
