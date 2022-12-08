@@ -42,3 +42,12 @@ class CWE(Controller):
     )
     def sfp_cluster(self):
         self.app.log.info(self.cwe_list_handler.find_primary_sfp_cluster(self.app.pargs.id))
+
+    @ex(
+        help='Finds Bugs Framework Class for a given CWE-ID',
+        arguments=[
+            (['--id'], {'help': 'CWE-ID', 'type': int, 'required': True})
+        ]
+    )
+    def bf_class(self):
+        self.app.log.info(self.cwe_list_handler.find_bf_class(self.app.pargs.id))
