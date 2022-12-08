@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import plotly.graph_objects as go
 
 from pathlib import Path
 from typing import Tuple, Any
@@ -112,3 +113,42 @@ class Plotter:
         plt.xlabel(x_label)
         plt.savefig(str(self.path / f"{x_label.lower().replace(' ', '_')}_bar.png"))
         plt.clf()
+
+    def sankey(self, sources: list, targets: list, values: list, node_labels: list, link_labels: list, title: str,
+               node_colors: list = None, link_colors: list = None, color_map_name: str = 'hsv', opacity: float = 1):
+
+        if not node_colors:
+            node_colors = []
+            color_map = plt.cm.get_cmap(color_map_name)
+
+            for i in range(len(node_labels)):
+                rgb = color_map((i + 1) / len(node_labels))
+                node_colors.append(f"rgba({rgb[0] * 255},{rgb[1] * 255},{rgb[2] * 255}, {opacity})")
+
+        if not link_colors:
+            link_colors = [node_colors[i] for i in sources]
+
+        fig = go.Figure(data=[go.Sankey(
+            valueformat=".0f",
+            valuesuffix=" entries",
+            # Define nodes
+            node=dict(
+                pad=15,
+                thickness=15,
+                line=dict(color="black", width=0.5),
+                label=node_labels,
+                color=node_colors
+            ),
+            # Add links
+            link=dict(
+                source=sources,
+                target=targets,
+                value=values,
+                label=link_labels,
+                color=link_colors
+            ))])
+        fig.layout.width = 1920
+        fig.layout.height = 1080
+
+        fig.update_layout(title_text=title, font_size=16)
+        fig.write_image(str(self.path / f"{title.lower().replace(' ', '_')}_sankey.png"))
