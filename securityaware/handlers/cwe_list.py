@@ -22,6 +22,7 @@ class CWEListHandler(HandlersInterface, Handler):
         self._sw_category_abstractions = None
         self._sfp_category_abstractions = None
         self._listing = None
+        self._bugs_framework = None
 
     def has_sfp(self, cwe_id: int) -> bool:
         return cwe_id in self.sfp_primary_entries or cwe_id in self.sfp_secondary_entries or \
@@ -122,10 +123,17 @@ class CWEListHandler(HandlersInterface, Handler):
             self._sfp_none_entries = {_id: el for _id, el in none_entries.items() if 'entries' in el}
         return self._sfp_none_entries
 
-    def find_primary_sfp_cluster(self, cwe_id: Union[int, str], only_id: bool = False):
-        if cwe_id is None:
-            return None
+    @property
+    def bugs_framework(self):
+        if self._bugs_framework is None:
+            self._bugs_framework = self.mappings['bugs_framework']
+        return self._bugs_framework
 
+    @property
+    def data_type_bugs(self):
+        return self.bugs_framework['data_type']
+
+    def parse_cwe_id(self, cwe_id: Union[int, str]):
         if isinstance(cwe_id, str):
             match = re.search('\d+', cwe_id)
 
@@ -134,6 +142,33 @@ class CWEListHandler(HandlersInterface, Handler):
                 return None
 
             cwe_id = int(match.group())
+
+        return cwe_id
+
+    def find_bf_class(self, cwe_id: Union[int, str], category: str = None) -> Union[str, None]:
+        cwe_id = self.parse_cwe_id(cwe_id)
+
+        if cwe_id is None:
+            return None
+
+        if category and category in self.bugs_framework:
+            categories = [self.bugs_framework[category]]
+        else:
+            categories = self.bugs_framework.values()
+
+        for target in categories:
+            for bf_class, operations in target.items():
+                for operation, entries in operations.items():
+                    if cwe_id in entries:
+                        return f"{bf_class} {operation}"
+
+        return None
+
+    def find_primary_sfp_cluster(self, cwe_id: Union[int, str], only_id: bool = False):
+        cwe_id = self.parse_cwe_id(cwe_id)
+
+        if cwe_id is None:
+            return None
 
         for _c, cluster in self.sfp_primary_entries.items():
             if cwe_id in cluster['entries']:

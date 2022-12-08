@@ -39,10 +39,7 @@ class GithubHandler(HandlersInterface, Handler):
         self.lock = threading.Lock()
 
     def has_rate_available(self):
-        git_api_rate_limit = self.git_api.get_rate_limit()
-        used = git_api_rate_limit.core.limit - git_api_rate_limit.core.remaining
-
-        return used > 0
+        return self.git_api.get_rate_limit().core.remaining > 0
 
     @property
     def git_api(self):
@@ -98,8 +95,9 @@ class GithubHandler(HandlersInterface, Handler):
         except RateLimitExceededException as rle:
             del self.git_api
 
-            if not self.has_rate_available():
-                # TODO: must update repo before calling
+            if self.has_rate_available():
+                owner, project = repo.full_name.split('/')
+                repo = self.get_repo(owner=owner, project=project)
                 return repo.get_commit(sha=commit_sha)
 
             err_msg = f"Rate limit exhausted: {rle}"
@@ -122,7 +120,7 @@ class GithubHandler(HandlersInterface, Handler):
         except RateLimitExceededException as rle:
             del self.git_api
 
-            if not self.has_rate_available():
+            if self.has_rate_available():
                 return self.git_api.get_repo(repo_path)
 
             err_msg = f"Rate limit exhausted: {rle}"
@@ -300,10 +298,10 @@ class GithubHandler(HandlersInterface, Handler):
         except RateLimitExceededException as rle:
             del self.git_api
 
-            if not self.has_rate_available():
+            if self.has_rate_available():
                 commit_comments = commit.get_comments()
-
-            err_msg = f"Rate limit exhausted: {rle}"
+            else:
+                err_msg = f"Rate limit exhausted: {rle}"
         except Exception:
             err_msg = f"Unexpected error {sys.exc_info()}"
 
@@ -347,12 +345,44 @@ class GithubHandler(HandlersInterface, Handler):
         return CommitMetadata(author=commit.commit.author.name.strip(), message=commit.commit.message.strip(),
                               comments=str(comments) if len(comments) > 0 else np.nan, files=files, stats=stats)
 
-    def get_chain_metadata(self, commit_sha: str, chain_ord: list, chain_datetime: list,
-                           include_comments: bool = True) -> ChainMetadata:
-        chain_ord_sha = [commit.commit.sha for commit in chain_ord]
-        self.app.log.info(f"Chain order: {chain_ord_sha}")
+    def get_chain_metadata(self, commit_sha: str, chain_ord: list, chain_datetime: list, raise_err: bool = False,
+                           include_comments: bool = True) -> Union[ChainMetadata, None]:
 
-        chain_idx = chain_ord_sha.index(commit_sha)
+        chain_ord_sha = []
+        err_msg = None
+
+        for commit in chain_ord:
+            try:
+                chain_ord_sha.append(commit.commit.sha)
+            except RateLimitExceededException as rle:
+                del self.git_api
+
+                if self.has_rate_available():
+                    chain_ord_sha.append(commit.commit.sha)
+                else:
+                    err_msg = f"Rate limit exhausted: {rle}"
+                    break
+            except Exception:
+                err_msg = f"Unexpected error {sys.exc_info()}"
+                break
+
+        # self.app.log.info(f"Chain order: {chain_ord_sha}")
+
+        if err_msg:
+            if raise_err:
+                raise SecurityAwareError(err_msg)
+
+            self.app.log.error(err_msg)
+
+        if len(chain_ord) != len(chain_ord_sha):
+            return None
+
+        try:
+            chain_idx = chain_ord_sha.index(commit_sha)
+        except ValueError as ve:
+            self.app.log.error(f"{ve}")
+            return None
+
         parents = self.get_commit_parents(chain_ord[-1])
 
         commit_datetime = chain_datetime[chain_idx].strftime("%m/%d/%Y, %H:%M:%S")
@@ -381,6 +411,9 @@ class GithubHandler(HandlersInterface, Handler):
 
             chain_metadata = self.get_chain_metadata(commit_sha=commit_sha, chain_ord=chain_ord,
                                                      chain_datetime=chain_datetime, include_comments=include_comments)
+            if chain_metadata is None:
+                continue
+
             chain_metadata_dict = chain_metadata.to_dict(flatten=True)
             chain_metadata_dict.update({'index': idx})
             chain_metadata_entries.append(chain_metadata_dict)
