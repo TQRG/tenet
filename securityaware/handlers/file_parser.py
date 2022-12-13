@@ -18,19 +18,14 @@ class FileParserHandler(HandlersInterface, Handler):
 
     def __init__(self, **kw):
         super().__init__(**kw)
-        # TODO: add this into configuration file
-        self.ext_map = {
-            "Objective-C": {"m", "mm"}, "Java": {"java", "jsp", "jspf"}, "Scala": {"scala"},
-            "C/C++": {"c", "cc", "cxx", "cpp", "hpp", "c++", "h", "hh", "cppm", "ixx", "cp", "inl"},
-            "Groovy": {"groovy"},
-            "PHP": {"php", "tpl", "inc", "ctp", "phpt", "phtml"}, "JavaScript": {"js", "jsx", "coffee"},
-            "Python": {"py"},
-            "Config files": {"lock", "gradle", "json", "config", "yaml", "conf"}, "Ruby": {"rb"},
-            "HTML": {"html", "erb"},
-            "Perl": {"pm"}, "Go": {"go"}, "Lua": {"lua"}, "Erlang": {"erl"}, "C#": {"cs"}, "Rust": {"rust"},
-            "Vala": {"vala"},
-            "SQL": {"sql"}, "XML": {"xml"}, "Shell": {"sh"},
-        }
+        self._extension_mapping = None
+
+    @property
+    def extension_mapping(self):
+        if self._extension_mapping is None:
+            self._extension_mapping = self.app.config.get_section_dict('mappings')['extensions']
+
+        return self._extension_mapping
 
     @staticmethod
     def get_extension(file: str):
@@ -48,7 +43,7 @@ class FileParserHandler(HandlersInterface, Handler):
         return extensions if len(extensions) > 0 else np.nan
 
     def get_extension_mapping(self, val: str):
-        for key, value in self.ext_map.items():
+        for key, value in self.extension_mapping.items():
             if val in value:
                 return key
 

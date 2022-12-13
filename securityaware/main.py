@@ -6,7 +6,7 @@ from .controllers.base import Base
 from .controllers.plugin import Plugin
 from .controllers.cwe import CWE
 
-from securityaware.core.interfaces import HandlersInterface
+from securityaware.core.interfaces import HandlersInterface, PluginsInterface
 from securityaware.handlers.github import GithubHandler
 from securityaware.handlers.command import CommandHandler
 from securityaware.handlers.runner import MultiTaskHandler
@@ -16,6 +16,7 @@ from securityaware.handlers.container import ContainerHandler
 from securityaware.handlers.code_parser import CodeParserHandler
 from securityaware.handlers.cwe_list import CWEListHandler
 from securityaware.handlers.file_parser import FileParserHandler
+from securityaware.handlers.sampling import SamplingHandler
 
 
 class SecurityAware(App):
@@ -37,7 +38,8 @@ class SecurityAware(App):
         ]
 
         # configuration files
-        config_files = ['~/.securityaware/config/abstractions.yml', '~/.securityaware/config/mappings.yml']
+        config_files = ['~/.securityaware/config/abstractions.yml', '~/.securityaware/config/mappings.yml',
+                        '~/.securityaware/config/keywords.yml']
 
         # configuration handler
         config_handler = 'yaml'
@@ -55,13 +57,13 @@ class SecurityAware(App):
         plugin_handler = 'plugin_loader'
 
         interfaces = [
-            HandlersInterface
+            HandlersInterface, PluginsInterface
         ]
 
         # register handlers
         handlers = [
             Base, Plugin, CWE, PluginLoader, ContainerHandler, CommandHandler, WorkflowHandler, CodeParserHandler,
-            MultiTaskHandler, GithubHandler, CWEListHandler, FileParserHandler
+            MultiTaskHandler, GithubHandler, CWEListHandler, FileParserHandler, SamplingHandler
         ]
 
     def get_config(self, key: str):
@@ -89,10 +91,10 @@ class SecurityAware(App):
                 self.log.error(f"Plugin {name} not loaded.")
                 exit(1)
 
-            if name not in [el.Meta.label for el in self.handler.list('handlers')]:
-                return self.handler.resolve('handlers', name)
+            if name not in [el.Meta.label for el in self.handler.list('plugins')]:
+                return self.handler.resolve('plugins', name)
 
-            return self.handler.get('handlers', name, setup=setup)
+            return self.handler.get('plugins', name, setup=setup)
         except InterfaceError as ie:
             self.log.error(str(ie))
             exit(1)
@@ -113,6 +115,10 @@ def main():
 
         if not app.config.has_section('abstractions'):
             app.log.error(f"CWE abstractions not found, make sure ~/.securityaware/config/abstractions.yml exists")
+            exit(1)
+
+        if not app.config.has_section('keywords'):
+            app.log.error(f"Keywords not found, make sure ~/.securityaware/config/keywords.yml exists")
             exit(1)
 
         try:

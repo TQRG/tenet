@@ -1,4 +1,5 @@
 import ast
+import random
 import threading
 
 import numpy as np
@@ -11,10 +12,11 @@ from pathlib import Path
 
 from cement import Handler
 from github import Github
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Dict
 
 from github.Commit import Commit
 from github.GithubException import GithubException, RateLimitExceededException, UnknownObjectException
+from github.PaginatedList import PaginatedList
 from github.Repository import Repository
 
 from securityaware.core.diff_labeller.misc import safe_write
@@ -22,6 +24,100 @@ from securityaware.core.exc import SecurityAwareError
 from securityaware.core.interfaces import HandlersInterface
 from securityaware.data.dataset import CommitMetadata, ChainMetadata
 from securityaware.data.diff import DiffBlock
+
+
+class PaginatedListRandomPicker:
+    """
+        Wrapper of PaginatedList that randomly picks pages
+    """
+    def __init__(self, paginated_list: PaginatedList, n_pages: int):
+        self._paginated_list = paginated_list
+        self._n_pages = n_pages
+        self._visited = []
+
+    def __call__(self, *args, **kwargs) -> Tuple[list, int]:
+        if len(self._visited) >= self._n_pages:
+            raise SecurityAwareError(f"PaginatedListRandomPicker visited all pages")
+
+        rand_page = random.randint(0, self._n_pages - 1)
+
+        while rand_page in self._visited:
+            rand_page = random.randint(0, self._n_pages - 1)
+
+        commits = []
+
+        # TODO: fix while as sometimes the get_page returns an empty list
+        # TODO: add token checks
+        while len(commits) == 0:
+            commits = self._paginated_list.get_page(rand_page)
+
+        self._visited.append(rand_page)
+
+        return commits, rand_page
+
+
+class RandomCommitFilesLookup:
+    def __init__(self, excluded_files: set, excluded_commits: set, target_extensions: list = None):
+        self._excluded_files = excluded_files if excluded_files else {}
+        self._excluded_commits = excluded_commits if excluded_files else {}
+        self._target_extensions = target_extensions
+        self._visited = []
+
+    def __len__(self):
+        return len(self._visited)
+
+    def coverage(self):
+        coverage = set(self._visited)
+        coverage.update(self._excluded_commits)
+
+        return len(coverage)
+
+    @property
+    def excluded_files(self):
+        return self._excluded_files
+
+    @property
+    def excluded_commits(self):
+        return self._excluded_commits
+
+    def check_file(self, file) -> bool:
+        check = file.filename not in self._excluded_files and 'test' not in file.filename and file.status == 'modified'
+
+        if self._target_extensions:
+            return check and file.filename.split('.')[-1].lower() in self._target_extensions
+
+        return check
+
+    def get_commit_files(self, commit: Commit) -> list:
+        return [file for file in commit.files if self.check_file(file)]
+
+    def __call__(self, commits: List[Commit], files_limit: int = None) -> Dict[Commit, list]:
+        # filter excluded commits
+        commits = [commit for commit in commits if commit.sha not in self._excluded_commits]
+
+        if len(commits) == 0:
+            raise SecurityAwareError(f"No available commits after filtering excluded commits ")
+
+        commit_files_pair = {}
+        total_files = 0
+        picked = []
+
+        while len(picked) != len(commits):
+            commit_idx = random.randint(0, len(commits) - 1)
+
+            while commit_idx in picked:
+                commit_idx = random.randint(0, len(commits) - 1)
+
+            picked.append(commit_idx)
+            random_commit = commits[commit_idx]
+            commit_files_pair[random_commit] = self.get_commit_files(random_commit)
+            total_files += len(commit_files_pair[random_commit])
+            self._visited.append(random_commit.sha)
+
+            if total_files > files_limit:
+                break
+
+        return commit_files_pair
 
 
 class GithubHandler(HandlersInterface, Handler):
@@ -37,6 +133,8 @@ class GithubHandler(HandlersInterface, Handler):
         self._git_api: Github = None
         self._tokens: deque = None
         self.lock = threading.Lock()
+        # Size of the paginated list returned by get_commits, may change
+        self.paginated_list_size = 30
 
     def has_rate_available(self):
         return self.git_api.get_rate_limit().core.remaining > 0
@@ -422,3 +520,94 @@ class GithubHandler(HandlersInterface, Handler):
             return pd.DataFrame(chain_metadata_entries).set_index('index')
 
         return None
+
+    def get_repo_commits(self, repo: Repository, raise_err: bool = False) \
+            -> Union[Tuple[PaginatedList, int, int], Tuple[None, None, None]]:
+        """
+            Parses the input diff string and returns a list of result entries.
+
+            :param repo: the Repository object
+            :param raise_err: flag to raise caught exceptions
+            :return: 2-sized-tuple with the PaginatedList commits and the numbers of pages.
+        """
+        try:
+            repo_commits = repo.get_commits()
+            total_commits = repo_commits.totalCount
+            pages = (total_commits // self.paginated_list_size) + 1
+            self.app.log.info(f"{repo.full_name} has {total_commits} commits (~{pages} pages).")
+            return repo_commits, pages, total_commits
+        except RateLimitExceededException as rle:
+            del self.git_api
+
+            if self.has_rate_available():
+                return self.get_repo_commits(repo, raise_err)
+
+            err_msg = f"Rate limit exhausted: {rle}"
+
+        except UnknownObjectException:
+            err_msg = f"Failed to get {repo.full_name} repository commits..."
+        except Exception:
+            err_msg = f"Unexpected error {sys.exc_info()}"
+
+        if raise_err:
+            raise SecurityAwareError(err_msg)
+
+        self.app.log.error(err_msg)
+
+        return None, None, None
+
+    def repo_random_files_lookup(self, repo: Repository, target_files_count: int = 50, excluded_files: set = None,
+                                 excluded_commits: set = None,  target_extensions: list = None,
+                                 max_commits: int = None) \
+            -> Tuple[pd.DataFrame, str]:
+        self.app.log.info(f"Searching {repo.full_name} for {target_files_count} files...")
+        paginated_commits, n_pages, total = self.get_repo_commits(repo=repo)
+
+        if paginated_commits is None:
+            return pd.DataFrame(), "error"
+
+        paginated_list_random_picker = PaginatedListRandomPicker(paginated_commits, n_pages=n_pages)
+        random_commit_file_lookup = RandomCommitFilesLookup(excluded_files=excluded_files,
+                                                            target_extensions=target_extensions,
+                                                            excluded_commits=excluded_commits)
+        collected_files = []
+        early_stopping = 0
+        empty_commits = []
+
+        while len(collected_files) < target_files_count:
+            if max_commits is not None and early_stopping >= max_commits:
+                self.app.log.warning(f"Early stopping after looking up {early_stopping} commits")
+                return pd.DataFrame(collected_files + empty_commits), "stop"
+
+            try:
+                commits, rand_page = paginated_list_random_picker()
+            except SecurityAwareError as sae:
+                self.app.log.warning(sae)
+
+                if random_commit_file_lookup.coverage() == total:
+                    return pd.DataFrame(collected_files + empty_commits), "visited"
+                else:
+                    return pd.DataFrame(collected_files + empty_commits), "stop"
+
+            self.app.log.info(f"Searching into page {rand_page}: {len(collected_files)}/{target_files_count}...")
+
+            try:
+                for commit, files in random_commit_file_lookup(commits, files_limit=target_files_count).items():
+                    random_commit_file_lookup.excluded_commits.update({commit.sha})
+                    early_stopping += 1
+
+                    if len(files) == 0:
+                        empty_commits.append({'sha': commit.sha, 'file_path': None, 'non_vuln_raw_url': None,
+                                              'message': None})
+                        continue
+
+                    self.app.log.info(f"Found {len(files)} files for {commit.sha}...")
+
+                    for file in files:
+                        collected_files.append({'sha': commit.sha, 'file_path': file.filename,
+                                                'non_vuln_raw_url': file.raw_url, 'message': commit.commit.message})
+            except SecurityAwareError as sae:
+                self.app.log.warning(sae)
+                continue
+
+        return pd.DataFrame(collected_files + empty_commits), "success"
