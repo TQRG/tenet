@@ -19,6 +19,7 @@ from securityaware.handlers.file_parser import FileParserHandler
 from securityaware.handlers.github import GithubHandler
 from securityaware.handlers.node import NodeHandler
 from securityaware.handlers.runner import MultiTaskHandler
+from securityaware.handlers.sampling import SamplingHandler
 
 
 class PluginHandler(NodeHandler):
@@ -37,6 +38,7 @@ class PluginHandler(NodeHandler):
         self._github_handler: GithubHandler = None
         self._cwe_list_handler: CWEListHandler = None
         self._file_parser_handler: FileParserHandler = None
+        self._sampling_handler: SamplingHandler = None
 
     @property
     def github_handler(self):
@@ -99,6 +101,16 @@ class PluginHandler(NodeHandler):
     @file_parser_handler.deleter
     def file_parser_handler(self):
         self._file_parser_handler = None
+
+    @property
+    def sampling_handler(self):
+        if not self._sampling_handler:
+            self._sampling_handler = self.app.handler.get('handlers', 'sampling', setup=True)
+        return self._sampling_handler
+
+    @sampling_handler.deleter
+    def sampling_handler(self):
+        self._sampling_handler = None
 
     @abstractmethod
     def run(self, dataset: pd.DataFrame, **kwargs) -> Union[pd.DataFrame, None]:

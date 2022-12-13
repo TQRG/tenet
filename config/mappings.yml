@@ -1,4 +1,74 @@
 mappings:
+  extensions:
+    Objective-C:
+      - "m"
+      - "mm"
+    Java:
+      - "java"
+      - "jsp"
+      - "jspf"
+    Scala:
+      - "scala"
+    C/C++:
+      - "c"
+      - "cc"
+      - "cxx"
+      - "cpp"
+      - "hpp"
+      - "c++"
+      - "h"
+      - "hh"
+      - "cppm"
+      - "ixx"
+      - "cp"
+      - "inl"
+    Groovy:
+      - "groovy"
+    PHP:
+      - "php"
+      - "tpl"
+      - "inc"
+      - "ctp"
+      - "phpt"
+      - "phtml"
+    JavaScript:
+      - "js"
+      - "jsx"
+      - "coffee"
+    Python:
+      - "py"
+    Config files:
+      - "lock"
+      - "gradle"
+      - "json"
+      - "config"
+      - "yaml"
+      - "conf"
+    Ruby:
+      - "rb"
+    HTML:
+      - "html"
+      - "erb"
+    Perl:
+      - "pm"
+    Go:
+      - "go"
+    Lua:
+      - "lua"
+    Erlang:
+      - "erl"
+    C#:
+      - "cs"
+    Rust:
+      - "rust"
+    Vala:
+      - "vala"
+    SQL:
+      - "sql"
+    XML:
+      - "xml"
+    Shell:
+      - "sh"
   bugs_framework:
     data_type:
       DCL:
