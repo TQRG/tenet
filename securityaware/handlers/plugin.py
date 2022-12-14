@@ -3,7 +3,6 @@ import shutil
 
 import pandas as pd
 import requests
-import validators
 
 from typing import Union, Tuple
 from abc import abstractmethod
@@ -125,9 +124,10 @@ class PluginHandler(NodeHandler):
         return labels.apply(lambda l: label_map[l])
 
     def download_file_from_url(self, url: str, extract: bool = False) -> Union[Tuple[Response, Path], None]:
-        if not validators.url(url):
-            self.app.lof.warning(f"URL {url} is not valid.")
-            return None
+        # TODO: change url validator
+        # if not validators.url(url):
+        #     self.app.lof.warning(f"URL {url} is not valid.")
+        #     return None
 
         file_path = self.path / Path(urlparse(url).path).name
         extract_file_path = self.path / file_path.stem
