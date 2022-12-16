@@ -4,6 +4,7 @@ from typing import Union
 
 from tqdm import tqdm
 
+from securityaware.core.plotter import Plotter
 from securityaware.handlers.plugin import PluginHandler
 from securityaware.utils.misc import split_github_commits, clean_github_commits, project_from_chain, \
     parse_published_date, transform_to_commits
@@ -61,8 +62,12 @@ class NVDPrepare(PluginHandler):
                                                 include_comments=include_comments, commits=rows['commit_sha'].to_list())
 
                 self.multi_task_handler(func=self.github_handler.get_project_metadata)
-                metadata_df = pd.concat(self.multi_task_handler.results())
-                metadata_df.to_csv(str(metadata_path))
+                try:
+                    metadata_df = pd.concat(self.multi_task_handler.results())
+                    metadata_df.to_csv(str(metadata_path))
+                except ValueError as ve:
+                    self.app.log.error(ve)
+                    return None
             else:
                 metadata_df = pd.read_csv(str(metadata_path))
 
@@ -103,6 +108,47 @@ class NVDPrepare(PluginHandler):
         df['published_date'] = df['published_date'].apply(lambda x: parse_published_date(x))
 
         return df
+
+    def plot(self, dataset: pd.DataFrame, **kwargs):
+        # add bf_class
+        dataset['bf_class'] = [None] * len(dataset)
+
+        for i, row in dataset.iterrows():
+            bf_class = self.cwe_list_handler.find_bf_class(row['cwe_id'])
+
+            if bf_class:
+                dataset.at[i, 'bf_class'] = bf_class
+        top_10_cwe_without_bf = list(dataset[dataset['bf_class'].isnull()]['cwe_id'].value_counts().head(10).keys())
+        self.app.log.info(f"Top 10 CWE IDs without BF Class: {top_10_cwe_without_bf}")
+
+        dataset = dataset[~dataset['bf_class'].isnull()]
+        self.app.log.info(f"Entries with BF class: {len(dataset)}")
+        top_5_languages = list(dataset.language.value_counts().head(5).keys())
+        dataset = dataset[dataset.language.isin(top_5_languages)]
+        self.app.log.info(f"Entries for top 5 Languages ({top_5_languages}): {len(dataset)}")
+
+        languages = list(dataset[~dataset.language.isnull()]['language'].unique())
+        languages = [l for ls in languages for l in eval(ls)]
+        languages = list(set(languages))
+        node_labels = list(dataset['bf_class'].unique()) + list(languages)
+
+        sources = []
+        targets = []
+        values = []
+        link_labels = []
+
+        for name, group in dataset.groupby(['bf_class', 'language']):
+            source, target = name
+            languages = eval(target)
+
+            for language in languages:
+                sources.append(node_labels.index(source))
+                targets.append(node_labels.index(language))
+                values.append(len(group))
+                link_labels.append(source)
+
+        Plotter(path=self.path).sankey(sources=sources, targets=targets, values=values, link_labels=link_labels,
+                                       node_labels=node_labels, title="BF Class Top 5 Languages", opacity=0.6)
 
 
 def load(app):
