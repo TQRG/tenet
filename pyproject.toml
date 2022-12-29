@@ -7,14 +7,12 @@ repository = "https://github.com/cmusv/SecurityAware_framework"
 homepage = "https://github.com/cmusv/SecurityAware_framework"
 
 [project]
-name = "securityaware"
+name="securityaware"
 version = "0.0.1"
-description = "Fine-grained approach to detect and patch vulnerabilities."
 authors = [
     {name = "Eduard Pinconschi", email="eduard.pinconschi@tecnico.ulisboa.pt"},
     {name = "Sofia Reis", email="sofia.o.reis@tecnico.ulisboa.pt"}
 ]
-readme = "README.md"
 keywords = ["machine learning", "security", "program analysis", "framework"]
 license = {file = "LICENSE.txt"}
 requires-python = ">=3.7"
@@ -44,14 +42,15 @@ dependencies = [
     "psutil~=5.9.3",
     "jsonlines~=2.0.0",
     "schema~=0.7.4",
-    "matplotlib~=3.6.2",
+    "matplotlib~=3.4.3",
     "seaborn~=0.11.2",
     "jq~=1.2.1",
     "pyparsing~=3.0.6",
     "codeprep==1.0.5",
     "setuptools~=44.0.0",
-    "scipy~=1.9.2",
-    "kaleido==0.2.1"
+    "scipy~=1.7.3",
+    "kaleido==0.2.1",
+    "plotly~=5.11.0"
 ]
 
 [project.optional-dependencies]
@@ -61,8 +60,6 @@ test = [
     "coverage",
 ]
 
-[options.exclude_package_data]
-"*" = ["ez_setup", "tests*"]
 
 [tool.setuptools.packages.find]
 where = ["securityaware"]

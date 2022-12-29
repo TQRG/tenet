@@ -124,10 +124,10 @@ class PluginHandler(NodeHandler):
         return labels.apply(lambda l: label_map[l])
 
     def download_file_from_url(self, url: str, extract: bool = False) -> Union[Tuple[Response, Path], None]:
-        # TODO: change url validator
-        # if not validators.url(url):
-        #     self.app.lof.warning(f"URL {url} is not valid.")
-        #     return None
+
+        if not 'http' in url:
+            self.app.lof.warning(f"URL {url} is not valid.")
+            return None
 
         file_path = self.path / Path(urlparse(url).path).name
         extract_file_path = self.path / file_path.stem
