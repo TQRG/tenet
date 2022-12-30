@@ -7,6 +7,7 @@ from typing import Union
 from tqdm import tqdm
 
 from securityaware.handlers.plugin import PluginHandler
+from securityaware.core.plotter import Plotter
 
 
 class Generate(PluginHandler):
@@ -60,9 +61,7 @@ class Generate(PluginHandler):
 
         # TODO: pass through command line
         self.github_handler.tokens = tokens
-
         negative = self.generate_negative(dataset=dataset) if scenario.lower() != 'fix' else None
-        self.app.log.info(f"count of negative samples {len(negative)}")
         scn = self.sampling_handler.get_scenario(dataset, scenario=scenario, negative=negative,
                                                  extension=self.extensions)
         self.app.log.info(f"Generating {scenario} scenario...")
@@ -168,6 +167,16 @@ class Generate(PluginHandler):
 
         negative_samples = negative_samples[~negative_samples['file_path'].isnull()]
         return negative_samples
+
+    def plot(self, dataset: pd.DataFrame, **kwargs):
+        dataset = dataset[~dataset['bf_class'].isnull()]
+        self.app.log.info(f"Entries with BF class: {len(dataset)}")
+
+        Plotter(self.path, fig_size=(20,10)).bar_labels(dataset, column='cwe_id', y_label='Occurrences',
+                                                        x_label='CWE-ID')
+        Plotter(self.path).bar_labels(dataset, column='bf_class', y_label='Occurrences', x_label='BF Class')
+        Plotter(self.path, fig_size=(20, 10)).bar_labels(dataset, column='project_name', y_label='Occurrences',
+                                                         x_label='Project', top_n=50)
 
 
 def load(app):
