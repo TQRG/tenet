@@ -76,7 +76,7 @@ class WorkflowHandler(HandlersInterface, Handler):
                     node_handler.plot(dataframe)
                     continue
 
-                kwargs = node_handler.node.kwargs
+                kwargs = node_handler.node.kwargs.copy()
 
                 if node_handler.edge.kwargs:
                     kwargs.update(node_handler.edge.kwargs)
