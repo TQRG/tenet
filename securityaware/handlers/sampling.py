@@ -28,6 +28,9 @@ class SamplingHandler(HandlersInterface, Handler):
                      extension: list = None) -> Scenario:
         scenario = scenario.lower()
 
+        if negative:
+            self.app.log.info(f"count of negative samples {len(negative)}")
+
         if scenario == 'fix':
             return Fix(df, extensions=extension)
         elif scenario == 'random':
@@ -37,3 +40,4 @@ class SamplingHandler(HandlersInterface, Handler):
         else:
             raise SecurityAwareError(f"Scenario '{scenario}' not found. "
                                      f"Should be one of the following: [fix, random, controlled]")
+
