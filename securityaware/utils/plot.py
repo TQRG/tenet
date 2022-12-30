@@ -8,7 +8,7 @@ rcParams['figure.figsize'] = 14, 8
 LABELS = ["Diff", "Static"]
 
 
-class Plotter:
+class PlotterOld:
     def __init__(self, orig, pred, show=True):
         """Plotting class
 

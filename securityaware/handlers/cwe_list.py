@@ -1,5 +1,5 @@
 import re
-from typing import Union
+from typing import Union, Tuple
 
 from securityaware.core.interfaces import HandlersInterface
 from cement import Handler
@@ -145,11 +145,11 @@ class CWEListHandler(HandlersInterface, Handler):
 
         return cwe_id
 
-    def find_bf_class(self, cwe_id: Union[int, str], category: str = None) -> Union[str, None]:
+    def find_bf_class(self, cwe_id: Union[int, str], category: str = None) -> Union[Tuple[str, str], Tuple[None, None]]:
         cwe_id = self.parse_cwe_id(cwe_id)
 
         if cwe_id is None:
-            return None
+            return None, None
 
         if category and category in self.bugs_framework:
             categories = [self.bugs_framework[category]]
@@ -160,9 +160,9 @@ class CWEListHandler(HandlersInterface, Handler):
             for bf_class, operations in target.items():
                 for operation, entries in operations.items():
                     if cwe_id in entries:
-                        return f"{bf_class} {operation}"
+                        return bf_class, operation
 
-        return None
+        return None, None
 
     def find_primary_sfp_cluster(self, cwe_id: Union[int, str], only_id: bool = False):
         cwe_id = self.parse_cwe_id(cwe_id)

@@ -5,11 +5,11 @@ import pandas as pd
 from cement import Handler
 
 from securityaware.core.exc import Skip
-from securityaware.core.interfaces import HandlersInterface
+from securityaware.core.interfaces import PluginsInterface
 from securityaware.data.schema import Edge
 
 
-class NodeHandler(HandlersInterface, Handler):
+class NodeHandler(PluginsInterface, Handler):
     class Meta:
         label = 'container'
 

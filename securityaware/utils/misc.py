@@ -18,6 +18,14 @@ def random_id(size: int = 2):
     return b2a_hex(urandom(size)).decode()
 
 
+def df_init(info):
+    return pd.DataFrame(info, index=[0])
+
+
+def split_next(files):
+    return files.split('<_**next**_>')
+
+
 def str_to_tarfile(data: str, tar_info_name: str) -> Path:
     random = b2a_hex(urandom(2)).decode()
     dest_path = Path('/tmp', random + ".tar")
@@ -305,3 +313,8 @@ def project_from_chain(refs):
 
 def parse_published_date(datetime):
     return datetime.split("T")[0]
+
+
+def load_file(fin):
+    with open(fin) as file:
+        return file.read().splitlines()

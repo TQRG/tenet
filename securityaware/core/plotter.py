@@ -86,11 +86,15 @@ class Plotter:
         plt.clf()
 
     def bar_labels(self, df: pd.DataFrame, column: str, x_label: str, y_label: str, title: str = None,
-                   bar_value_label: bool = True, rotate_labels: bool = True):
+                   bar_value_label: bool = True, rotate_labels: bool = True, top_n: int = None):
         if not title:
             title = f"Bar plot of {x_label}"
 
-        labels, counts = zip(*df[column].value_counts().items())
+        if top_n:
+            labels, counts = zip(*df[column].value_counts().head(top_n).items())
+        else:
+            labels, counts = zip(*df[column].value_counts().items())
+
         colors = list(mcolors.TABLEAU_COLORS.keys())[:len(counts)]
         fig, ax = plt.subplots(1, 1)
         ax.bar(labels, counts, color=colors)
