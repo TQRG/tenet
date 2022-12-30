@@ -40,4 +40,3 @@ class SamplingHandler(HandlersInterface, Handler):
         else:
             raise SecurityAwareError(f"Scenario '{scenario}' not found. "
                                      f"Should be one of the following: [fix, random, controlled]")
-
