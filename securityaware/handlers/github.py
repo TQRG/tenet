@@ -26,6 +26,55 @@ from securityaware.data.dataset import CommitMetadata, ChainMetadata
 from securityaware.data.diff import DiffBlock
 
 
+class LocalGitFile:
+    def __init__(self, url: str, path: Path, short: Path, content: str = None, tag: str = None):
+        self.url = url
+        self.path = path
+        self.short = short
+        self.content = content
+        self.tag = tag
+
+    def download(self):
+        try:
+            print(f'Requesting {self.tag}: {self.url}')
+            request = requests.get(self.url)
+
+            if request.status_code == 200:
+                self.content = request.text
+            else:
+                print(f'Request code {request.status_code}')
+
+        except ConnectionError:
+            print("ConnectionError")
+
+    def write(self) -> int:
+        if not self.content:
+            print(f"No file content for {self.path}")
+            return -1
+            # raise ValueError(f"No file content for {self.path}")
+
+        self.path.parent.mkdir(exist_ok=True, parents=True)
+
+        with self.path.open(mode='w') as f:
+            print(f'Writing to  {self.path}')
+            return f.write(self.content)
+
+    def read(self):
+        if not self.content:
+            print(f'Reading from {self.path}')
+
+            if not self.path.exists() or self.path.stat().st_size == 0:
+                if self.tag:
+                    print(self.tag)
+                self.download()
+                self.write()
+            else:
+                with self.path.open(mode='r') as f:
+                    self.content = f.read()
+
+        return self.content
+
+
 class PaginatedListRandomPicker:
     """
         Wrapper of PaginatedList that randomly picks pages
