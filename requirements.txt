@@ -26,3 +26,5 @@ setuptools~=44.0.0
 validators~=0.20.0
 scipy~=1.9.2
 code_tokenize~=0.2.0
+kaleido==0.2.1
+plotly~=5.11.0
