@@ -8,7 +8,7 @@ homepage = "https://github.com/cmusv/SecurityAware_framework"
 
 [project]
 name="securityaware"
-version = "0.0.2"
+version = "0.0.1"
 description = "Fine-grained approach to detect and patch vulnerabilities"
 readme = "README.md"
 authors = [
@@ -67,8 +67,6 @@ test = [
 
 
 [tool.setuptools.packages.find]
-where = ["securityaware"]
-include = ["securityaware*"]
 exclude = ["ez_setup", "tests*"]
 
 [tool.setuptools]
