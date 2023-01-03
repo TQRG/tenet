@@ -1,7 +1,9 @@
-from pathlib import Path
-
+import os.path
 import schema
 import yaml
+
+from pathlib import Path
+
 from cement import Controller, ex
 from securityaware import __version__
 from ..data.schema import parse_pipeline
@@ -66,7 +68,7 @@ class Base(Controller):
 
         self.app.extend('bind', self.app.pargs.bind)
 
-        if not self.app.bind.startswith('/') or self.app.bind.startswith('~/'):
+        if not os.path.exists(self.app.bind):
             self.app.log.error(f"Bind path {self.app.bind} is not a valid directory path.")
             exit(1)
 

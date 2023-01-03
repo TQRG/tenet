@@ -111,7 +111,6 @@ def get_source(refs: str) -> list:
 
         :param refs: set with references in string format
     """
-
     refs, sources = eval(refs), []
 
     for ref in refs:

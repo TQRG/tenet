@@ -17,7 +17,7 @@ authors = [
 ]
 keywords = ["machine learning", "security", "program analysis", "framework"]
 license = {file = "LICENSE.txt"}
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Topic :: Software Development",
     "Programming Language :: Python",
@@ -49,8 +49,7 @@ dependencies = [
     "jq~=1.2.1",
     "pyparsing~=3.0.6",
     "code_tokenize~=0.2.0",
-    "setuptools~=44.0.0",
-    "scipy~=1.7.3",
+    "scipy~=1.9.2",
     "kaleido==0.2.1",
     "plotly~=5.11.0"
 ]
@@ -73,7 +72,7 @@ exclude = ["ez_setup", "tests*"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-securityaware = ["templates/*"]
+securityaware = ["templates/*", "config/*"]
 
 [project.scripts]
 securityaware = "securityaware.main:main"

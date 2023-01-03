@@ -1,4 +1,6 @@
 import yaml
+import pkg_resources
+
 from pathlib import Path
 from cement import Controller, ex
 
@@ -47,8 +49,9 @@ class Plugin(Controller):
 
         plugin_key = f"plugin.{self.app.pargs.name}"
 
-        # TODO: find a better way of doing this
-        dest_plugin_file = Path(self.app.get_config('plugin_dir')) / (plugin_file.stem + '.py')
+        plugin_dir_path = self.app.get_config('plugin_dir')
+        absolute_path = pkg_resources.resource_filename('securityaware', plugin_dir_path)
+        dest_plugin_file = Path(absolute_path) / (plugin_file.stem + '.py')
         dest_plugin_file = Path(dest_plugin_file.expanduser())
 
         if dest_plugin_file.exists():
