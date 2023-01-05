@@ -1,6 +1,8 @@
 import re
 import io
+import os
 import tarfile
+import json
 import numpy as np
 import pandas as pd
 
@@ -9,6 +11,41 @@ from os import urandom
 from pathlib import Path
 
 from tqdm import tqdm
+
+
+def load_json_file(file):
+    """Load JSON file that stores vulnerability data.
+    Args:
+        file (file): vulnerability report file name
+    Returns:
+        data: json data
+    """
+    with open(file) as jfile:
+        return json.load(jfile)
+    
+def load_dataset(path):
+    """Loads dataset if exists into a dataframe.
+    If dataset does not exist, it returns None.
+    Args:
+        path (string): path to the osv dataset
+    Returns:
+        dataframe: returns dataframe if dataframe does not exist, else None
+        bool: return True if processing the first bulk of data, else False
+    """
+    print(path)
+    if os.path.exists(path):
+        return pd.read_csv(path), False
+    else:
+        return None, True
+
+def create_df(data):
+    """Create dataframe from vuln data.
+    Args:
+        data (dict): dictionary with vulnerability data
+    Returns:
+        dataframe: dataframe with vulnerability data
+    """
+    return pd.DataFrame(data, index=[0])
 
 
 def random_id(size: int = 2):
@@ -80,7 +117,7 @@ def split_commits(chain: str):
         else:
             new_chain = set.union(new_chain, set([ref]))
 
-    return new_chain if len(new_chain) > 0 else np.nan
+    return new_chain if new_chain else np.nan
 
 
 def filter_references(df: pd.DataFrame, refs_col: str = 'refs') -> pd.DataFrame:
@@ -99,7 +136,7 @@ def filter_references(df: pd.DataFrame, refs_col: str = 'refs') -> pd.DataFrame:
             found = re.search(r'(github|bitbucket|gitlab|git).*(/commit/|/commits/)', ref)
             if found:
                 commits.append(ref)
-        if len(commits) > 0:
+        if commits:
             df.at[idx, 'code_refs'] = str(set(commits))
 
     return df.dropna(subset=['code_refs'])
@@ -168,7 +205,7 @@ def normalize_commits(df: pd.DataFrame, code_refs_col: str = 'code_refs'):
                 commits.append(ref)
 
         # save new set of commits
-        if len(commits) > 0:
+        if commits:
             df.at[idx, code_refs_col] = set(commits)
 
     # drop row with no code refs after normalization
@@ -196,7 +233,7 @@ def filter_commits_by_source(df: pd.DataFrame, source: str, commits_col: str = '
             if source in ref:
                 commits.append(ref)
 
-        if len(commits) > 0:
+        if commits:
             df.at[idx, commits_col] = str(set(commits))
         else:
             df.at[idx, commits_col] = np.nan
@@ -295,7 +332,7 @@ def clean_github_commits(refs):
         else:
             chain.add(ref)
 
-    return chain if len(chain) > 0 else np.nan
+    return chain if chain else np.nan
 
 
 def project_from_chain(refs):

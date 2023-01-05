@@ -51,6 +51,7 @@ dependencies = [
     "code_tokenize~=0.2.0",
     "scipy~=1.9.2",
     "kaleido==0.2.1",
+    "google-cloud-storage",
     "plotly~=5.11.0"
 ]
 
