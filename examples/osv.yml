@@ -1,0 +1,18 @@
+nodes:
+  - plugin:
+      name: osv_source
+
+layers:
+  collect:
+    - osv_raw:
+        node: osv_source
+        sources: [metadata_path]
+        kwargs:
+          dataset_name: 'osv_raw.csv'
+          ecosystems: ["Android", "Go", "Linux", "Maven", "NuGet", "OSS-Fuzz", "PyPI", "RubyGems", "crates.io", "npm", "Hex", "Packagist"]
+          tokens: [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, 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, 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]
+
+
+
+workflow: [collect]
+
