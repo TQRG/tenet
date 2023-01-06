@@ -7,16 +7,16 @@ from tqdm import tqdm
 from securityaware.core.plotter import Plotter
 from securityaware.handlers.plugin import PluginHandler
 from securityaware.utils.misc import split_github_commits, clean_github_commits, project_from_chain, \
-    parse_published_date, transform_to_commits
+    parse_published_date, transform_to_commits, join
 
 
-class NVDPrepare(PluginHandler):
+class OSVprepare(PluginHandler):
     """
-        NVDPrepare plugin
+        OSVPrepare plugin
     """
 
     class Meta:
-        label = "nvd_prepare"
+        label = "osv_prepare"
 
     def run(self, dataset: pd.DataFrame, tokens: Union[str, list] = None, metadata: bool = True, language: bool = True,
             extension: bool = True, include_comments: bool = True, **kwargs) -> Union[pd.DataFrame, None]:
@@ -30,12 +30,11 @@ class NVDPrepare(PluginHandler):
         self.github_handler.tokens = tokens
 
         if not df_normalized_path.exists():
-            dataset.rename(inplace=True, columns={'cve_id': 'vuln_id', 'cwes': 'cwe_id', 'commits': 'chain',
-                                                  'description': 'summary', 'impact': 'score'})
+            dataset = dataset.rename(columns={'commits': 'chain'})
+            dataset['summary'] = dataset.apply(lambda x: join(x['summary'], x['details']), axis=1)
             dataset = dataset[['vuln_id', 'cwe_id', 'score', 'chain', 'summary', 'published_date']]
-            dataset['dataset'] = "NVD"
+            dataset['dataset'] = "OSV"
             dataset = self.normalize(dataset)
-
             for idx, row in tqdm(dataset.iterrows()):
                 self.multi_task_handler.add(chain=row['chain']).update_id(idx)
 
@@ -94,7 +93,7 @@ class NVDPrepare(PluginHandler):
         return df
 
     def normalize(self, df: pd.DataFrame):
-        self.app.log.info("Normalizing NVD ...")
+        self.app.log.info("Normalizing OSV ...")
         df['chain'] = df['chain'].apply(lambda x: split_github_commits(x))
         self.app.log.info(f"Size after split {len(df)}")
 
@@ -153,4 +152,4 @@ class NVDPrepare(PluginHandler):
 
 
 def load(app):
-    app.handler.register(NVDPrepare)
+    app.handler.register(OSVprepare)
