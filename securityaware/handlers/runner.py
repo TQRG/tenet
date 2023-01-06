@@ -159,7 +159,7 @@ class MultiTaskHandler(HandlersInterface, Handler):
             self._results = self.runner.results(skip_none)
 
             if expand:
-                self._results = [res for task in self._results for res in task]
+                self._results = [res for task in self._results for res in task if not (skip_none and (res is None))]
 
         return self._results
 

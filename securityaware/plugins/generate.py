@@ -26,9 +26,10 @@ class Generate(PluginHandler):
         self.target_files_factor = 3
         self.max_commits = None
         self.early_stopping_limit = None
+        self.skip_search = None
 
     def run(self, dataset: pd.DataFrame, scenario: str = 'fix', augment: int = None, tokens: list = None,
-            target_files_factor: int = 3, languages: list = None,  max_commits: int = None,
+            target_files_factor: int = 3, languages: list = None,  max_commits: int = None, skip_search: bool = False,
             **kwargs) -> Union[pd.DataFrame, None]:
         """Generates sampling strategy
 
@@ -37,11 +38,13 @@ class Generate(PluginHandler):
             languages (list): list of target programming languages
             augment (int): factor for augmenting the negative classes in the dataset
             tokens (list): GitHub API tokens
+            skip_search (bool): flag to skip the search for the negative samples
             max_commits (int): limit of commits to search
             target_files_factor (int): the factor used to gather target files for the negative dataset,
                                         e.g., #collected_files = #project_files * target_files_factor
         """
         self.app.log.info(f'{scenario} scenario...')
+        self.skip_search = skip_search
         langs = self.set_extensions(languages)
         self.app.log.info(f'Initial size: {len(dataset)}')
         if langs:
@@ -61,16 +64,25 @@ class Generate(PluginHandler):
 
         # TODO: pass through command line
         self.github_handler.tokens = tokens
-        negative = self.generate_negative(dataset=dataset) if scenario.lower() != 'fix' else None
-        scn = self.sampling_handler.get_scenario(dataset, scenario=scenario, negative=negative,
-                                                 extension=self.extensions)
+        # TODO: other scenarios should extend fix scenario
+        fix_scn = self.sampling_handler.get_scenario(dataset, scenario='fix', extension=self.extensions)
+        self.app.log.info(f"Generating fix scenario...")
+        fix_scn.generate()
+        self.app.log.info(f"Cleaning fix...")
+        fix_scn.remove_changes()
+        fix_scn.drop_duplicates()
+
+        if scenario == 'fix':
+            fix_scn.df['scenario'] = [scenario] * len(fix_scn.df)
+            return fix_scn.df
+
+        negative = self.generate_negative(dataset=fix_scn.df)
+        scn = self.sampling_handler.get_scenario(fix_scn.df, scenario=scenario, negative=negative)
         self.app.log.info(f"Generating {scenario} scenario...")
         scn.generate()
-        self.app.log.info(f"Cleaning {scenario}...")
-        scn.remove_changes()
-        scn.drop_duplicates()
         self.app.log.info(f"Augmenting {scenario}...")
         scn.augment(augment)
+
         scn.df['scenario'] = [scenario] * len(scn.df)
 
         return scn.df
@@ -123,6 +135,11 @@ class Generate(PluginHandler):
 
         if len(visited_projects) > 0:
             self.app.log.info(f"Skipping {len(visited_projects)} visited projects")
+
+        if self.skip_search:
+            self.app.log.warning("Skipping search...")
+            negative_samples = negative_samples[~negative_samples['file_path'].isnull()]
+            return negative_samples
 
         for project_url, group in tqdm(dataset[~dataset['project_url'].isin(visited_projects)].groupby('project_url')):
             owner, project = project_url.split("/")[3:5]

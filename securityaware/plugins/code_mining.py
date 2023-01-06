@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Union
 from scipy.sparse import save_npz
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from tqdm import tqdm
 
 from securityaware.handlers.plugin import PluginHandler
 
@@ -21,16 +22,16 @@ class CodeMining(PluginHandler):
         super().__init__(**kw)
         self.max_features: int = 1000
         self.vectorizer_type: str = 'tfidf'
-        self.extension: str = 'js'
 
     def run(self, dataset: pd.DataFrame, max_features: int = 1000, vectorizer_type: str = 'tfidf',
-            extension: str = 'js', **kwargs) -> Union[pd.DataFrame, None]:
+            remove_comments: bool = False, **kwargs) \
+            -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
         self.max_features = max_features
         self.vectorizer_type = vectorizer_type
-        self.extension = extension
+
         dataset_name = self.output.stem
         train_vectorizer_model_path = Path(self.path, f"bow_{vectorizer_type}_{dataset_name}_train.model")
         test_vectorizer_model_path = Path(self.path, f"bow_{vectorizer_type}_{dataset_name}_test.model")
@@ -60,14 +61,18 @@ class CodeMining(PluginHandler):
             self.app.log.error(f"Test data path not instantiated")
             return None
 
-        # save test train split data
+        # get test/train data
         train_data = pd.read_csv(str(train_data_path))
         test_data = pd.read_csv(str(test_data_path))
 
-        # select only code as train/test data
-        self.app.log.info(f"Removing comments from code...")
-        x_train = train_data.input.apply(lambda x: self.code_parser_handler.filter_comments(np.str_(x)))
-        x_test = test_data.input.apply(lambda x: self.code_parser_handler.filter_comments(np.str_(x)))
+        if remove_comments:
+            self.app.log.info(f"Removing comments from code...")
+            train_data = self.clean_data(train_data)
+            del self.multi_task_handler
+            test_data = self.clean_data(test_data)
+
+        x_train = train_data.input.to_numpy()
+        x_test = test_data.input.to_numpy()
 
         # save labels
         train_data.label.to_csv(str(train_labels_path))
@@ -95,15 +100,39 @@ class CodeMining(PluginHandler):
         train_features = train_feature_model.transform(x_train)
         test_features = test_feature_model.transform(x_test)
 
-        self.app.log.info(train_features.shape)
-        self.app.log.info(test_features.shape)
-        self.app.log.info(train_features)
-        self.app.log.info(test_features)
+        self.app.log.info(f"Train features shape: {train_features.shape}")
+        self.app.log.info(f"Test features shape: {test_features.shape}")
 
         save_npz(str(train_sparse_matrix_path), train_features)
         save_npz(str(test_sparse_matrix_path), test_features)
 
         return dataset
+
+    def clean_data(self, data: pd.DataFrame) -> pd.DataFrame:
+        initial_size = len(data)
+        for row in tqdm(data.to_dict(orient='records')):
+            self.multi_task_handler.add(row=row)
+
+        self.multi_task_handler(func=self.remove_comments)
+        rows = self.multi_task_handler.results()
+        new_data = pd.DataFrame(rows)
+        lost_samples = initial_size - len(new_data)
+
+        if lost_samples > 0:
+            self.app.log.warning(f"Dropped {lost_samples} samples in the training set with empty input.")
+
+        return new_data
+
+    def remove_comments(self, row: dict):
+        clean_code = self.code_parser_handler.filter_comments(code=np.str_(row['input']),
+                                                              extension=Path(row['file_path']).suffix.split('.')[-1])
+        if len(clean_code.strip()) == 0:
+            self.app.log.warning(f"Empty string for file {row['file_path']}.")
+            return None
+
+        row['input'] = clean_code
+
+        return row
 
     def get_vectorizer(self, vectorize=False):
         # Build a code vectorizer

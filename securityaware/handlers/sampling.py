@@ -28,7 +28,7 @@ class SamplingHandler(HandlersInterface, Handler):
                      extension: list = None) -> Scenario:
         scenario = scenario.lower()
 
-        if negative:
+        if negative is not None:
             self.app.log.info(f"count of negative samples {len(negative)}")
 
         if scenario == 'fix':

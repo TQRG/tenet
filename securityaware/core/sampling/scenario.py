@@ -3,9 +3,9 @@ from abc import abstractmethod, ABC
 
 import pandas as pd
 
-from typing import Union, Tuple, Hashable, List
+from typing import Union, Tuple, Hashable
 
-from securityaware.core.diff_labeller.changes import Changes, Triplet
+from securityaware.core.diff_labeller.changes import Changes
 from securityaware.core.exc import SecurityAwareError
 from securityaware.utils.misc import df_init
 
@@ -56,8 +56,8 @@ def parse_file_changes(file_changes: dict, commit_sha: str, vuln_commit_hash: st
 
 
 def parse_file_in_row(row: pd.Series, file: str) -> dict:
-    target_cols = ['dataset', 'project_name', 'before_first_fix_commit', 'last_fix_commit', 'vuln_id', 'cwe_id',
-                   'score', 'bf_class', 'operation']
+    target_cols = ['dataset', 'project_name', 'project_url', 'before_first_fix_commit', 'last_fix_commit', 'vuln_id',
+                   'cwe_id', 'score', 'bf_class', 'operation']
     row_info = row[target_cols].copy().rename({'before_first_fix_commit': 'vuln_commit_hash', 'raw_url': 'raw_url_vuln',
                                                'last_fix_commit': 'fixed_commit_hash'}).to_dict()
     row_info['file_path'] = file
@@ -65,81 +65,28 @@ def parse_file_in_row(row: pd.Series, file: str) -> dict:
     return row_info
 
 
-class Sample:
-    def __init__(self, row: dict, snippet: bool, fix: bool, triplet: Triplet):
-        self.row = row
-        self.fix = fix
-        self.snippet = snippet
-        self.triplet = triplet
-
-        if not triplet.vuln_file and not triplet.fix_file and not triplet.non_vuln_file:
-            raise ValueError("Empty row")
-
-    def _transform(self, file_contents: str):
-        if not file_contents:
-            return None
-
-        row = self.row.copy()
-        row['label'] = 'unsafe'
-        del row['dataset']
-        row['input'] = file_contents
-        row['LOC'] = len(file_contents.splitlines())
-
-        return row
-
-    def _transform_non_vuln(self, file_contents: str):
-        if not file_contents:
-            return None
-
-        row = self.row.copy()
-        del row['dataset']
-        row['cwe_id'] = None
-        row["score"] = None
-        row['input'] = file_contents
-        row['LOC'] = len(file_contents.splitlines())
-        row['label'] = 'safe'
-
-        return row
-
-    def __call__(self):
-        if self.snippet:
-            vuln_contents, fix_file, non_vuln_file_contents, chunks = self.triplet.get_snippet()
-
-            if chunks:
-                rows = [self._transform(vuln_contents), self._transform_non_vuln(fix_file)]
-                rows.extend([self._transform_non_vuln(c) for c in chunks if c and c.strip()])
-
-                return rows
-        else:
-            vuln_contents, fix_file, non_vuln_file_contents = self.triplet.get_contents()
-
-        if self.fix:
-            return [self._transform(vuln_contents), self._transform_non_vuln(fix_file),
-                    self._transform_non_vuln(non_vuln_file_contents)]
-        elif not non_vuln_file_contents:
-            return [self._transform(vuln_contents), self._transform_non_vuln(fix_file)]
-        else:
-            return [self._transform(vuln_contents), self._transform_non_vuln(non_vuln_file_contents)]
-
-
 class Scenario(ABC):
     def __init__(self, df: pd.DataFrame, scenario_type: str):
         self.df = df
-        self.df['project_name'] = self.df['project_url'].apply(lambda x: x.split("/")[-1])
+        self.stype = scenario_type
+
+        if 'project_name' not in df.columns:
+            self.df['project_name'] = self.df['project_url'].apply(lambda x: x.split("/")[-1])
+
         new_dataset = []
 
         # TODO: fix this
-        for i, r in self.df.iterrows():
-            dict_row = r.to_dict()
-            del dict_row['files']
+        if 'files' in self.df.columns:
+            for i, r in self.df.iterrows():
+                dict_row = r.to_dict()
+                del dict_row['files']
 
-            for f, values in ast.literal_eval(r.files).items():
-                dict_row['file_path'] = f
-                dict_row['file_changes'] = values
-                new_dataset.append(dict_row)
+                for f, values in ast.literal_eval(r.files).items():
+                    dict_row['file_path'] = f
+                    dict_row['file_changes'] = values
+                    new_dataset.append(dict_row)
 
-        self.df = pd.DataFrame(new_dataset)
-        self.stype = scenario_type
+            self.df = pd.DataFrame(new_dataset)
 
     @abstractmethod
     def generate(self, **kwargs):

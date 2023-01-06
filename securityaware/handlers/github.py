@@ -93,13 +93,7 @@ class PaginatedListRandomPicker:
         while rand_page in self._visited:
             rand_page = random.randint(0, self._n_pages - 1)
 
-        commits = []
-
-        # TODO: fix while as sometimes the get_page returns an empty list
-        # TODO: add token checks
-        while len(commits) == 0:
-            commits = self._paginated_list.get_page(rand_page)
-
+        commits = self._paginated_list.get_page(rand_page)
         self._visited.append(rand_page)
 
         return commits, rand_page
