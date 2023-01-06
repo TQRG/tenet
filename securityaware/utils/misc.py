@@ -105,6 +105,9 @@ def split_commits(chain: str):
     return new_chain if new_chain else np.nan
 
 
+def join(summary, details):
+    return f"{summary if pd.notna(summary) else ''} {details if pd.notna(details) else ''}".rstrip()
+
 def filter_references(df: pd.DataFrame, refs_col: str = 'refs') -> pd.DataFrame:
     """
         Filter cases without any references to source code hosting websites (GitHub, BitBucket, GitLab, Git).
@@ -133,7 +136,10 @@ def get_source(refs: str) -> list:
 
         :param refs: set with references in string format
     """
-    refs, sources = eval(refs), []
+    if type(refs) == str:
+        refs, sources = eval(refs), []
+    else:
+        sources = []
 
     for ref in refs:
         if 'github' in ref:

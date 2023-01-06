@@ -40,7 +40,15 @@ plugin.match_location:
   enabled: true
 plugin.match_path_contexts:
   enabled: true
+plugin.merge_sources:
+  enabled: true
 plugin.ml_pipeline:
+  enabled: true
+plugin.nvd_prepare:
+  enabled: true
+plugin.nvd_source:
+  enabled: true
+plugin.osv_prepare:
   enabled: true
 plugin.osv_source:
   enabled: true

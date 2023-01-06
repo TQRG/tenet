@@ -13,7 +13,7 @@ from google.cloud import storage
 
 from securityaware.handlers.plugin import PluginHandler
 from securityaware.utils.misc import split_commits, filter_references, normalize_commits,\
-    filter_commits_by_source, load_json_file, create_df
+    filter_commits_by_source, load_json_file, create_df, get_source
 from securityaware.core.plotter import Plotter
 from securityaware.utils.ghsa import dump
 
@@ -25,6 +25,30 @@ class OSVSource(PluginHandler):
 
     class Meta:
         label = "osv_source"
+        
+    def plot(self, dataset: pd.DataFrame, **kwargs):
+        """ Print commits statistics. """
+
+        # get number of commits involved in each patch
+        dataset['n_commits'] = dataset['code_refs'].transform(lambda x: len(x))
+
+        self.app.log.info(f"Plotting bar chart with number of commits for each fix")
+        Plotter(path=self.path).bar_labels(df=dataset, column='n_commits', y_label='Count', x_label='#commits',
+                                           bar_value_label=False, rotate_labels=False)
+
+        # get commits source
+        sources = []
+        for source in dataset['code_refs'].transform(get_source):
+            sources += source
+
+        # iterate over the different sources
+        for source in set(sources):
+            n_source = len([s for s in sources if s == source])
+            if source == 'bitbucket':
+                print(f"{source}\t{n_source}\t\t{(n_source / len(sources)) * 100:.2f}%")
+            else:
+                print(f"{source}\t\t{n_source}\t\t{(n_source / len(sources)) * 100:.2f}%")
+
 
     def run(self, 
             dataset: pd.DataFrame, 
