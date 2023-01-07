@@ -15,6 +15,11 @@ $ pip install .
 $ ./setup.sh
 ```
 
+## Architecture
+
+Tenet's architecture.
+<img src="tenet-architecture.png">
+
 ## Usage
 
 ```shell
