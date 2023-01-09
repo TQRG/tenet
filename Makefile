@@ -4,7 +4,7 @@ clean:
 	find . -name '*.py[co]' -delete
 
 virtualenv:
-	virtualenv --prompt '|> securityaware <|' env
+	virtualenv --prompt '|> tenet <|' env
 	@echo
 	@echo "VirtualENV Setup Complete. Now run: source env/bin/activate"
 	@echo
@@ -15,13 +15,13 @@ install:
 test:
 	python -m pytest \
 		-v \
-		--cov=securityaware \
+		--cov=tenet \
 		--cov-report=term \
 		--cov-report=html:coverage-report \
 		tests/
 
 docker: clean
-	docker build -t securityaware:latest .
+	docker build -t tenet:latest .
 
 dist: clean
 	rm -rf dist/*

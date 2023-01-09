@@ -24,7 +24,7 @@ nodes:
   - plugin:
       name: function_boundary
       kwargs:
-        output_fn: "/etc/securityaware/transforms/outputFnBoundary.js"
+        output_fn: "/etc/tenet/transforms/outputFnBoundary.js"
   - container:
       image: astminer:last
       name: astminer

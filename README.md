@@ -1,4 +1,4 @@
-# Fine-grained approach to detect and patch vulnerabilities [![Build Status](https://app.travis-ci.com/TQRG/SecurityAware_framework.svg?token=aJfMSaZphxwpscMRnZJm&branch=main)](https://app.travis-ci.com/TQRG/SecurityAware_framework)
+# Fine-grained approach to detect and patch vulnerabilities [![Build Status](https://app.travis-ci.com/TQRG/tenet.svg?token=aJfMSaZphxwpscMRnZJm&branch=main)](https://app.travis-ci.com/TQRG/tenet)
 
 ## Requirements
 
@@ -8,8 +8,8 @@
 
 Clone repo:
 ```
-$ git clone https://github.com/cmusv/SecurityAware_framework.git
-$ cd SecurityAware_framework
+$ git clone https://github.com/cmusv/tenet.git
+$ cd tenet
 $ pip install -r requirements.txt
 $ pip install .
 $ ./setup.sh
@@ -23,7 +23,7 @@ Tenet's architecture.
 ## Usage
 
 ```shell
-usage: securityaware [-h] [-d] [-q] [-v] [-vb] {run} ...
+usage: tenet [-h] [-d] [-q] [-v] [-vb] {run} ...
 
 Fine-grained approach to detect and patch vulnerabilities
 
@@ -43,7 +43,7 @@ sub-commands:
 ### Plugin command
 
 ```shell
-usage: securityaware plugin [-h] {install,uninstall} ...
+usage: tenet plugin [-h] {install,uninstall} ...
 
 optional arguments:
   -h, --help           show this help message and exit
@@ -56,15 +56,15 @@ sub-commands:
 ```
 
 #### Install sub-command
-This command copies the target plugin file to the `plugin_dir` location specified in the `securityaware.yml` config file
-(default is `~/.securityaware/plugins`) and enables the plugin in the config file.
+This command copies the target plugin file to the `plugin_dir` location specified in the `tenet.yml` config file
+(default is `~/.tenet/plugins`) and enables the plugin in the config file.
 
 > **_Note:_**
 > - Some names are reserved for core handlers — e.g. _workflow_, _container_, _command_, etc.
 > - The **name** of the plugin must match the **label** attributed to the plugin.
  
 ```shell
-usage: securityaware plugin install [-h] -p PATH [-f] -n NAME
+usage: tenet plugin install [-h] -p PATH [-f] -n NAME
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -75,13 +75,13 @@ optional arguments:
 
 ##### Example
 ```shell
-securityaware plugin install -p ~/workdir/plugins/code2vec.py -n code2vec -f
+tenet plugin install -p ~/workdir/plugins/code2vec.py -n code2vec -f
 ```
 
 #### Uninstall sub-command
 
 ```shell
-usage: securityaware plugin uninstall [-h] -n NAME
+usage: tenet plugin uninstall [-h] -n NAME
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -90,12 +90,12 @@ optional arguments:
 
 ##### Example
 ```shell
-securityaware plugin uninstall -n code2vec
+tenet plugin uninstall -n code2vec
 ```
 
 ### Run command
 ```shell
-usage: securityaware run [-h] -f FILE -d DATASET -wd WORKDIR -b BIND
+usage: tenet run [-h] -f FILE -d DATASET -wd WORKDIR -b BIND
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -110,7 +110,7 @@ optional arguments:
 #### Example:
 
 ```shell
-securityaware -vb run -f ~/projects/code2vec/code2vec_pipe.yml -d ~/projects/code2vec/cwe79.tsv -wd ~/projects/code2vec -b /projects/code2vec
+tenet -vb run -f ~/projects/code2vec/code2vec_pipe.yml -d ~/projects/code2vec/cwe79.tsv -wd ~/projects/code2vec -b /projects/code2vec
 ```
 
 ## Schema 
@@ -232,9 +232,9 @@ $ make virtualenv
 $ source env/bin/activate
 
 
-### run securityaware cli application
+### run tenet cli application
 
-$ securityaware --help
+$ tenet --help
 
 
 ### run pytest / coverage
@@ -246,11 +246,11 @@ $ make test
 
 ### Docker
 
-Included is a basic `Dockerfile` for building and distributing `SecurityAware`,
+Included is a basic `Dockerfile` for building and distributing `Tenet`,
 and can be built with the included `make` helper:
 
 ```
 $ make docker
 
-$ docker run -it securityaware --help
+$ docker run -it tenet --help
 ```

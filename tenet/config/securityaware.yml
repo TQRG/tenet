@@ -1,0 +1,71 @@
+log.colorlog:
+  level: info
+  max_bytes: 512000
+  max_files: 4
+  rotate: true
+  to_console: true
+plugin.astminer:
+  enabled: true
+plugin.code2vec:
+  enabled: true
+plugin.code_mining:
+  enabled: true
+plugin.codebert:
+  enabled: true
+plugin.collector:
+  enabled: true
+plugin.compare:
+  enabled: true
+plugin.file_collector:
+  enabled: true
+plugin.filter_fn_size:
+  enabled: true
+plugin.filter_frame:
+  enabled: true
+plugin.find_references:
+  enabled: true
+plugin.fusion:
+  enabled: true
+plugin.histogram:
+  enabled: true
+plugin.hybrid:
+  enabled: true
+plugin.jscodeshift:
+  enabled: true
+plugin.jsonifier:
+  enabled: true
+plugin.labeler:
+  enabled: true
+plugin.match_location:
+  enabled: true
+plugin.match_path_contexts:
+  enabled: true
+plugin.merge_sources:
+  enabled: true
+plugin.ml_pipeline:
+  enabled: true
+plugin.nvd_prepare:
+  enabled: true
+plugin.nvd_source:
+  enabled: true
+plugin.osv_prepare:
+  enabled: true
+plugin.osv_source:
+  enabled: true
+plugin.plot_matrix:
+  enabled: true
+plugin.preprocess:
+  enabled: true
+plugin.sampling:
+  enabled: true
+tenet:
+  debug: false
+  labels_map:
+    safe: 0
+    unsafe: 1
+  local_threads: 8
+  log_handler: colorlog
+  output_handler: jinja2
+  plugin_dir: plugins
+  proj_ext:
+  - js

@@ -5,10 +5,10 @@ with open('README.md', 'r') as f:
 
 setup(
     packages=find_packages(exclude=['ez_setup', 'tests*']),
-    package_data={'securityaware': ['templates/*']},
+    package_data={'tenet': ['templates/*']},
     include_package_data=True,
     entry_points="""
         [console_scripts]
-        securityaware = securityaware.main:main
+        tenet = tenet.main:main
     """,
 )

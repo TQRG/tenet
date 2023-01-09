@@ -1,0 +1,116 @@
+### Tenet Configuration Settings
+---
+
+tenet:
+
+### Toggle application level debug (does not toggle framework debugging)
+  debug: false
+
+### Where external (third-party) plugins are loaded from
+  plugin_dir: ~/.tenet/plugins/
+  proj_ext: ['js']
+### Where all plugin configurations are loaded from
+# plugin_config_dir: /etc/tenet/plugins.d/
+
+### Where external templates are loaded from
+# template_dir: /var/lib/tenet/templates/
+
+### The log handler label
+  log_handler: colorlog
+
+### The output handler label
+  output_handler: jinja2
+
+### Threading
+  local_threads: 8
+
+### labels mapping
+  labels_map:
+    safe: 0
+    unsafe: 1
+
+log.colorlog:
+
+### Where the log file lives (no log file by default)
+# file: null
+
+### The level for which to log.  One of: info, warning, error, fatal, debug
+  level: info
+
+### Whether or not to log to console
+  to_console: true
+
+### Whether or not to rotate the log file when it reaches `max_bytes`
+  rotate: true
+
+### Max size in bytes that a log file can grow until it is rotated.
+  max_bytes: 512000
+
+### The maximun number of log files to maintain when rotating
+  max_files: 4
+
+plugin.collector:
+  enabled: true
+
+plugin.compare:
+  enabled: true
+
+plugin.match_location:
+  enabled: true
+
+plugin.labeler:
+  enabled: true
+
+plugin.plot_matrix:
+  enabled: true
+
+plugin.filter_frame:
+  enabled: true
+
+plugin.file_collector:
+  enabled: true
+
+plugin.find_references:
+  enabled: true
+
+plugin.sampling:
+  enabled: true
+
+plugin.histogram:
+  enabled: true
+
+plugin.preprocess:
+  enabled: true
+
+plugin.code2vec:
+  enabled: true
+
+plugin.filter_fn_size:
+  enabled: true
+
+plugin.match_path_contexts:
+  enabled: true
+
+plugin.codebert:
+  enabled: true
+
+plugin.jscodeshift:
+  enabled: true
+
+plugin.astminer:
+  enabled: true
+
+plugin.jsonifier:
+  enabled: true
+
+plugin.code_mining:
+  enabled: true
+
+plugin.ml_pipeline:
+  enabled: true
+
+plugin.hybrid:
+  enabled: true
+
+plugin.fusion:
+  enabled: true

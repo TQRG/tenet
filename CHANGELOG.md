@@ -1,4 +1,4 @@
-# SecurityAware Change History
+# Tenet Change History
 
 ## 0.0.1
 
