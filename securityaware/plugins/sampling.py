@@ -3,7 +3,7 @@ import pandas as pd
 from typing import Union, Tuple
 from pathlib import Path
 
-from securityaware.core.sampling.balance import split_data, stratified_pair_hash
+from securityaware.core.sampling.balance import split_data, stratified_pair_hash, stratified_column
 from securityaware.handlers.plugin import PluginHandler
 
 
@@ -18,10 +18,10 @@ class SamplingHandler(PluginHandler):
     def __init__(self, **kw):
         super().__init__(**kw)
         self.token = None
-        self.balance_techniques = ['stratified_pair_hash']
+        self.balance_techniques = ['stratified_pair_hash', 'stratified_column']
 
-    def __call__(self, technique: str, seed: int, dataset: pd.DataFrame, undersample_safe: float = None) \
-            -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def __call__(self, technique: str, seed: int, dataset: pd.DataFrame, undersample_safe: float = None,
+                 column: str = None) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         # TODO: adapt rest of techniques
         '''
                 if technique == 'over':
@@ -50,12 +50,15 @@ class SamplingHandler(PluginHandler):
         if technique == 'stratified_pair_hash':
             return stratified_pair_hash(dataset=dataset, seed=seed, undersample_safe=undersample_safe)
 
+        if technique == 'stratified_column':
+            return stratified_column(dataset=dataset, column=column, seed=seed)
+
         self.app.log.info('No balancing technique applied.')
         return split_data(dataset=dataset, seed=seed)
 
     def run(self, dataset: pd.DataFrame, technique: str = "", seed: int = 0, only_single: bool = False,
             target_primary_sfp: int = None, only_multiple: bool = False, undersample_safe: float = None,
-            **kwargs) -> Union[pd.DataFrame, None]:
+            stratified_column: str = None, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
 
@@ -115,7 +118,7 @@ class SamplingHandler(PluginHandler):
             self.app.log.warning(f"No samples with 'unsafe' label in the dataset")
 
         train, val, test = self.__call__(dataset=dataset, seed=seed, technique=technique,
-                                         undersample_safe=undersample_safe)
+                                         undersample_safe=undersample_safe, column=stratified_column)
 
         self.app.log.info("Writing split to files...")
         self.app.log.info(f"Train: {len(train)} ({train.label.value_counts()})\n"

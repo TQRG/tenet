@@ -533,6 +533,28 @@ def split_data(dataset: pd.DataFrame, seed) -> Tuple[pd.DataFrame, pd.DataFrame,
     return train, val, test
 
 
+def stratified_column(dataset: pd.DataFrame, column: str, seed: int) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    train_splits = []
+    val_splits = []
+    test_splits = []
+
+    for label, rows in dataset.groupby(column):
+        print(f"Splitting dataset for {label} into train and test...")
+        train, test = sklearn.model_selection.train_test_split(rows, test_size=0.1)
+        test_splits.append(test)
+        print(f"Splitting train set for {label} into train and validation...")
+        # (1/9) x 0.9 = 0.1
+        train, val = sklearn.model_selection.train_test_split(train, test_size=1 / 9)
+        train_splits.append(train)
+        val_splits.append(val)
+
+    train = pd.concat(train_splits).sample(frac=1, random_state=seed)
+    val = pd.concat(val_splits).sample(frac=1, random_state=seed)
+    test = pd.concat(test_splits).sample(frac=1, random_state=seed)
+
+    return train, val, test
+
+
 def stratified_pair_hash(dataset: pd.DataFrame, seed: int, undersample_safe: float = None) \
         -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     unique_pair_hashes = dataset['pair_hash'].unique()

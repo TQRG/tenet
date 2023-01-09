@@ -94,7 +94,6 @@ class CodeParserHandler(HandlersInterface, Handler):
                     str_tokens.append(str(t))
             except IndexError:
                 self.app.log.error(f"Only could get {len(str_tokens)} of {len(tokens)}")
-                self.app.log.info(f"Code {code}\nTokens {str_tokens}")
 
             return str_tokens
 
