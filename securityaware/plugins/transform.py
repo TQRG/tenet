@@ -101,20 +101,21 @@ class Transform(PluginHandler):
                                                                      size_vuln_lines)
         del row['dataset']
 
-        if vuln_str:
+        if vuln_str and len(vuln_str.strip()) > 0:
             new_row = row.copy()
-            new_row.update({'input': vuln_str, 'LOC': len(vuln_str.splitlines()), 'label': 'unsafe'})
+            new_row.update({'input': vuln_str, 'LOC': len(vuln_str.splitlines()), 'label': 'unsafe', 'tag': 'vuln'})
             rows.append(new_row)
 
-        if self.fix and fix_str:
+        if self.fix and fix_str and len(fix_str.strip()) > 0:
             new_row = row.copy()
             new_row.update({'input': fix_str, 'LOC': len(fix_str.splitlines()), 'label': 'safe', 'cwe_id': None,
-                            'score': None})
+                            'score': None, 'tag': 'fix'})
             rows.append(new_row)
-        if non_vuln_file:
+        if non_vuln_file and len(non_vuln_str.strip()) > 0:
             new_row = row.copy()
             new_row.update({'input': non_vuln_str, 'LOC': len(non_vuln_str.splitlines()), 'label': 'safe',
-                            'cwe_id': None, 'score': None})
+                            'cwe_id': None, 'score': None, 'tag': 'non-vuln'})
+            rows.append(new_row)
 
         return rows
 

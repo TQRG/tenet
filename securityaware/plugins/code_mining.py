@@ -24,7 +24,7 @@ class CodeMining(PluginHandler):
         self.vectorizer_type: str = 'tfidf'
 
     def run(self, dataset: pd.DataFrame, max_features: int = 1000, vectorizer_type: str = 'tfidf',
-            remove_comments: bool = False, **kwargs) \
+            drop_ratio: float = None, drop_tag: str = None, remove_comments: bool = False, **kwargs) \
             -> Union[pd.DataFrame, None]:
         """
             runs the plugin
@@ -65,6 +65,16 @@ class CodeMining(PluginHandler):
         train_data = pd.read_csv(str(train_data_path))
         test_data = pd.read_csv(str(test_data_path))
 
+        if drop_ratio and 'tag' in train_data and drop_tag in train_data['tag'].unique():
+            if drop_ratio < 1:
+                train_data_tag = train_data[train_data['tag'] == drop_tag]
+                drop_indices = np.random.choice(train_data_tag.index, round(drop_ratio*len(train_data_tag)),
+                                                replace=False)
+                train_data = train_data.drop(drop_indices)
+            else:
+                train_data = train_data[train_data['tag'] != drop_tag]
+
+        self.app.log.info(f"{train_data['tag'].value_counts()}")
         if remove_comments:
             self.app.log.info(f"Removing comments from code...")
             train_data = self.clean_data(train_data)
