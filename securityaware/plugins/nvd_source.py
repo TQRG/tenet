@@ -33,8 +33,8 @@ class NVDSource(PluginHandler):
 
         # get commits source
         sources = []
-        for s in dataset['code_refs'].transform(get_source):
-            sources += s
+        for source in dataset['code_refs'].transform(get_source):
+            sources += source
 
         # iterate over the different sources
         for source in set(sources):

@@ -1,0 +1,13 @@
+nodes:
+  - plugin:
+      name: merge_sources
+
+layers:
+  merge:
+    - merge_sources:
+        node: merge_sources
+        kwargs:
+          osv_path: osv_prepare/dummy.csv
+          nvd_path: nvd_prepare/dummy.csv
+
+workflow: [merge]

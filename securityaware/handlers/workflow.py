@@ -2,6 +2,7 @@ import pandas as pd
 import pandas.errors
 import tqdm
 import traceback
+import csv 
 
 from cement import Handler
 from pathlib import Path
@@ -85,7 +86,12 @@ class WorkflowHandler(HandlersInterface, Handler):
                     dataframe = node_handler.run(dataset=dataframe, **kwargs)
 
                     if dataframe is not None:
-                        dataframe.to_csv(str(node_handler.output), index=False)
+                        dataframe.to_csv(
+                            str(node_handler.output), 
+                                quoting=csv.QUOTE_NONNUMERIC,
+                                escapechar="\\",
+                                doublequote=True,
+                                index=False)
                         self.app.log.warning(f"Saving dataset {node_handler.output}.")
                     else:
                         self.app.log.warning(f"Node {node_handler} returned no dataframe. Stopping execution.")

@@ -1,3 +1,5 @@
+import pkg_resources
+
 from cement import App, TestApp
 from cement.core.exc import CaughtSignal, InterfaceError
 
@@ -23,6 +25,9 @@ class SecurityAware(App):
     """SecurityAware primary application."""
 
     class Meta:
+        def get_absolute_path(package, file_path):
+            return pkg_resources.resource_filename(package, file_path)
+        
         label = 'securityaware'
 
         # call sys.exit() on close
@@ -38,8 +43,12 @@ class SecurityAware(App):
         ]
 
         # configuration files
-        config_files = ['~/.securityaware/config/abstractions.yml', '~/.securityaware/config/mappings.yml',
-                        '~/.securityaware/config/keywords.yml']
+        config_files = [
+            get_absolute_path(label, 'config/abstractions.yml'), 
+            get_absolute_path(label, 'config/mappings.yml'),
+            get_absolute_path(label, 'config/keywords.yml'),
+            get_absolute_path(label, 'config/securityaware.yml')
+        ]
 
         # configuration handler
         config_handler = 'yaml'
@@ -109,16 +118,21 @@ class SecurityAwareTest(TestApp, SecurityAware):
 
 def main():
     with SecurityAware() as app:
+        # TODO: These configurations integrate the package; 
+        # therefore, the bellow errors are just helpfull
+        # for development mode. Users shouldn't get this issue
+        # since these config files are included in the package; 
+        # so, should we have a flag for development mode?
         if not app.config.has_section('mappings'):
-            app.log.error(f"Views mappings not found, make sure ~/.securityaware/config/mappings.yml exists")
+            app.log.error(f"Views mappings not found, make sure /securityaware/config/mappings.yml exists")
             exit(1)
 
         if not app.config.has_section('abstractions'):
-            app.log.error(f"CWE abstractions not found, make sure ~/.securityaware/config/abstractions.yml exists")
+            app.log.error(f"CWE abstractions not found, make sure /securityaware/config/abstractions.yml exists")
             exit(1)
 
         if not app.config.has_section('keywords'):
-            app.log.error(f"Keywords not found, make sure ~/.securityaware/config/keywords.yml exists")
+            app.log.error(f"Keywords not found, make sure /securityaware/config/keywords.yml exists")
             exit(1)
 
         try:
