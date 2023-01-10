@@ -3,11 +3,11 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project.urls]
-repository = "https://github.com/cmusv/SecurityAware_framework"
-homepage = "https://github.com/cmusv/SecurityAware_framework"
+repository = "https://github.com/TQRG/tenet"
+homepage = "https://github.com/TQRG/tenet"
 
 [project]
-name="securityaware"
+name="tenet"
 version = "0.0.1"
 description = "Fine-grained approach to detect and patch vulnerabilities"
 readme = "README.md"
@@ -73,7 +73,7 @@ exclude = ["ez_setup", "tests*"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-securityaware = ["templates/*", "config/*"]
+tenet = ["templates/*", "config/*"]
 
 [project.scripts]
-securityaware = "securityaware.main:main"
+tenet = "tenet.main:main"
