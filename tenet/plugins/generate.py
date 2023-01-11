@@ -32,7 +32,6 @@ class Generate(PluginHandler):
             target_files_factor: int = 3, languages: list = None,  max_commits: int = None, skip_search: bool = False,
             **kwargs) -> Union[pd.DataFrame, None]:
         """Generates sampling strategy
-
         Args:
             scenario (str): one of the following scenarios fix, random, controlled
             languages (list): list of target programming languages

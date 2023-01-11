@@ -82,30 +82,26 @@ class Tenet(App):
 
         return None
 
-    def get_plugin_handler(self, name: str, setup: bool = True):
+    def get_plugin_handler(self, name: str):
         """
             Gets the handler associated to the plugin
 
             :param name: label of the plugin
-            :param setup: setup of the plugin
             :return: handler for the plugin
         """
 
         try:
-            if name not in self.plugin.get_enabled_plugins():
-                self.log.error(f"Plugin {name} not enabled.")
-                exit(1)
+            self.plugin.load_plugin(name)
+            plugin = self.handler.resolve('plugins', name)
+            plugin.__init__()
+            plugin._setup(self)
+            return plugin
 
-            if name not in self.plugin.get_loaded_plugins():
-                self.log.error(f"Plugin {name} not loaded.")
-                exit(1)
-
-            if name not in [el.Meta.label for el in self.handler.list('plugins')]:
-                return self.handler.resolve('plugins', name)
-
-            return self.handler.get('plugins', name, setup=setup)
         except InterfaceError as ie:
             self.log.error(str(ie))
+            exit(1)
+        except TypeError as te:
+            self.log.error(str(te))
             exit(1)
 
 

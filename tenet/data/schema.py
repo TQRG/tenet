@@ -313,7 +313,6 @@ class Pipeline:
         traversal = []
 
         for el in self.workflow:
-            print(f'Traversing layer {el}')
             if el in self.layers:
                 traversal.extend(self.layers[el].traverse(self.nodes))
             elif el in self.nodes:

@@ -204,7 +204,7 @@ class GithubHandler(HandlersInterface, Handler):
     @tokens.setter
     def tokens(self, value: Union[str, list]):
         if isinstance(value, str):
-            value = []
+            value = [value]
 
         self._tokens = deque(value, maxlen=len(value))
 

@@ -47,8 +47,7 @@ class ASTMinerHandler(PluginHandler):
         self.raw_files_path = Path(str(self.get('raw_files_path')).replace(str(self.app.workdir), str(self.app.bind)))
 
         if not self.path_context_file.exists():
-            # TODO: fix the node name
-            container = self.container_handler.run(image_name=image_name, node_name=self.node.name)
+            container = self.container_handler.run(image_name=image_name)
             self.run_astminer(container, max_old_space_size, mutations)
 
         results = self.parse_path_context_file()

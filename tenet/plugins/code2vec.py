@@ -84,7 +84,7 @@ class Code2vecHandler(PluginHandler):
         count_labels(Path(test_data_path), 'test')
 
         val_data_path = val_data_path.replace(str(self.app.workdir), str(self.app.bind))
-        container = self.container_handler.run(image_name=image_name, node_name=self.node.name)
+        container = self.container_handler.run(image_name=image_name)
         # TODO: find better way of performing this bind
         save_path = save_path.replace(str(self.app.workdir), str(self.app.bind))
         dataset_name = Path(val_data_path).stem.split('.')[0]

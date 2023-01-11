@@ -41,7 +41,7 @@ class JSCodeShiftHandler(PluginHandler):
 
         if not self.fn_boundaries_file.exists():
             # TODO: fix the node name
-            container = self.container_handler.run(image_name=image_name, node_name=self.node.name)
+            container = self.container_handler.run(image_name=image_name)
             cmd = ContainerCommand(org=f"jscodeshift -p -s -d -t /js-fn-rearrange/transforms/outputFnBoundary.js {raw_files_path}")
             self.container_handler.run_cmds(container.id, [cmd])
             self.container_handler.stop(container)

@@ -61,7 +61,6 @@ class SamplingHandler(PluginHandler):
             stratified_column: str = None, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
-
             :param only_single: flag for considering only single unsafe functions in a file
             :param only_multiple: flag for considering only multiple unsafe functions in a file
         """

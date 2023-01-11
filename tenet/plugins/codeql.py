@@ -69,7 +69,6 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             **kwargs) -> Union[pd.DataFrame, None]:
         """
             run CodeQL and extracts the labels from its report
-
             :param dataset: dataset with diff blocks
             :param image_name: name of the CodeQL image
             :param language: programming language of target code to scan
@@ -94,7 +93,7 @@ class CodeQLExtractLabelsHandler(PluginHandler):
 
         if not report_file.exists():
             # TODO: fix the node name
-            container = self.container_handler.run(image_name=image_name, node_name=self.node.name)
+            container = self.container_handler.run(image_name=image_name)
             language = self.parse_language(language)
             cwes = [self.parse_cwe(cwe) for cwe in target_cwes]
             create_cmd = ContainerCommand(org=f"codeql database create {codeql_db_path}")

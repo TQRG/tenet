@@ -104,7 +104,7 @@ class CodeBERTHandler(PluginHandler):
         val_offset_file = str(val_offset_file).replace(str(self.app.workdir), str(self.app.bind))
         test_offset_file = str(test_offset_file).replace(str(self.app.workdir), str(self.app.bind))
 
-        container = self.container_handler.run(image_name=image_name, node_name=self.node.name)
+        container = self.container_handler.run(image_name=image_name)
 
         default = f"python3 /code_bert/codebert.py --gpus {gpus} --max_epochs {max_epochs}"
         default = f"{default} --train_dataset_file {train_lines_path} --validation_dataset_file {val_lines_path}"

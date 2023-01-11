@@ -20,19 +20,21 @@ class Transform(PluginHandler):
         label = "transform"
 
     def __init__(self, **kw):
-        super().__init__(**kw)
-        self.files_path = None
-        self.real = None
-        self.snippet = None
-        self.fix = None
-        self.clean_files_dir: Path = None
-
-    def run(self, dataset: pd.DataFrame, real: bool = False, fix: bool = False, snippet: bool = False) \
-            -> Union[pd.DataFrame, None]:
         """
             runs the plugin
             Args:
-            real (bool): flag to add the other parts of file as non-vuln snippets
+            fix (bool): flag to add fix file
+            snippet (bool): flag to transform samples to snippet granularity
+        """
+        super().__init__(**kw)
+        self.files_path = None
+        self.fix = False
+        self.clean_files_dir: Path = None
+
+    def run(self, dataset: pd.DataFrame, fix: bool = False) -> Union[pd.DataFrame, None]:
+        """
+            runs the plugin
+            Args:
             fix (bool): flag to add fix file
             snippet (bool): flag to transform samples to snippet granularity
         """
@@ -40,9 +42,7 @@ class Transform(PluginHandler):
         self.clean_files_dir = Path(self.path, 'files')
         check_or_create_dir(self.clean_files_dir)
         self.set('clean_files_path', self.clean_files_dir)
-        self.real = real
         self.fix = fix
-        self.snippet = snippet
 
         for row in tqdm(dataset.to_dict(orient='records')):
             self.multi_task_handler.add(row=row)
