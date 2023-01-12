@@ -13,19 +13,22 @@ class MergeSources(PluginHandler):
     class Meta:
         label = "merge_sources"
 
-    def run(self, 
-            dataset: pd.DataFrame, 
-            **kwargs) -> Union[pd.DataFrame, None]:
+    def run(self, dataset: pd.DataFrame, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
-        print(kwargs['nvd_path'])
-        print(kwargs['osv_path'])
-        df_osv = pd.read_csv(f"{self.app.bind}/{kwargs['osv_path']}")
-        df_nvd = pd.read_csv(f"{self.app.bind}/{kwargs['nvd_path']}")
-        df = pd.concat([df_osv, df_nvd], ignore_index=True)
-        self.app.log.info(f"Total number of entries: {len(df)}")
-        return df
+        sources = [connector.source for connector in self.get_sinks().values() if 'dataset' in connector.links]
+
+        if sources:
+            dataset_paths = [self.app.executed_edges[s].output for s in sources if s in self.app.executed_edges]
+            datasets = [pd.read_csv(d, index_col=False) for d in dataset_paths]
+
+            if datasets:
+                df = pd.concat(datasets, ignore_index=True)
+                self.app.log.info(f"Total number of entries: {len(df)}")
+                return df
+
+        return None
    
 
 def load(app):

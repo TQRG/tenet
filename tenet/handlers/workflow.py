@@ -1,16 +1,15 @@
+from typing import Tuple
+
 import pandas as pd
-import pandas.errors
 import tqdm
-import traceback
-import csv 
 
 from cement import Handler
 from pathlib import Path
 
 from tenet.core.exc import Skip, TenetError
 from tenet.core.interfaces import HandlersInterface
-from tenet.data.schema import Edge, Plugin
-from tenet.handlers.plugin import PluginHandler
+from tenet.data.schema import Edge
+from collections import OrderedDict
 
 
 class WorkflowHandler(HandlersInterface, Handler):
@@ -23,14 +22,14 @@ class WorkflowHandler(HandlersInterface, Handler):
 
     def __init__(self, **kw):
         super().__init__(**kw)
-        self.traversal = {}
+        self.traversal = OrderedDict()
 
-    def load(self, dataset_path: Path):
+    def load(self, workflow_name, dataset_path: Path, layers: list):
         """
             Loads and initializes plugins
         """
-
-        for node, edge in tqdm.tqdm(self.app.pipeline.walk(), desc="Initializing plugins", colour='blue'):
+        self.app.log.info(f"Loading {layers} layers for {workflow_name} workflow")
+        for node, edge in tqdm.tqdm(self.app.pipeline.walk(layers), desc="Initializing plugins", colour='blue'):
             if not edge:
                 edge = Edge(name=node.name, node=node.name)
 
@@ -44,50 +43,56 @@ class WorkflowHandler(HandlersInterface, Handler):
             self.traversal[edge.name] = node_handler
 
         self.app.log.info("Linking nodes")
-        connectors = self.app.pipeline.link(self.traversal)
-        self.app.extend('connectors', connectors)
-
-    def __call__(self, dataset_path: Path):
-        dataframe = pd.read_csv(str(dataset_path), sep='\t' if dataset_path.suffix == '.tsv' else ',')
         # Instantiates the connectors for the nodes
+        if hasattr(self.app, 'connectors'):
+            self.app.connectors = self.app.pipeline.link(workflow_name, self.app.executed_edges, self.app.connectors)
+        else:
+            self.app.extend('connectors', self.app.pipeline.link(workflow_name, self.traversal))
 
-        if dataframe is None:
-            self.app.log.error(f"Could not load dataset. Not found.")
-            exit(1)
+    def __call__(self, dataset_path: Path) -> Tuple[pd.DataFrame, Path]:
+        dataframe = pd.read_csv(str(dataset_path), sep='\t' if dataset_path.suffix == '.tsv' else ',')
 
-        for _, node_handler in tqdm.tqdm(self.traversal.items(), desc="Executing pipeline", colour='green'):
+        if dataframe.empty:
+            raise TenetError(f"Dataset is empty.")
+
+        while tqdm.tqdm(self.traversal, desc="Executing pipeline", colour='green'):
+            node_name, node_handler = self.traversal.popitem(last=False)
+
             self.app.log.info(f"Running node {node_handler}")
 
             if node_handler.is_skippable:
                 self.app.log.info(f"{node_handler.edge.name}: dataset {node_handler.output} exists.")
                 dataframe = pd.read_csv(node_handler.output)
-                self.app.log.info(f"{node_handler.edge.name} plotting...")
+                dataset_path = node_handler.output
+
                 if not self.app.pargs.suppress_plot:
+                    self.app.log.info(f"{node_handler.edge.name} plotting...")
                     node_handler.plot(dataframe)
-                continue
+            else:
+                kwargs = node_handler.node.kwargs.copy()
 
-            kwargs = node_handler.node.kwargs.copy()
+                if node_handler.edge.kwargs:
+                    kwargs.update(node_handler.edge.kwargs)
 
-            if node_handler.edge.kwargs:
-                kwargs.update(node_handler.edge.kwargs)
+                try:
+                    dataframe = node_handler.run(dataset=dataframe, **kwargs)
+                    dataset_path = node_handler.output
 
-            try:
-                dataframe = node_handler.run(dataset=dataframe, **kwargs)
+                    if dataframe is not None:
+                        dataframe.to_csv(str(node_handler.output), index=False)
+                        self.app.log.info(f"Saving dataset {node_handler.output}.")
+                    else:
+                        raise TenetError(f"Node {node_handler} returned no dataframe. Stopping execution.")
+                    if not self.app.pargs.suppress_plot:
+                        node_handler.plot(dataframe)
+                except Skip as se:
+                    self.app.log.warning(f"{se} Skipping {node_handler}.")
+                    dataframe = node_handler.load_dataset()
+                    dataset_path = node_handler.output
 
-                if dataframe is not None:
-                    dataframe.to_csv(str(node_handler.output), index=False)
-                    self.app.log.warning(f"Saving dataset {node_handler.output}.")
-                else:
-                    self.app.log.warning(f"Node {node_handler} returned no dataframe. Stopping execution.")
-                    break
-                if not self.app.pargs.suppress_plot:
-                    node_handler.plot(dataframe)
-            except Skip as se:
-                self.app.log.warning(f"{se} Skipping {node_handler}.")
-                dataframe = node_handler.load_dataset()
-                if not self.app.pargs.suppress_plot:
-                    node_handler.plot(dataframe)
-                continue
-            except TenetError:
-                self.app.log.error(f"Plugin '{node_handler.node.name}' raised exception with {traceback.format_exc()}\nStopped execution.")
-                exit(1)
+                    if not self.app.pargs.suppress_plot:
+                        node_handler.plot(dataframe)
+
+            self.app.executed_edges[node_name] = node_handler
+
+        return dataframe, dataset_path

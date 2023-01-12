@@ -2,16 +2,11 @@ import re
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, AnyStr, Any, Tuple, Union, Callable
+from typing import Dict, Any, Tuple, Callable
 from schema import Schema, And, Use, Optional, Or
 
 from tenet.core.exc import TenetError
 from tenet.utils.misc import random_id
-
-_container = Schema(
-    And({'name': str, 'image': str, Optional('output', default=None): str,
-         'cmds': Schema(And([str], Use(lambda cmds: [ContainerCommand(org=cmd) for cmd in cmds])))},
-        Use(lambda c: Container(**c))))
 
 _plugin = Schema(
     And({'name': str, Optional('kwargs', default={}): dict},
@@ -28,10 +23,12 @@ _layers = Schema(And({str: _edges}, Use(lambda l: {k: Layer(edges=v) for k, v in
 
 _nodes = Schema(
     And(
-        [Or({'container': _container}, {'plugin': _plugin})],
+        [{'plugin': _plugin}],
         Use(lambda n: {v.name: v for el in n for k, v in el.items()})
     )
 )
+
+_workflows = Schema(And({str: list}, Use(lambda w: {k: v for k, v in w.items()})))
 
 
 @dataclass
@@ -156,43 +153,10 @@ class ContainerCommand:
 
 
 @dataclass
-class Container:
-    """
-        Docker container
-    """
-    name: str
-    image: str
-    cmds: List[ContainerCommand]
-    output: str
-
-    def find_placeholders(self, skip: bool = True):
-        """
-            Looks up for and returns the placeholders in the commands.
-        """
-        matches = []
-
-        def match_placeholder(string: str):
-            match = re.findall("\{(p\d+)\}", string)
-
-            if match:
-                matches.extend(match)
-
-            return match
-
-        for cmd in self.cmds:
-            if match_placeholder(cmd.org):
-                cmd.skip = skip
-
-        match_placeholder(str(self.output))
-
-        return set(matches)
-
-
-@dataclass
 class Layer:
     edges: Dict[str, Edge]
 
-    def traverse(self, nodes: Dict[str, Union[Plugin, Container]]):
+    def traverse(self, nodes: Dict[str, Plugin]):
         return [(nodes[edge.node], edge) for edge in self.edges.values()]
 
 
@@ -252,10 +216,10 @@ class Pipeline:
     """
     layers: dict
     nodes: dict
-    workflow: list
+    workflows: dict
 
-    def unpack(self):
-        return {name: edge for l_name, layer in self.layers.items() if l_name in self.workflow for name, edge in layer.edges.items()}
+    def unpack(self, workflow: str):
+        return {name: edge for l_name, layer in self.layers.items() if l_name in self.workflows[workflow] for name, edge in layer.edges.items()}
 
     def match(self, placeholders: list, sink_attrs: list):
         """
@@ -266,30 +230,28 @@ class Pipeline:
                 return False
         return True
 
-    def link(self, node_handlers: dict) -> Connectors:
+    def link(self, workflow: str, node_handlers: dict, connectors: Connectors = None) -> Connectors:
         """
             creates the respective connectors
         """
-        connectors = Connectors()
-        sources = {}
+        if connectors is None:
+            connectors = Connectors()
+            sources = {}
+        else:
+            sources = connectors.sources.copy()
 
-        for _, edge in self.unpack().items():
+        for _, edge in self.unpack(workflow).items():
             if edge.sources:
                 if edge.name not in connectors.sources:
                     connectors.sources[edge.name] = {}
 
                 # If node has attributes, init connector with the value of the attributes
-                sources[edge.name] = {attr: getattr(node_handlers[edge.name], attr, None) for attr in edge.sources}
+                if edge.name in sources:
+                    sources[edge.name] = {attr: getattr(node_handlers[edge.name], attr, None) for attr in edge.sources}
 
             for source, links in edge.sinks.items():
                 if source == edge.name:
-                    if isinstance(self.nodes[edge.node], Container):
-                        placeholders = self.nodes[edge.node].find_placeholders(skip=False)
-
-                        if not self.match(placeholders, list(links.values())):
-                            raise ValueError(f"Placeholders are not matching attributes in the container commands.")
-                    else:
-                        raise ValueError(f"Plugin {source} cannot reference itself.")
+                    raise ValueError(f"Plugin {source} cannot reference itself.")
 
                 if source not in sources:
                     raise TenetError(f"source {source} must be defined before sink {edge.name}")
@@ -305,14 +267,14 @@ class Pipeline:
 
         return connectors
 
-    def walk(self):
+    def walk(self, layers: list):
         """
             Walks the edges and returns list with the traversal. Initializes edge connectors.
         """
         # TODO: traversal include parallel execution
         traversal = []
 
-        for el in self.workflow:
+        for el in layers:
             if el in self.layers:
                 traversal.extend(self.layers[el].traverse(self.nodes))
             elif el in self.nodes:
@@ -331,5 +293,5 @@ def parse_pipeline(yaml: dict) -> Pipeline:
         :return: Pipeline object
     """
 
-    return Schema(And({'nodes': _nodes, 'layers': _layers, 'workflow': list},
+    return Schema(And({'nodes': _nodes, 'layers': _layers, 'workflows': _workflows},
                       Use(lambda pipe: Pipeline(**pipe)))).validate(yaml)

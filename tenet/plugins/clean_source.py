@@ -14,8 +14,8 @@ class CleanSource(PluginHandler):
     class Meta:
         label = "clean_source"
 
-    def run(self, dataset: pd.DataFrame, projects_blacklist: list = None, dataset_name: str = None,
-            drop_multi_cwe: bool = False, drop_unk_cwe: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
+    def run(self, dataset: pd.DataFrame, projects_blacklist: list = None, drop_multi_cwe: bool = False,
+            drop_unk_cwe: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """Cleans and filters the sources
         dataset.
         Args:
@@ -57,9 +57,6 @@ class CleanSource(PluginHandler):
         for i, row in df.iterrows():
             df.at[i, 'bf_class'], df.at[i, 'operation'] = self.cwe_list_handler.find_bf_class(row['cwe_id'])
 
-        if dataset_name is None:
-            dataset_name = self.output.stem
-
         # remove deprecated repo
         for proj in projects_blacklist:
             df = df[~df['commit_href'].str.contains(proj)]
@@ -67,7 +64,7 @@ class CleanSource(PluginHandler):
         cols = ["vuln_id", "cwe_id", "dataset", "score", "published_date", "project_url", "commit_href", "commit_sha",
                 "before_first_fix_commit", "last_fix_commit", "commit_datetime", "files", 'language', 'bf_class', 'operation']
 
-        df['dataset'] = [dataset_name] * len(df)
+        #df['dataset'] = [dataset_name] * len(df)
         return df[cols]
 
     @staticmethod

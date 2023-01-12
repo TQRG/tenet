@@ -47,8 +47,11 @@ class NodeHandler(PluginsInterface, Handler):
         try:
             return self.app.connectors[self.edge.name, attr]
         except KeyError as ke:
-            self.app.log.warning(ke)
+            self.app.log.warning(f"Key {ke} not found for edge {self.edge.name}")
             return default
+
+    def get_sinks(self):
+        return self.app.connectors.sinks[self.edge.name]
 
     def set(self, attr: str, value: Any, skip: bool = True):
         self.app.connectors[self.edge.name, attr] = value

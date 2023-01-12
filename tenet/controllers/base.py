@@ -59,8 +59,8 @@ class Base(Controller):
             self.app.workdir.mkdir(parents=True)
             self.app.log.info(f"Created workdir {self.app.workdir}")
 
-        dataset = self._parse_dataset()
-        pipeline = self._parse_pipeline()
+        dataset_path = self._parse_dataset_path()
+        pipeline_path = self._parse_pipeline_path()
 
         self.app.threads = self.app.pargs.threads if self.app.pargs.threads else self.app.get_config('local_threads')
 
@@ -74,23 +74,25 @@ class Base(Controller):
         #if not os.path.exists(self.app.bind):
         #    self.app.log.error(f"Bind path {self.app.bind} is not a valid directory path.")
         #    exit(1)
+        self.app.extend('executed_edges', {})
 
-        with pipeline.open(mode="r") as stream:
+        with pipeline_path.open(mode="r") as stream:
             try:
-                self.app.log.info(f"Parsing pipeline file: {pipeline}")
+                self.app.log.info(f"Parsing pipeline file: {pipeline_path}")
                 pipeline = parse_pipeline(yaml.safe_load(stream))
+                self.app.extend('pipeline', pipeline)
             except schema.SchemaError as se:
-                self.app.log.error(str(se))
-                exit(1)
+                raise TenetError(str(se))
 
-            self.app.extend('pipeline', pipeline)
             workflow_handler = self.app.handler.get('handlers', 'workflow', setup=True)
-            workflow_handler.load(dataset)
-            workflow_handler(dataset)
+            for name, layers in pipeline.workflows.items():
+                # todo: check if this path is necessary
+                workflow_handler.load(name, dataset_path, layers)
+                dataset, dataset_path = workflow_handler(dataset_path)
 
-    def _parse_dataset(self) -> Path:
+    def _parse_dataset_path(self) -> Path:
         if self.app.pargs.dataset:
-            dataset = Path(self.app.pargs.dataset)
+            dataset_path = Path(self.app.pargs.dataset)
         else:
             dataset_files = [f for f in Path(self.app.pargs.workdir).iterdir() if f.suffix in ['.csv', '.tsv']]
 
@@ -98,37 +100,37 @@ class Base(Controller):
                 raise TenetError('No dataset file found in the specified working directory')
             elif len(dataset_files) == 1:
                 self.app.log.info(f"Using {dataset_files[0]} as dataset...")
-                dataset = Path(dataset_files[0])
+                dataset_path = Path(dataset_files[0])
             else:
                 option = [
                     inquirer.List('dataset', message="Select the dataset you want to use:", choices=dataset_files,
                                   ),
                 ]
                 answer = inquirer.prompt(option)
-                dataset = Path(answer["dataset"])
+                dataset_path = Path(answer["dataset"])
 
-        if not dataset.exists():
-            raise TenetError(f"Dataset {dataset} not found.")
+        if not dataset_path.exists():
+            raise TenetError(f"Dataset {dataset_path} not found.")
 
-        return dataset
+        return dataset_path
 
-    def _parse_pipeline(self) -> Path:
+    def _parse_pipeline_path(self) -> Path:
         if self.app.pargs.file:
-            pipeline = Path(self.app.pargs.file)
+            pipeline_path = Path(self.app.pargs.file)
         else:
             pipeline_files = [f for f in Path(self.app.pargs.workdir).iterdir() if f.suffix in ['.yml', '.yaml']]
             if len(pipeline_files) == 0:
                 raise TenetError('No pipeline file found in the specified working directory')
             elif len(pipeline_files) == 1:
                 self.app.log.info(f"Using {pipeline_files[0]} as pipeline...")
-                pipeline = Path(pipeline_files[0])
+                pipeline_path = Path(pipeline_files[0])
             else:
                 option = [inquirer.List('pipeline_files', message="Select the pipeline you want to run:",
                                         choices=pipeline_files)]
                 answer = inquirer.prompt(option)
-                pipeline = Path(answer["pipeline_files"])
+                pipeline_path = Path(answer["pipeline_files"])
 
-        if not pipeline.exists():
-            raise TenetError(f"File {pipeline} not found.")
+        if not pipeline_path.exists():
+            raise TenetError(f"File {pipeline_path} not found.")
 
-        return pipeline
+        return pipeline_path

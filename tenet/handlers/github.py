@@ -330,7 +330,7 @@ class GithubHandler(HandlersInterface, Handler):
         num_paths = len(diff_path_bound)
         diff_path_bound.append(len(lines))
         blocks = []
-
+        # TODO: we want this too be more flexible, adapt
         extensions = extensions if extensions else self.app.get_config('proj_ext')
 
         for path_id in range(num_paths):
