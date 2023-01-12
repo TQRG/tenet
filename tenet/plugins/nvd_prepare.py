@@ -19,11 +19,13 @@ class NVDPrepare(PluginHandler):
         label = "nvd_prepare"
 
     def run(self, dataset: pd.DataFrame, tokens: Union[str, list] = None, metadata: bool = True, language: bool = True,
-            extension: bool = True, include_comments: bool = True, **kwargs) -> Union[pd.DataFrame, None]:
+            extension: bool = True, include_comments: bool = True, drop_patch: bool = True, **kwargs) \
+            -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
-        metadata_path = self.path / f'{self.output.stem}_metadata.csv'
+        metadata_path = self.path / 'metadata'
+        #f'{self.output.stem}_metadata.csv'
         self.set('metadata_path', metadata_path)
         df_normalized_path = self.path / f'{self.output.stem}_normalized.csv'
         self.set('normalized_path', df_normalized_path)
@@ -34,6 +36,7 @@ class NVDPrepare(PluginHandler):
                                                   'description': 'summary', 'impact': 'score'})
             dataset = dataset[['vuln_id', 'cwe_id', 'score', 'chain', 'summary', 'published_date']]
             dataset['dataset'] = "NVD"
+            dataset['has_metadata'] = False
             dataset = self.normalize(dataset)
 
             for idx, row in tqdm(dataset.iterrows()):
@@ -56,21 +59,18 @@ class NVDPrepare(PluginHandler):
         self.app.log.info(f"Size after normalization: {len(dataset)}")
 
         if metadata:
-            if not metadata_path.exists():
-                del self.multi_task_handler
-                for project, rows in tqdm(dataset.groupby(['project'])):
-                    self.multi_task_handler.add(project=project, chains=rows['chain'].to_list(), indexes=rows.index,
-                                                include_comments=include_comments, commits=rows['commit_sha'].to_list())
+            del self.multi_task_handler
+            for project, rows in tqdm(dataset.groupby(['project'])):
+                self.multi_task_handler.add(project=project, chains=rows['chain'].to_list(), indexes=rows.index,
+                                            include_comments=include_comments, commits=rows['commit_sha'].to_list(),
+                                            save_path=metadata_path, drop_patch=drop_patch)
 
-                self.multi_task_handler(func=self.github_handler.get_project_metadata)
-                try:
-                    metadata_df = pd.concat(self.multi_task_handler.results())
-                    metadata_df.to_csv(str(metadata_path))
-                except ValueError as ve:
-                    self.app.log.error(ve)
-                    return None
-            else:
-                metadata_df = pd.read_csv(str(metadata_path))
+            self.multi_task_handler(func=self.github_handler.get_project_metadata)
+            try:
+                metadata_df = pd.concat(self.multi_task_handler.results())
+            except ValueError as ve:
+                self.app.log.error(ve)
+                return None
 
             dataset.drop(columns=['commit_sha'], inplace=True)
             dataset = pd.merge(dataset, metadata_df, left_index=True, right_index=True)
