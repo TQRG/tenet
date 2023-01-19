@@ -28,15 +28,20 @@ class Generate(PluginHandler):
         self.early_stopping_limit = None
         self.skip_search = None
 
-    def run(self, dataset: pd.DataFrame, scenario: str = 'fix', augment: int = None, tokens: list = None,
-            target_files_factor: int = 3, languages: list = None,  max_commits: int = None, skip_search: bool = False,
+    def set_sources(self):
+        pass
+
+    def get_sinks(self):
+        pass
+
+    def run(self, dataset: pd.DataFrame, scenario: str = 'fix', augment: int = None, target_files_factor: int = 3,
+            languages: list = None,  max_commits: int = None, skip_search: bool = False,
             **kwargs) -> Union[pd.DataFrame, None]:
         """Generates sampling strategy
         Args:
             scenario (str): one of the following scenarios fix, random, controlled
             languages (list): list of target programming languages
             augment (int): factor for augmenting the negative classes in the dataset
-            tokens (list): GitHub API tokens
             skip_search (bool): flag to skip the search for the negative samples
             max_commits (int): limit of commits to search
             target_files_factor (int): the factor used to gather target files for the negative dataset,
@@ -61,8 +66,6 @@ class Generate(PluginHandler):
         self.target_files_factor = target_files_factor
         self.max_commits = max_commits
 
-        # TODO: pass through command line
-        self.github_handler.tokens = tokens
         # TODO: other scenarios should extend fix scenario
         fix_scn = self.sampling_handler.get_scenario(dataset, scenario='fix', extension=self.extensions)
         self.app.log.info(f"Generating fix scenario...")

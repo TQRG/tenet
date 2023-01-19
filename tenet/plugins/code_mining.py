@@ -23,6 +23,19 @@ class CodeMining(PluginHandler):
         self.max_features: int = 1000
         self.vectorizer_type: str = 'tfidf'
 
+    def set_sources(self):
+        if 'vectorizer_type' in self.node.kwargs:
+            self.vectorizer_type = self.node.kwargs['vectorizer_type']
+
+        self.set('train_sparse_matrix_path', self.path / f"{self.vectorizer_type}_{self.output.stem}_train_features_sparse.npz")
+        self.set('test_sparse_matrix_path', self.path / f"{self.vectorizer_type}_{self.output.stem}_test_features_sparse.npz")
+        self.set('train_labels_path', self.path / f"{self.output.stem}_train_labels.csv")
+        self.set('test_labels_path', self.path / f"{self.output.stem}_test_labels.csv")
+
+    def get_sinks(self):
+        self.get('train_data_path')
+        self.get('test_data_path')
+
     def run(self, dataset: pd.DataFrame, max_features: int = 1000, vectorizer_type: str = 'tfidf',
             drop_ratio: float = None, drop_tag: str = None, remove_comments: bool = False, **kwargs) \
             -> Union[pd.DataFrame, None]:
@@ -32,38 +45,14 @@ class CodeMining(PluginHandler):
         self.max_features = max_features
         self.vectorizer_type = vectorizer_type
 
-        dataset_name = self.output.stem
-        train_vectorizer_model_path = Path(self.path, f"bow_{vectorizer_type}_{dataset_name}_train.model")
-        test_vectorizer_model_path = Path(self.path, f"bow_{vectorizer_type}_{dataset_name}_test.model")
-        train_vocabulary_path = Path(self.path, f"bow_{vectorizer_type}_{dataset_name}_train_vocab.txt")
-        test_vocabulary_path = Path(self.path, f"bow_{vectorizer_type}_{dataset_name}_test_vocab.txt")
-        train_sparse_matrix_path = Path(self.path, f"{vectorizer_type}_{dataset_name}_train_features_sparse.npz")
-        test_sparse_matrix_path = Path(self.path, f"{vectorizer_type}_{dataset_name}_test_features_sparse.npz")
-        train_labels_path = Path(self.path, f"{dataset_name}_train_labels.csv")
-        test_labels_path = Path(self.path, f"{dataset_name}_test_labels.csv")
-
-        # TODO: fix this
-        #self.set('train_tokenizer_model_path', train_vectorizer_model_path)
-        #self.set('test_tokenizer_model_path', test_vectorizer_model_path)
-        self.set('train_sparse_matrix_path', train_sparse_matrix_path)
-        self.set('test_sparse_matrix_path', test_sparse_matrix_path)
-        self.set('train_labels_path', train_labels_path)
-        self.set('test_labels_path', test_labels_path)
-
-        train_data_path = self.get('train_data_path')
-        test_data_path = self.get('test_data_path')
-
-        if not train_data_path:
-            self.app.log.error(f"Train data path not instantiated")
-            return None
-
-        if not test_data_path:
-            self.app.log.error(f"Test data path not instantiated")
-            return None
+        train_vectorizer_model_path = Path(self.path, f"bow_{vectorizer_type}_{self.output.stem}_train.model")
+        test_vectorizer_model_path = Path(self.path, f"bow_{vectorizer_type}_{self.output.stem}_test.model")
+        train_vocabulary_path = Path(self.path, f"bow_{vectorizer_type}_{self.output.stem}_train_vocab.txt")
+        test_vocabulary_path = Path(self.path, f"bow_{vectorizer_type}_{self.output.stem}_test_vocab.txt")
 
         # get test/train data
-        train_data = pd.read_csv(str(train_data_path))
-        test_data = pd.read_csv(str(test_data_path))
+        train_data = pd.read_csv(str(self.sinks['train_data_path']))
+        test_data = pd.read_csv(str(self.sinks['test_data_path']))
 
         if drop_ratio and 'tag' in train_data and drop_tag in train_data['tag'].unique():
             if drop_ratio < 1:
@@ -92,8 +81,8 @@ class CodeMining(PluginHandler):
         x_test = test_data.input.to_numpy()
 
         # save labels
-        train_data.label.to_csv(str(train_labels_path))
-        test_data.label.to_csv(str(test_labels_path))
+        train_data.label.to_csv(str(self.sources['train_labels_path']))
+        test_data.label.to_csv(str(self.sources['test_labels_path']))
 
         #if model:
         #    features = apply_model(vectorizer, sentences, model_path=model)
@@ -120,8 +109,8 @@ class CodeMining(PluginHandler):
         self.app.log.info(f"Train features shape: {train_features.shape}")
         self.app.log.info(f"Test features shape: {test_features.shape}")
 
-        save_npz(str(train_sparse_matrix_path), train_features)
-        save_npz(str(test_sparse_matrix_path), test_features)
+        save_npz(str(self.sources['train_sparse_matrix_path']), train_features)
+        save_npz(str(self.sources['test_sparse_matrix_path']), test_features)
 
         return dataset
 

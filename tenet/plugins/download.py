@@ -19,18 +19,19 @@ class Download(PluginHandler):
 
     def __init__(self, **kw):
         super().__init__(**kw)
-        self.files_dir: Path = None
 
-    def run(self, dataset: pd.DataFrame, tokens: list = None) -> Union[pd.DataFrame, None]:
+    def set_sources(self):
+        self.set('dataset', self.output)
+        self.set('files_path', Path(self.path, 'files'))
+
+    def get_sinks(self):
+        pass
+
+    def run(self, dataset: pd.DataFrame, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
-        self.files_dir = Path(self.path, 'files')
-        check_or_create_dir(self.files_dir)
-        self.set('files_path', self.files_dir)
-        self.github_handler.tokens = tokens
-        self.set('dataset', self.output)
-
+        check_or_create_dir(self.sources['files_path'])
         self.app.log.info(f"Creating {len(dataset)} tasks.")
 
         for row in tqdm(dataset.to_dict(orient='records')):
@@ -45,7 +46,7 @@ class Download(PluginHandler):
         return None
 
     def download(self, row: dict):
-        project_path = self.files_dir / row['project_name']
+        project_path = self.sources['files_path'] / row['project_name']
         if 'raw_url_vuln' in row and not pd.isnull(row['raw_url_vuln']):
             vuln_file = LocalGitFile(url=row['raw_url_vuln'], short=Path(row['file_path']), tag='vuln',
                                      path=project_path / row['vuln_commit_hash'] / row['file_path'])

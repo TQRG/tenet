@@ -185,6 +185,10 @@ class GithubHandler(HandlersInterface, Handler):
     @property
     def git_api(self):
         with self.lock:
+            if not self._tokens:
+                tokens = self.app.pargs.tokens.split(',')
+                self._tokens = deque(tokens, maxlen=len(tokens))
+
             if not self._git_api:
                 self._git_api = Github(self._tokens[0])
                 self._tokens.rotate(-1)
@@ -203,18 +207,6 @@ class GithubHandler(HandlersInterface, Handler):
     def git_api(self):
         with self.lock:
             self._git_api = None
-
-    @property
-    def tokens(self):
-        self._tokens.rotate(-1)
-        return self._tokens[0]
-
-    @tokens.setter
-    def tokens(self, value: Union[str, list]):
-        if isinstance(value, str):
-            value = [value]
-
-        self._tokens = deque(value, maxlen=len(value))
 
     @staticmethod
     def parse_commit_sha(commit_sha: Union[list, str]) -> list:
@@ -418,10 +410,15 @@ class GithubHandler(HandlersInterface, Handler):
     def get_commit_comments(self, commit: Commit, raise_err: bool = False) -> dict:
         comments, count = {}, 1
         err_msg = None
-        commit_comments = []
 
         try:
-            commit_comments = commit.get_comments()
+            for comment in commit.get_comments():
+                comments[f'com_{count}'] = {
+                    'author': comment.user.login,
+                    'datetime': comment.created_at.strftime("%m/%d/%Y, %H:%M:%S"),
+                    'body': comment.body.strip()
+                }
+                count += 1
         except RateLimitExceededException as rle:
             err_msg = f"Rate limit exhausted: {rle}"
         #except Exception:
@@ -432,14 +429,6 @@ class GithubHandler(HandlersInterface, Handler):
                 raise TenetError(err_msg)
 
             self.app.log.error(err_msg)
-        # TODO: add check for rate limit
-        for comment in commit_comments:
-            comments[f'com_{count}'] = {
-                'author': comment.user.login,
-                'datetime': comment.created_at.strftime("%m/%d/%Y, %H:%M:%S"),
-                'body': comment.body.strip()
-            }
-            count += 1
 
         return comments
 

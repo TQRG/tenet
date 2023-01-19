@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Union
 from tqdm import tqdm
 
+from tenet.core.exc import TenetError
 from tenet.data.diff import FunctionBoundary, InlineDiff
 from tenet.data.schema import ContainerCommand
 from tenet.handlers.plugin import PluginHandler
@@ -23,23 +24,23 @@ class JSCodeShiftHandler(PluginHandler):
         self.fn_boundaries = None
         self.add_labelled_nulls = None
 
+    def set_sources(self):
+        self.set('dataset_path', self.output)
+        self.set('fn_boundaries_file', self.path / 'output.txt')
+
+    def get_sinks(self):
+        self.get('raw_files_path')
+
     def run(self, dataset: pd.DataFrame, image_name: str = "jscodeshift", single_unsafe_fn: bool = False,
             add_labelled_nulls: str = None, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
         self.add_labelled_nulls = add_labelled_nulls
-        self.fn_boundaries_file = (self.path / 'output.txt')
-        self.set('fn_boundaries_file', self.fn_boundaries_file)
-        self.set('dataset_path', self.output)
 
-        if not self.get('raw_files_path'):
-            self.app.log.warning(f"raw files path not instantiated.")
-            return None
+        raw_files_path = Path(str(self.sinks['raw_files_path']).replace(str(self.app.workdir), str(self.app.bind)))
 
-        raw_files_path = Path(str(self.get('raw_files_path')).replace(str(self.app.workdir), str(self.app.bind)))
-
-        if not self.fn_boundaries_file.exists():
+        if not self.sources['fn_boundaries_file'].exists():
             # TODO: fix the node name
             container = self.container_handler.run(image_name=image_name)
             cmd = ContainerCommand(org=f"jscodeshift -p -s -d -t /js-fn-rearrange/transforms/outputFnBoundary.js {raw_files_path}")
@@ -47,20 +48,18 @@ class JSCodeShiftHandler(PluginHandler):
             self.container_handler.stop(container)
 
         try:
-            if not self.fn_boundaries_file.exists():
-                self.app.log.error(f"jscodeshift output file {self.fn_boundaries_file} not found")
-                return None
+            if not self.sources['fn_boundaries_file'].exists():
+                raise TenetError(f"jscodeshift output file {self.sources['fn_boundaries_file']} not found")
 
-            if not self.fn_boundaries_file.stat().st_size > 0:
-                self.app.log.error(f"jscodeshift output file {self.fn_boundaries_file} is empty")
-                return
+            if not self.sources['fn_boundaries_file'].stat().st_size > 0:
+                raise TenetError(f"jscodeshift output file {self.sources['fn_boundaries_file']} is empty")
 
         except TypeError as te:
             self.app.log.error(te)
             self.app.log.warning(f"jscodeshift output file not instantiated.")
             return None
 
-        outputs = self.fn_boundaries_file.open(mode='r').readlines()
+        outputs = self.sources['fn_boundaries_file'].open(mode='r').readlines()
         self.fn_boundaries = {}
         raw_files_path = str(raw_files_path).replace(str(self.app.workdir), str(self.app.bind))
 

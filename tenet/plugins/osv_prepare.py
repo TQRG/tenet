@@ -18,25 +18,30 @@ class OSVprepare(PluginHandler):
     class Meta:
         label = "osv_prepare"
 
-    def run(self, dataset: pd.DataFrame, tokens: Union[str, list] = None, metadata: bool = True, language: bool = True,
-            extension: bool = True, include_comments: bool = True, drop_patch: bool = True, **kwargs) \
+    def __init__(self, **kw):
+        super().__init__(**kw)
+
+    def set_sources(self):
+        self.set('metadata_path', self.path / 'metadata')
+        self.set('normalized_path', self.path / f'{self.output.stem}_normalized.csv')
+
+    def get_sinks(self):
+        pass
+
+    def run(self, dataset: pd.DataFrame, metadata: bool = True, language: bool = True, extension: bool = True,
+            include_comments: bool = True, drop_patch: bool = True, **kwargs) \
             -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
-        metadata_path = self.path / 'metadata'
-        #f'{self.output.stem}_metadata.csv'
-        self.set('metadata_path', metadata_path)
-        df_normalized_path = self.path / f'{self.output.stem}_normalized.csv'
-        self.set('normalized_path', df_normalized_path)
-        self.github_handler.tokens = tokens
 
-        if not df_normalized_path.exists():
+        if not self.sources['normalized_path'].exists():
             dataset = dataset.rename(columns={'commits': 'chain'})
             dataset['summary'] = dataset.apply(lambda x: join(x['summary'], x['details']), axis=1)
             dataset = dataset[['vuln_id', 'cwe_id', 'score', 'chain', 'summary', 'published_date']]
             dataset['dataset'] = "OSV"
             dataset = self.normalize(dataset)
+
             for idx, row in tqdm(dataset.iterrows()):
                 self.multi_task_handler.add(chain=row['chain']).update_id(idx)
 
@@ -50,9 +55,9 @@ class OSVprepare(PluginHandler):
             self.app.log.info(f"Entries (after nan drop): {len(dataset)}")
 
             dataset = transform_to_commits(dataset)
-            dataset.to_csv(str(df_normalized_path))
+            dataset.to_csv(str(self.sources['normalized_path']))
         else:
-            dataset = pd.read_csv(str(df_normalized_path))
+            dataset = pd.read_csv(str(self.sources['normalized_path']))
 
         self.app.log.info(f"Size after normalization: {len(dataset)}")
 
@@ -61,9 +66,10 @@ class OSVprepare(PluginHandler):
             for project, rows in tqdm(dataset.groupby(['project'])):
                 self.multi_task_handler.add(project=project, chains=rows['chain'].to_list(), indexes=rows.index,
                                             include_comments=include_comments, commits=rows['commit_sha'].to_list(),
-                                            save_path=metadata_path, drop_patch=drop_patch)
+                                            save_path=self.sources['metadata_path'], drop_patch=drop_patch)
 
             self.multi_task_handler(func=self.github_handler.get_project_metadata)
+
             try:
                 metadata_df = pd.concat(self.multi_task_handler.results())
             except ValueError as ve:

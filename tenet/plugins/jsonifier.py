@@ -18,55 +18,45 @@ class JSONifierHandler(PluginHandler):
 
     def __init__(self, **kw):
         super().__init__(**kw)
+        self.jsonlines_files = {}
+        self.offset_files = {}
+
+    def set_sources(self):
+        for name, file in self.sinks.items():
+            if name == 'raw_files_path':
+                continue
+            jsonlines_path = f'{file.stem}_lines'
+            self.jsonlines_files[jsonlines_path] = Path(self.path, f'{file.stem}.jsonl')
+            self.set(jsonlines_path, self.jsonlines_files[jsonlines_path])
+
+        if 'offset' in self.node.kwargs and self.node.kwargs['offset']:
+            for name, file in self.sinks.values():
+                if name == 'raw_files_path':
+                    continue
+                offset_path = f'{file.stem}_offset_path'
+                self.offset_files[offset_path] = Path(self.path, f'{file.stem}_offset_dict.json')
+                self.set(offset_path, self.offset_files[offset_path])
+
+    def get_sinks(self):
+        self.get('train_data_path')
+        self.get('val_data_path')
+        self.get('test_data_path')
+        self.get('raw_files_path')
 
     def run(self, dataset: pd.DataFrame, offset: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
 
-        train_data_path = self.get('train_data_path')
-        val_data_path = self.get('val_data_path')
-        test_data_path = self.get('test_data_path')
-        raw_files_path_str = self.get('raw_files_path')
-
-        if not train_data_path:
-            self.app.log.error(f"Train data path not instantiated")
-            return None
-
-        if not val_data_path:
-            self.app.log.error(f"Val data path not instantiated")
-            return None
-
-        if not test_data_path:
-            self.app.log.error(f"Test data path not instantiated")
-            return None
-
-        if not raw_files_path_str:
-            self.app.log.error(f"Raw files path not instantiated")
-            return None
-
-        raw_files_path = Path(raw_files_path_str)
+        raw_files_path = Path(self.sinks['raw_files_path_str'])
 
         if not raw_files_path.exists():
             self.app.log.warning(f"{raw_files_path} not found")
             return None
 
-        split_files = [train_data_path, val_data_path, test_data_path]
-        jsonlines_files = {}
-        offset_files = {}
-
-        for file in split_files:
-            jsonlines_path = f'{file.stem}_lines'
-            jsonlines_files[jsonlines_path] = Path(self.path, f'{file.stem}.jsonl')
-            self.set(jsonlines_path, jsonlines_files[jsonlines_path])
-
-        if offset:
-            for file in split_files:
-                offset_path = f'{file.stem}_offset_path'
-                offset_files[offset_path] = Path(self.path, f'{file.stem}_offset_dict.json')
-                self.set(offset_path, offset_files[offset_path])
-
-        for jsonlines_file, split_file in zip(jsonlines_files.values(), split_files):
+        for jsonlines_file, (name, split_file) in zip(self.jsonlines_files.values(), self.sinks.items()):
+            if name == 'raw_files_path':
+                continue
             self.app.log.info(f"======== Building JSONLines for {split_file}... ========")
 
             funcs_df = pd.read_csv(split_file)
@@ -79,7 +69,7 @@ class JSONifierHandler(PluginHandler):
                     output_file.write({'code': row.code, 'label': row.label})
 
         if offset:
-            for jsonlines_file, offset_file in zip(jsonlines_files.values(), offset_files.values()):
+            for jsonlines_file, offset_file in zip(self.jsonlines_files.values(), self.offset_files.values()):
                 to_offset(jsonlines_file, offset_file)
 
         return dataset

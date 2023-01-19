@@ -27,9 +27,13 @@ class Transform(PluginHandler):
             snippet (bool): flag to transform samples to snippet granularity
         """
         super().__init__(**kw)
-        self.files_path = None
         self.fix = False
-        self.clean_files_dir: Path = None
+
+    def set_sources(self):
+        self.set('clean_files_path', Path(self.path, 'files'))
+
+    def get_sinks(self):
+        self.get('files_path')
 
     def run(self, dataset: pd.DataFrame, fix: bool = False) -> Union[pd.DataFrame, None]:
         """
@@ -38,10 +42,7 @@ class Transform(PluginHandler):
             fix (bool): flag to add fix file
             snippet (bool): flag to transform samples to snippet granularity
         """
-        self.files_path = self.get('files_path')
-        self.clean_files_dir = Path(self.path, 'files')
-        check_or_create_dir(self.clean_files_dir)
-        self.set('clean_files_path', self.clean_files_dir)
+        check_or_create_dir(self.sources['clean_files_path'])
         self.fix = fix
 
         for row in tqdm(dataset.to_dict(orient='records')):
@@ -58,7 +59,7 @@ class Transform(PluginHandler):
         return None
 
     def get_triplet(self, row: dict) -> Tuple[LocalGitFile, LocalGitFile, LocalGitFile]:
-        project_path = self.files_path / row['project_name']
+        project_path = self.sinks['files_path'] / row['project_name']
 
         if 'raw_url_vuln' in row and not pd.isnull(row['raw_url_vuln']):
             vuln_file = LocalGitFile(url=row['raw_url_vuln'], short=Path(row['file_path']), tag='vuln',
@@ -123,7 +124,7 @@ class Transform(PluginHandler):
         if file is None:
             return None
 
-        clean_file = self.clean_files_dir / project / commit / file.short
+        clean_file = self.sources['clean_files_path'] / project / commit / file.short
 
         if clean_file.exists():
             return clean_file.open(mode='r').read()

@@ -36,57 +36,28 @@ class Code2vecHandler(PluginHandler):
     def __init__(self, **kw):
         super().__init__(**kw)
 
+    def set_sources(self):
+        model_dir = Path(self.app.workdir, Path(self.path).name)
+        self.set('save_path', f"{model_dir}/saved_model")
+
+    def get_sinks(self):
+        self.get('train_data_path')
+        self.get('val_data_path')
+        self.get('test_data_path')
+
     def run(self, dataset: pd.DataFrame, max_contexts: int = 200, emb_size: int = 128, training: bool = True,
             evaluate: bool = True, image_name: str = "code2vec", **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
+        count_labels(self.sinks['train_data_path'], 'train')
+        count_labels(self.sinks['val_data_path'], 'validation')
+        count_labels(self.sinks['test_data_path'], 'test')
 
-        model_dir = Path(self.app.workdir, Path(self.path).name)
-
-        if self.get('save_path'):
-            save_path = self.get('save_path')
-        else:
-            save_path = f"{model_dir}/saved_model"
-
-        self.set('save_path', save_path)
-
-        train_data_path = self.get('train_data_path')
-        val_data_path = self.get('val_data_path')
-        test_data_path = self.get('test_data_path')
-
-        if not train_data_path:
-            self.app.log.warning(f"Train data file not instantiated.")
-            return None
-
-        if not Path(train_data_path).exists():
-            self.app.log.warning(f"Train data file not found.")
-            return None
-
-        if not val_data_path:
-            self.app.log.warning(f"Validation data file not instantiated.")
-            return None
-
-        if not Path(val_data_path).exists():
-            self.app.log.warning(f"Validation data file not found.")
-            return None
-
-        if not test_data_path:
-            self.app.log.warning(f"Test data file not instantiated.")
-            return None
-
-        if not Path(test_data_path).exists():
-            self.app.log.warning(f"Test data file not found.")
-            return None
-
-        count_labels(Path(train_data_path), 'train')
-        count_labels(Path(val_data_path), 'validation')
-        count_labels(Path(test_data_path), 'test')
-
-        val_data_path = val_data_path.replace(str(self.app.workdir), str(self.app.bind))
+        val_data_path = self.sinks['val_data_path'].replace(str(self.app.workdir), str(self.app.bind))
         container = self.container_handler.run(image_name=image_name)
         # TODO: find better way of performing this bind
-        save_path = save_path.replace(str(self.app.workdir), str(self.app.bind))
+        save_path = self.sources['save_path'].replace(str(self.app.workdir), str(self.app.bind))
         dataset_name = Path(val_data_path).stem.split('.')[0]
         data_dir = Path(Path(val_data_path).parent, dataset_name)
         # step = 'train' if train else 'test'
@@ -102,7 +73,7 @@ class Code2vecHandler(PluginHandler):
             cmds.append(ContainerCommand(org=f"{default} --load {save_path} --test {data_dir}.test.c2v",
                                          parse_fn=parse_results, tag='test'))
 
-        outcome, cmd_data = self.container_handler.run_cmds(container.id, cmds)
+        outcome, cmd_data = self.container_handler.run_cmds(container.id, cmds, supress_err=True)
 
         for cd in cmd_data:
             df = pd.DataFrame(cd.parsed_output)

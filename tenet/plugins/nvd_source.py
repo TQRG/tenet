@@ -21,6 +21,12 @@ class NVDSource(PluginHandler):
     class Meta:
         label = "nvd_source"
 
+    def set_sources(self):
+        pass
+
+    def get_sinks(self):
+        pass
+
     def plot(self, dataset: pd.DataFrame, **kwargs):
         """ Print commits statistics. """
 

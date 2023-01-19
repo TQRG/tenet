@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Union
 
 from tenet.core.diff_labeller.labeler import Labeler as DiffLabeler
+from tenet.core.exc import TenetError
 from tenet.data.diff import Entry, DiffBlock
 from tenet.handlers.plugin import PluginHandler
 
@@ -23,8 +24,11 @@ class Labeler(PluginHandler):
         self.inline_dir = None
         self.sim_ratio_thresh = None
 
-    def set_dirs(self):
-        self.inline_dir = self.output.parent / 'inline'
+    def set_sources(self):
+        pass
+
+    def get_sinks(self):
+        self.get('raw_files_path')
 
     def get_file_str(self, file: Path) -> str:
         """
@@ -45,17 +49,8 @@ class Labeler(PluginHandler):
         """
             runs the plugin
         """
-        if not self.get('raw_files_path'):
-            self.app.log.warning(f"Raw files path not instantiated.")
-            return None
-
-        if not self.get('raw_files_path').exists():
-            self.app.log.warning(f"Train data file not found.")
-            return None
-
         self.sim_ratio_thresh = sim_ratio_tresh
-        self.set('dataset', str(self.output))
-        self.set_dirs()
+        self.inline_dir = self.output.parent / 'inline'
 
         if file_size_limit:
             self.file_size_limit = file_size_limit
@@ -80,8 +75,8 @@ class Labeler(PluginHandler):
         inline_proj_dir = self.inline_dir / f"{entry.owner}_{entry.project}_{entry.a_version}_{entry.b_version}"
 
         try:
-            a_str = self.get_file_str(file=self.get('raw_files_path') / entry.full_a_path)
-            b_str = self.get_file_str(file=self.get('raw_files_path') / entry.full_b_path)
+            a_str = self.get_file_str(file=self.sinks['raw_files_path'] / entry.full_a_path)
+            b_str = self.get_file_str(file=self.sinks['raw_files_path'] / entry.full_b_path)
             # Perform pretty-printing and diff comparison
             labeler = DiffLabeler(entry=entry, a_str=a_str, b_str=b_str, inline_proj_dir=inline_proj_dir)
             labeler(unsafe_label=entry.label)

@@ -12,8 +12,8 @@ from tenet.core.plotter import Plotter
 from tenet.data.schema import ContainerCommand
 from tenet.handlers.plugin import PluginHandler
 
-re_plain = '(?P<label>(\w+)),(?P<hash>(\w+)),(?P<pair_hash>(\w*)),(?P<fpath>([\w\/\.\_\-]+)),(?P<sline>(\d+)),(?P<scol>(\d+)),(?P<eline>(\d+)),(?P<ecol>(\d+))'
-re_context_paths = '(?P<fpath>([\w\/\.\_-]+))\_(?P<sline>(\d+))\_(?P<scol>(\d+))\_(?P<eline>(\d+))\_(?P<ecol>(\d+)) (?P<label>(\w+)) (?P<hash>(\w+)) (?P<pair_hash>(\w*)) (?P<context_paths>([\w ,|]+))'
+re_plain = '(?P<label>(\w+)),(?P<hash>(\w+)),(?P<pair_hash>(\w*)),(?P<fpath>([\@\w\/\.\_\-]+)),(?P<sline>(\d+)),(?P<scol>(\d+)),(?P<eline>(\d+)),(?P<ecol>(\d+))'
+re_context_paths = '(?P<fpath>([\@\w\/\.\_-]+))\_(?P<sline>(\d+))\_(?P<scol>(\d+))\_(?P<eline>(\d+))\_(?P<ecol>(\d+)) (?P<label>(\w+)) (?P<hash>(\w+)) (?P<pair_hash>(\w*)) (?P<context_paths>([\w ,|]+))'
 
 
 class ASTMinerHandler(PluginHandler):
@@ -26,9 +26,16 @@ class ASTMinerHandler(PluginHandler):
 
     def __init__(self, **kw):
         super().__init__(**kw)
-        self.path_context_file = None
         self.extract_cp = None
         self.raw_files_path = None
+
+    def set_sources(self):
+        self.set('path_contexts', self.path / 'path_contexts.c2s')
+        self.set('dataset', self.output)
+
+    def get_sinks(self):
+        self.get('raw_fn_bounds_file')
+        self.get('raw_files_path')
 
     def run(self, dataset: pd.DataFrame, extract_cp: bool = True, image_name: str = "astminer",
             max_old_space_size: int = 8192, mutations: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
@@ -36,17 +43,9 @@ class ASTMinerHandler(PluginHandler):
             runs the plugin
         """
         self.extract_cp = extract_cp
-        self.path_context_file = (self.path / 'path_contexts.c2s')
-        self.set('path_contexts', self.path_context_file)
-        self.set('dataset', self.output)
+        self.raw_files_path = Path(str(self.sinks['raw_files_path']).replace(str(self.app.workdir), str(self.app.bind)))
 
-        if not self.get('raw_fn_bounds_file'):
-            self.app.log.warning(f"path to dataset with fn boundaries not instantiated.")
-            return None
-
-        self.raw_files_path = Path(str(self.get('raw_files_path')).replace(str(self.app.workdir), str(self.app.bind)))
-
-        if not self.path_context_file.exists():
+        if not self.sources['path_contexts'].exists():
             container = self.container_handler.run(image_name=image_name)
             self.run_astminer(container, max_old_space_size, mutations)
 
@@ -76,7 +75,7 @@ class ASTMinerHandler(PluginHandler):
         export_cmd = ContainerCommand(org=f"export NODE_OPTIONS=\"--max-old-space-size={max_old_space_size}\"")
 
         raw_fn_bounds_file = Path(
-            str(self.get('raw_fn_bounds_file')).replace(str(self.app.workdir), str(self.app.bind)))
+            str(self.sinks['raw_fn_bounds_file']).replace(str(self.app.workdir), str(self.app.bind)))
 
         max_old_space_size_gb = round(max_old_space_size / 1024)
         max_mem = f"-Xmx{max_old_space_size_gb}g"
@@ -105,7 +104,7 @@ class ASTMinerHandler(PluginHandler):
         results = []
         self.app.log.info(f"Parsing output file {self.path / 'path_contexts.c2s'}")
 
-        with (self.path / 'path_contexts.c2s').open(mode='r') as output:
+        with self.sources['path_contexts'].open(mode='r') as output:
             reg_exp = re_context_paths if self.extract_cp else re_plain
 
             for i, line in enumerate(output.read().splitlines()):
@@ -203,7 +202,7 @@ class ASTMinerHandler(PluginHandler):
         funcs_df.reset_index(inplace=True)
 
         for target_file, rows in tqdm(funcs_df.groupby(['owner', 'project', 'version', 'fpath'])):
-            target_file = self.get('raw_files_path') / '/'.join(target_file)
+            target_file = self.sinks['raw_files_path'] / '/'.join(target_file)
 
             if not target_file.exists():
                 self.app.log.warning(f"{target_file} not found")

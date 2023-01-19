@@ -13,6 +13,7 @@ from tenet.handlers.github import GithubHandler
 from tenet.handlers.command import CommandHandler
 from tenet.handlers.runner import MultiTaskHandler
 from tenet.handlers.workflow import WorkflowHandler
+from tenet.handlers.pipeline import PipelineHandler
 from tenet.handlers.plugin_loader import PluginLoader
 from tenet.handlers.container import ContainerHandler
 from tenet.handlers.code_parser import CodeParserHandler
@@ -72,7 +73,7 @@ class Tenet(App):
         # register handlers
         handlers = [
             Base, Plugin, CWE, PluginLoader, ContainerHandler, CommandHandler, WorkflowHandler, CodeParserHandler,
-            MultiTaskHandler, GithubHandler, CWEListHandler, FileParserHandler, SamplingHandler
+            MultiTaskHandler, GithubHandler, CWEListHandler, FileParserHandler, SamplingHandler, PipelineHandler
         ]
 
     def get_config(self, key: str):
@@ -91,7 +92,10 @@ class Tenet(App):
         """
 
         try:
-            self.plugin.load_plugin(name)
+
+            if name not in self.plugin.get_loaded_plugins():
+                self.plugin.load_plugin(name)
+
             plugin = self.handler.resolve('plugins', name)
             plugin.__init__()
             plugin._setup(self)

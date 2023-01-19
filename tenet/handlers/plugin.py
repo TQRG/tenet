@@ -123,6 +123,20 @@ class PluginHandler(NodeHandler):
         """
         pass
 
+    @abstractmethod
+    def set_sources(self):
+        """
+            Sets sources of the plugin for sinks of other plugins
+        """
+        pass
+
+    @abstractmethod
+    def get_sinks(self):
+        """
+            Inits sinks of the plugin with sources of other plugins
+        """
+        pass
+
     def plot(self, dataset: pd.DataFrame, **kwargs):
         """
             Plots resulting dataframe

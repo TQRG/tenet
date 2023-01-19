@@ -26,6 +26,12 @@ class OSVSource(PluginHandler):
     class Meta:
         label = "osv_source"
 
+    def set_sources(self):
+        pass
+
+    def get_sinks(self):
+        pass
+
     def plot(self, dataset: pd.DataFrame, **kwargs):
         """ Print commits statistics. """
 
@@ -58,7 +64,7 @@ class OSVSource(PluginHandler):
             runs the plugin
         """
 
-        token, df_ecosystems = kwargs['tokens'][-1], []
+        df_ecosystems = []
         # set folder for GHSA dump
         ecosystem = 'GHSA'
         ghsa_metadata_path = Path(self.path / ecosystem)
@@ -67,7 +73,7 @@ class OSVSource(PluginHandler):
             ghsa_metadata_path.mkdir()
         # get GitHub advisories (GHSA)
         self.app.log.info(f"Downloading {ecosystem} metadata...")
-        dump(ghsa_metadata_path, token)
+        dump(ghsa_metadata_path, self.app.pargs.tokens.split(',')[0])
 
         # df_metadata_path = self.path / kwargs['dataset_name']
         ghsa_results = self.parse_json_ghsa(fin_path=ghsa_metadata_path)

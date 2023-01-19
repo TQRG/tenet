@@ -1,9 +1,11 @@
+import ast
+
 import pandas as pd
 import jq
 import json
 import tqdm
 
-from typing import Union
+from typing import Union, Any
 from pathlib import Path
 
 from tenet.core.exc import TenetError
@@ -43,6 +45,15 @@ class CodeQLExtractLabelsHandler(PluginHandler):
                      643, 730, 754, 770, 776, 798, 807, 829, 830, 834, 843, 862, 912, 915, 916, 918]
         self.parent_files = True
         self.fix_files = True
+        self.drop_unavailable = False
+        self.drop_cwes = []
+
+    def set_sources(self):
+        self.set('report_file_path', self.path / f"{self.output.stem}_report.json")
+        self.set('codeql_db_path', self.container_handler.working_dir / 'db')
+
+    def get_sinks(self):
+        self.get('raw_files_path')
 
     def parse_language(self, language: str) -> str:
         if language.lower() in self.language_mapping.values():
@@ -53,20 +64,30 @@ class CodeQLExtractLabelsHandler(PluginHandler):
 
         raise TenetError(f"Programming language {language} not available.")
 
-    def parse_cwe(self, cwe: str):
+    def parse_cwe(self, cwe: str) -> Union[str, None]:
         if 'CWE-' in cwe.upper():
             cwe_number = int(cwe.upper().split('CWE-')[-1])
         else:
             cwe_number = int(cwe)
 
         if cwe_number not in self.cwes:
-            raise TenetError(f"CWE-{cwe_number} not available.")
+            if not self.drop_unavailable:
+                raise TenetError(f"CWE-{cwe_number} not available.")
+            return None
 
         return f'CWE-{cwe_number:03}'
 
+    def parse_target_cwes(self, cwes: Any):
+        cwes = ast.literal_eval(cwes)
+
+        if not isinstance(cwes, str):
+            return [self.parse_cwe(cwe) for cwe in cwes]
+
+        return [self.parse_cwe(cwes)]
+
     def run(self, dataset: pd.DataFrame, image_name: str = 'codeql', language: str = 'javascript',
-            target_cwes: list = None, parent_files: bool = True, fix_files: bool = True,
-            **kwargs) -> Union[pd.DataFrame, None]:
+            target_cwes: list = None, parent_files: bool = True, fix_files: bool = True, drop_unavailable: bool = False,
+            drop_cwes: list = None, **kwargs) -> Union[pd.DataFrame, None]:
         """
             run CodeQL and extracts the labels from its report
             :param dataset: dataset with diff blocks
@@ -75,30 +96,31 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             :param target_cwes: list of CWEs to analyze for
             :param parent_files: flag to include warnings for parent files
             :param fix_files: flag to include warnings for fix files
+            :param drop_unavailable: flag to drop target CWEs not covered by CodeQL
+            :param drop_cwes: list of cwes to drop, in case codeql raises some error for them
         """
-        codeql_db_path = self.container_handler.working_dir / 'db'
-        report_file = self.path / f"{self.output.stem}_report.json"
         report_file_container = self.container_handler.working_dir / f"{self.output.stem}_report.json"
-        self.set('report_file_path', report_file)
-        self.set('codeql_db_path', codeql_db_path)
 
-        if not self.get('raw_files_path'):
-            self.app.log.warning(f"raw files path not instantiated.")
-            return None
+        self.drop_unavailable = drop_unavailable
+        if drop_cwes:
+            for cwe in drop_cwes:
+                if cwe in self.cwes:
+                    self.cwes.remove(cwe)
 
-        raw_files_path = Path(str(self.get('raw_files_path')).replace(str(self.app.workdir), str(self.app.bind)))
+
+        raw_files_path = Path(str(self.sinks['raw_files_path']).replace(str(self.app.workdir), str(self.app.bind)))
 
         if not target_cwes:
             target_cwes = dataset.label.unique().tolist()
 
-        if not report_file.exists():
+        if not self.sources['report_file_path'].exists():
             # TODO: fix the node name
             container = self.container_handler.run(image_name=image_name)
             language = self.parse_language(language)
-            cwes = [self.parse_cwe(cwe) for cwe in target_cwes]
-            create_cmd = ContainerCommand(org=f"codeql database create {codeql_db_path}")
+            cwes = [parsed_cwe for cwe in target_cwes for parsed_cwe in self.parse_target_cwes(cwe) if parsed_cwe is not None]
+            create_cmd = ContainerCommand(org=f"codeql database create {self.sources['codeql_db_path']}")
             create_cmd.org += f" --threads={self.app.threads} --language={language} --source-root={raw_files_path} 2>&1"
-            analyze_cmd = ContainerCommand(org=f"codeql database analyze {codeql_db_path} --format=sarif-latest")
+            analyze_cmd = ContainerCommand(org=f"codeql database analyze {self.sources['codeql_db_path']} --format=sarif-latest")
             analyze_cmd.org += f" --threads={self.app.threads} --output={report_file_container}"
 
             for cwe in cwes:
@@ -108,11 +130,11 @@ class CodeQLExtractLabelsHandler(PluginHandler):
             self.container_handler.run_cmds(container.id, [create_cmd, analyze_cmd])
             self.container_handler.stop(container)
 
-        if not report_file.exists():
+        if not self.sources['report_file_path'].exists():
             self.app.log.warning(f"CodeQL report file not found.")
             return None
 
-        with report_file.open(mode='r') as rf:
+        with self.sources['report_file_path'].open(mode='r') as rf:
             json_report = json.loads(rf.read())
             result = jq.all(r'.runs[0].results', json_report)
             data_points = jq.iter(r'.[]', result[0])

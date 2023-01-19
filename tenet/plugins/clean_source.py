@@ -14,6 +14,12 @@ class CleanSource(PluginHandler):
     class Meta:
         label = "clean_source"
 
+    def set_sources(self):
+        pass
+
+    def get_sinks(self):
+        pass
+
     def run(self, dataset: pd.DataFrame, projects_blacklist: list = None, drop_multi_cwe: bool = False,
             drop_unk_cwe: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """Cleans and filters the sources
@@ -23,7 +29,6 @@ class CleanSource(PluginHandler):
             drop_multi_cwe (bool): flag to drop CVE samples with multiple CWE-IDs
             drop_unk_cwe (bool): flag to drop CVE samples with unknown CWE-IDs (e.g., NVD-CWE-Other, NVD-CWE-noinfo)
         """
-
         dataset['message'] = dataset['message'].apply(lambda x: self.msg(x))
         no_merge = ~dataset['message'].str.contains("merge message")
         cwe = dataset['cwe_id'].notnull()

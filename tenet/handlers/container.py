@@ -82,7 +82,8 @@ class ContainerHandler(HandlersInterface, Handler):
         cmd.skip = True
         return True
 
-    def run_cmds(self, container_id: str, cmds: List[ContainerCommand]) -> Tuple[bool, List[CommandData]]:
+    def run_cmds(self, container_id: str, cmds: List[ContainerCommand], supress_err: bool = False) \
+            -> Tuple[bool, List[CommandData]]:
         """
             Run commands inside the specified container.
         """
@@ -104,7 +105,7 @@ class ContainerHandler(HandlersInterface, Handler):
                 if cmd.parse_fn is not None:
                     cmd_data.parsed_output = cmd.parse_fn(cmd_data.output)
 
-            if cmd_data.error or cmd_data.return_code != 0:
+            if (cmd_data.error or cmd_data.return_code != 0) and (not supress_err):
                 return False, cmds_data
 
         return True, cmds_data
