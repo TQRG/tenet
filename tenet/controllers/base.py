@@ -1,15 +1,13 @@
-import os.path
+import networkx as nx
 
 import inquirer
-import schema
-import yaml
 
 from pathlib import Path
 
 from cement import Controller, ex
 from tenet import __version__
 from ..core.exc import TenetError
-from ..data.schema import parse_pipeline
+
 
 VERSION_BANNER = """
 Fine-grained approach to detect and patch vulnerabilities (v%s)
@@ -48,6 +46,8 @@ class Base(Controller):
             (['-t', '--threads'], {'help': 'Number of threads (overwrites the threads in config)', 'type': int,
                                    'required': False}),
             (['-wd', '--workdir'], {'help': 'Path to the workdir.', 'type': str, 'required': True}),
+            (['-gt', '--tokens'], {'help': 'Comma-separated list of tokens for the GitHub API.', 'type': str,
+                                   'required': True}),
             (['-b', '--bind'], {'help': 'Docker directory path to bind (to workdir as a volume).',
                                 'type': str, 'required': False})
         ]
@@ -56,39 +56,50 @@ class Base(Controller):
         self.app.extend('workdir', Path(self.app.pargs.workdir))
 
         if not self.app.workdir.exists():
-            self.app.workdir.mkdir(parents=True)
-            self.app.log.info(f"Created workdir {self.app.workdir}")
+            raise TenetError(f"Working directory {self.app.workdir} not found")
 
         dataset_path = self._parse_dataset_path()
         pipeline_path = self._parse_pipeline_path()
-
+        self._parse_bind()
         self.app.threads = self.app.pargs.threads if self.app.pargs.threads else self.app.get_config('local_threads')
+        pipeline_handler = self.app.handler.get('handlers', 'pipeline', setup=True)
+        pipeline_handler.load(pipeline_path)
 
+        workflow_handler = self.app.handler.get('handlers', 'workflow', setup=True)
+        workflow_name = self._select_workflow(pipeline_handler.workflows)
+        workflow_graph = pipeline_handler.workflows[workflow_name].get_graph()
+
+        if not nx.is_directed_acyclic_graph(workflow_graph):
+            raise TenetError(f"Workflow must be directed acyclic graph")
+
+        paths = pipeline_handler.workflows[workflow_name].get_all_paths(workflow_graph)
+        path = self._select_path(paths)
+        workflow_handler(dataset_path, path)
+
+    @staticmethod
+    def _select_workflow(workflows: dict):
+        option = [inquirer.List('workflow', message="Select the workflow you want to run:",
+                                choices=[f"{n}: {w}" for n, w in workflows.items()])]
+        answer = inquirer.prompt(option)
+        return answer["workflow"].split(':')[0]
+
+    @staticmethod
+    def _select_path(paths: list) -> list:
+        if len(paths) > 1:
+            option = [inquirer.List('path', message="Select the path you want to run:",
+                                    choices=[f"{i}: {p}" for i, p in enumerate(paths)])]
+            answer = inquirer.prompt(option)
+            return paths[int(answer["path"].split(':')[0])]
+
+        return paths[0]
+
+    def _parse_bind(self):
         if self.app.pargs.bind:
             bind = self.app.pargs.bind
         else:
             bind = str(self.app.workdir.absolute()).replace(str(Path.home()), '')
 
         self.app.extend('bind', bind)
-
-        #if not os.path.exists(self.app.bind):
-        #    self.app.log.error(f"Bind path {self.app.bind} is not a valid directory path.")
-        #    exit(1)
-        self.app.extend('executed_edges', {})
-
-        with pipeline_path.open(mode="r") as stream:
-            try:
-                self.app.log.info(f"Parsing pipeline file: {pipeline_path}")
-                pipeline = parse_pipeline(yaml.safe_load(stream))
-                self.app.extend('pipeline', pipeline)
-            except schema.SchemaError as se:
-                raise TenetError(str(se))
-
-            workflow_handler = self.app.handler.get('handlers', 'workflow', setup=True)
-            for name, layers in pipeline.workflows.items():
-                # todo: check if this path is necessary
-                workflow_handler.load(name, dataset_path, layers)
-                dataset, dataset_path = workflow_handler(dataset_path)
 
     def _parse_dataset_path(self) -> Path:
         if self.app.pargs.dataset:
