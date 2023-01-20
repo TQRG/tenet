@@ -69,7 +69,7 @@ class CodeParserHandler(HandlersInterface, Handler):
                     self._code_ext = extension
 
             return self.comment_filter.transformString(code)
-        except (pyparsing.exceptions.ParseException, KeyError) as e:
+        except (pyparsing.exceptions.ParseException, KeyError, ValueError) as e:
             self.app.log.error(e)
             return code
 
