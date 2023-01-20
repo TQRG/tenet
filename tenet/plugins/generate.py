@@ -78,7 +78,8 @@ class Generate(PluginHandler):
             fix_scn.df['scenario'] = [scenario] * len(fix_scn.df)
             return fix_scn.df
 
-        negative = self.generate_negative(dataset=fix_scn.df)
+        fix_dataset_samples = dataset[dataset['project_url'].isin(fix_scn.df['project_url'].unique())]
+        negative = self.generate_negative(dataset=fix_dataset_samples)
         scn = self.sampling_handler.get_scenario(fix_scn.df, scenario=scenario, negative=negative)
         self.app.log.info(f"Generating {scenario} scenario...")
         scn.generate()
@@ -142,7 +143,7 @@ class Generate(PluginHandler):
             self.app.log.warning("Skipping search...")
             negative_samples = negative_samples[~negative_samples['file_path'].isnull()]
             return negative_samples
-
+        print(dataset.columns)
         for project_url, group in tqdm(dataset[~dataset['project_url'].isin(visited_projects)].groupby('project_url')):
             owner, project = project_url.split("/")[3:5]
             repo = self.github_handler.get_repo(owner=owner, project=project)
