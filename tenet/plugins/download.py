@@ -46,7 +46,7 @@ class Download(PluginHandler):
         return None
 
     def download(self, row: dict):
-        project_path = self.sources['files_path'] / row['project_name']
+        project_path = self.sources['files_path'] / row['project']
         if 'raw_url_vuln' in row and not pd.isnull(row['raw_url_vuln']):
             vuln_file = LocalGitFile(url=row['raw_url_vuln'], short=Path(row['file_path']), tag='vuln',
                                      path=project_path / row['vuln_commit_hash'] / row['file_path'])
