@@ -76,6 +76,8 @@ class Generate(PluginHandler):
 
         if scenario == 'fix':
             fix_scn.df['scenario'] = [scenario] * len(fix_scn.df)
+            fix_scn.df['sw_type'] = fix_scn.df.apply(lambda x: self.github_handler.get_sw_type(x['owner'], x['project']),
+                                                     axis=1)
             return fix_scn.df
 
         fix_dataset_samples = dataset[dataset['project_url'].isin(fix_scn.df['project_url'].unique())]
@@ -87,6 +89,7 @@ class Generate(PluginHandler):
         scn.augment(augment)
 
         scn.df['scenario'] = [scenario] * len(scn.df)
+        scn.df['sw_type'] = scn.df.apply(lambda x: self.github_handler.get_sw_type(x['owner'], x['project']), axis=1)
 
         return scn.df
 
@@ -192,11 +195,13 @@ class Generate(PluginHandler):
         dataset = dataset[~dataset['bf_class'].isnull()]
         self.app.log.info(f"Entries with BF class: {len(dataset)}")
 
-        Plotter(self.path, fig_size=(20,10)).bar_labels(dataset, column='cwe_id', y_label='Occurrences',
-                                                        x_label='CWE-ID')
+        Plotter(self.path, fig_size=(20, 10)).bar_labels(dataset, column='cwe_id', y_label='Occurrences',
+                                                         x_label='CWE-ID')
         Plotter(self.path).bar_labels(dataset, column='bf_class', y_label='Occurrences', x_label='BF Class')
         Plotter(self.path, fig_size=(20, 10)).bar_labels(dataset, column='project', y_label='Occurrences',
                                                          x_label='Project', top_n=50)
+        Plotter(self.path, fig_size=(20, 10)).bar_labels(dataset, column='sw_type', y_label='Occurrences',
+                                                         x_label='Software Type')
 
 
 def load(app):

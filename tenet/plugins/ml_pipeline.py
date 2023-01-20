@@ -27,9 +27,13 @@ class MLPipeline(PluginHandler):
         self.vectorizer = None
 
     def set_sources(self):
-        self.vectorizer = str(self.sinks['train_features_path'].stem).split('_')[0]
-        model_path = self.path / f"{self.output.stem}_nlp_{self.vectorizer}_{self.node.kwargs['model_type']}.model"
-        self.set('model_path', model_path)
+        self.vectorizer = str(self.sinks['train_features_path'][0].stem).split('_')[0]
+        models_paths = []
+
+        for i, _ in enumerate(self.sinks['train_features_path']):
+            models_paths.append(self.path / f"{self.output.stem}_nlp_{self.vectorizer}_{self.node.kwargs['model_type']}_{i}.model")
+
+        self.set('model_path', models_paths)
 
     def get_sinks(self):
         self.get('train_features_path')
@@ -39,54 +43,64 @@ class MLPipeline(PluginHandler):
         self.get('train_data_path')
         self.get('test_data_path')
 
+        if not isinstance(self.sinks['train_data_path'], list):
+            self.sinks['train_data_path'] = [self.sinks['train_data_path']]
+            self.sinks['test_data_path'] = [self.sinks['test_data_path']]
+
     def run(self, dataset: pd.DataFrame, model_type: str = 'RFC', training: bool = True, evaluate: bool = True,
             **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
-        # Set models path after data grouping options set.
-        model, model_pipeline, model_prefix, model_param_grid = get_model(model_type,
-                                                                          n_jobs=self.app.get_config('local_threads'))
-        predictions_path = self.path / f"{self.output.stem}_{model_prefix}_{self.vectorizer}_predictions.csv"
-        # Load data.
-        train_labels = pd.read_csv(self.sinks['train_labels_path'])
-        test_labels = pd.read_csv(self.sinks['test_labels_path'])
-        y_train = self.convert_labels(train_labels["label"]).to_numpy().reshape((-1, 1))
-        y_test = self.convert_labels(test_labels["label"]).to_numpy().reshape((-1, 1))
+        all_results = []
+        paths = zip(self.sources['model_path'], self.sinks['train_features_path'], self.sinks['train_labels_path'],
+                    self.sinks['test_data_path'], self.sinks['test_features_path'], self.sinks['test_labels_path'])
 
-        # Create empty input.
-        x_train = coo_matrix((y_train.shape[0], 0))
-        x_test = coo_matrix((y_test.shape[0], 0))
-        self.app.log.info(f"x_train shape: {x_train.shape}, x_test shape: {x_test.shape}")
+        for i, (model_path, train_features_path, train_labels_path, test_data_path, test_features_path, test_labels_path) in enumerate(paths):
+            # Set models path after data grouping options set.
+            model, model_pipeline, model_prefix, model_param_grid = get_model(model_type,
+                                                                              n_jobs=self.app.get_config('local_threads'))
+            predictions_path = self.path / f"{self.output.stem}_{model_prefix}_{self.vectorizer}_predictions_{i}.csv"
+            # Load data.
+            train_labels = pd.read_csv(train_labels_path)
+            test_labels = pd.read_csv(test_labels_path)
+            y_train = self.convert_labels(train_labels["label"]).to_numpy().reshape((-1, 1))
+            y_test = self.convert_labels(test_labels["label"]).to_numpy().reshape((-1, 1))
 
-        self.app.log.info("Adding NLP features.")
-        train_features_sparse = load_npz(self.sinks['train_features_path'])
-        test_features_sparse = load_npz(self.sinks['test_features_path'])
-        x_train = hstack([x_train, train_features_sparse])
-        x_test = hstack([x_test, test_features_sparse])
-        self.app.log.info(f"x_train shape: {x_train.shape}, x_test shape: {x_test.shape}")
+            # Create empty input.
+            x_train = coo_matrix((y_train.shape[0], 0))
+            x_test = coo_matrix((y_test.shape[0], 0))
+            self.app.log.info(f"x_train shape: {x_train.shape}, x_test shape: {x_test.shape}")
 
-        # Simple train, test split.
-        self.app.log.info(f"Train size: {x_train.shape}; Test size: {x_test.shape}")
+            self.app.log.info("Adding NLP features.")
+            train_features_sparse = load_npz(train_features_path)
+            test_features_sparse = load_npz(test_features_path)
+            x_train = hstack([x_train, train_features_sparse])
+            x_test = hstack([x_test, test_features_sparse])
+            self.app.log.info(f"x_train shape: {x_train.shape}, x_test shape: {x_test.shape}")
 
-        if training:
-            # Tune, train and validate model.
-            t_start = time.time()
-            self.tune_train_and_validate(model_path=self.sources['model_path'], model=model_pipeline,
-                                         param_grid=model_param_grid, x_train=x_train, y_train=y_train)
-            train_time = time.time() - t_start
+            # Simple train, test split.
+            self.app.log.info(f"Train size: {x_train.shape}; Test size: {x_test.shape}")
 
-            self.app.log.info(f"Training time {train_time}")
+            if training:
+                # Tune, train and validate model.
+                t_start = time.time()
+                self.tune_train_and_validate(model_path=model_path, model=model_pipeline,
+                                             param_grid=model_param_grid, x_train=x_train, y_train=y_train)
+                train_time = time.time() - t_start
 
-        if evaluate:
-            y_predict, results = self.evaluate_model(model_path=self.sources['model_path'], x_test=x_test, y_test=y_test)
-            test_data = pd.read_csv(str(self.sinks['test_data_path']))
-            test_data['predicted'] = y_predict.tolist()
-            test_data.to_csv(str(predictions_path), index=False)
-            results['model'] = model_type
-            return pd.DataFrame([results])
+                self.app.log.info(f"Training time {train_time}")
 
-        return pd.DataFrame([])
+            if evaluate:
+                y_predict, results = self.evaluate_model(model_path=model_path, x_test=x_test, y_test=y_test)
+                test_data = pd.read_csv(str(test_data_path))
+                test_data['predicted'] = y_predict.tolist()
+                test_data.to_csv(str(predictions_path), index=False)
+                results['model'] = model_type
+                results['run'] = i
+                all_results.append(results)
+
+        return pd.DataFrame(all_results)
 
     def tune_train_and_validate(self, model_path: Path, model: Any, param_grid: List[dict], x_train: Any, y_train: Any):
         # Perform gridsearch.

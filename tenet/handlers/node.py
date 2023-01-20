@@ -54,6 +54,12 @@ class NodeHandler(PluginsInterface, Handler):
         if isinstance(self.sinks[name], Path) and not self.sinks[name].exists():
             raise TenetError(f"Path '{self.sinks[name]}' for sink '{name}' of '{self.node.name}' node not found.")
 
+        if isinstance(self.sinks[name], list):
+            # check if path exists
+            for el in self.sinks[name]:
+                if isinstance(el, Path) and not el.exists():
+                    raise TenetError(f"Path '{el}' for sink '{name}' of '{self.node.name}' node not found.")
+
     def get(self, attr: str, default: Any = None):
         try:
             self.sinks[attr] = self.app.connectors[self.node.name, attr]

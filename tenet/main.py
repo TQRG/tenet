@@ -48,7 +48,8 @@ class Tenet(App):
             get_absolute_path(label, 'config/abstractions.yml'), 
             get_absolute_path(label, 'config/mappings.yml'),
             get_absolute_path(label, 'config/keywords.yml'),
-            get_absolute_path(label, 'config/tenet.yml')
+            get_absolute_path(label, 'config/tenet.yml'),
+            get_absolute_path(label, 'config/sw_type.yml')
         ]
 
         # configuration handler
@@ -133,6 +134,10 @@ def main():
 
         if not app.config.has_section('keywords'):
             app.log.error(f"Keywords not found, make sure /tenet/config/keywords.yml exists")
+            exit(1)
+
+        if not app.config.has_section('sw_type'):
+            app.log.error(f"Keywords not found, make sure /tenet/config/sw_type.yml exists")
             exit(1)
 
         try:

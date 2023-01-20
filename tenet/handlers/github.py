@@ -61,7 +61,7 @@ class LocalGitFile:
 
     def read(self):
         if not self.content:
-            print(f'Reading from {self.path}')
+            #print(f'Reading from {self.path}')
 
             if not self.path.exists() or self.path.stat().st_size == 0:
                 if self.tag:
@@ -178,9 +178,40 @@ class GithubHandler(HandlersInterface, Handler):
         self.lock = threading.Lock()
         # Size of the paginated list returned by get_commits, may change
         self.paginated_list_size = 30
+        self._sw_types = None
 
     def has_rate_available(self):
         return self.git_api.get_rate_limit().core.remaining > 0
+
+    @property
+    def sw_types(self):
+        if self._sw_types is None:
+            self._sw_types = {}
+            # normalize owner and project names
+            for owner, projects in self.app.config.get_section_dict('sw_type').items():
+                normalized_owner = owner.strip().lower()
+                self._sw_types[normalized_owner] = {}
+
+                for project, sw_type in projects.items():
+                    normalized_project = project.strip().lower()
+                    self._sw_types[normalized_owner][normalized_project] = sw_type
+
+        return self._sw_types
+
+    def get_sw_type(self, owner: str, project: str) -> Union[str, None]:
+        if owner is None or pd.isna(owner):
+            return 'unk'
+
+        if project is None or pd.isna(project):
+            return 'unk'
+
+        normalized_owner = owner.strip().lower()
+        normalized_project = project.strip().lower()
+
+        if normalized_owner in self.sw_types and normalized_project in self.sw_types[normalized_owner]:
+            return self.sw_types[normalized_owner][normalized_project]
+
+        return 'unk'
 
     @property
     def git_api(self):
