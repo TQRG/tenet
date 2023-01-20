@@ -67,7 +67,7 @@ class Download(PluginHandler):
                     self.app.log.warning(f"No file content for {row['vuln_id']}")
                     return None
 
-        if 'raw_url_non_vuln' in row:
+        if 'raw_url_non_vuln' in row and not pd.isnull(row['raw_url_non_vuln']):
             non_vuln_file = LocalGitFile(url=row["raw_url_non_vuln"], short=Path(row['non_vuln_file_path']), tag='non-vuln',
                                          path=project_path / row['non_vuln_commit_hash'] / row['non_vuln_file_path'])
             if not non_vuln_file.path.exists():
