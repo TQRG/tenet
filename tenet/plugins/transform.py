@@ -59,7 +59,7 @@ class Transform(PluginHandler):
         return None
 
     def get_triplet(self, row: dict) -> Tuple[LocalGitFile, LocalGitFile, LocalGitFile]:
-        project_path = self.sinks['files_path'] / row['project_name']
+        project_path = self.sinks['files_path'] / row['project']
 
         if 'raw_url_vuln' in row and not pd.isnull(row['raw_url_vuln']):
             vuln_file = LocalGitFile(url=row['raw_url_vuln'], short=Path(row['file_path']), tag='vuln',
@@ -89,11 +89,11 @@ class Transform(PluginHandler):
         if not vuln_file and not fix_file and not non_vuln_file:
             raise TenetError("Empty row")
 
-        fix_file_content = self.get_clean_content(project=row['project_name'], commit=row['fixed_commit_hash'],
+        fix_file_content = self.get_clean_content(project=row['project'], commit=row['fixed_commit_hash'],
                                                   file=fix_file)
-        vuln_file_content = self.get_clean_content(project=row['project_name'], commit=row['vuln_commit_hash'],
+        vuln_file_content = self.get_clean_content(project=row['project'], commit=row['vuln_commit_hash'],
                                                    file=vuln_file)
-        non_vuln_file_content = self.get_clean_content(project=row['project_name'], commit=row['non_vuln_commit_hash'],
+        non_vuln_file_content = self.get_clean_content(project=row['project'], commit=row['non_vuln_commit_hash'],
                                                        file=non_vuln_file)
 
         vuln_str, size_vuln_lines, fix_str, size_fix_lines = self.code_parser_handler.get_pair_snippet(fix_file_content,
