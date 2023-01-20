@@ -47,8 +47,8 @@ class Attributes(PluginHandler):
                     self.app.log.error(f"Could not found SFP ID {target_primary_sfp}")
                     return None
 
-                if 'sfp' not in train_data.columns:
-                    self.app.log.error(f"'sfp' column with primary sfp type not found in the dataset")
+                if 'bf_class' not in train_data.columns:
+                    self.app.log.error(f"'bf_class' column with primary bf_class type not found in the dataset")
                     return None
 
                 not_target_sfp = train_data[train_data['label'] == 'unsafe' and (train_data['sfp'] != target_primary_sfp)]
