@@ -561,7 +561,7 @@ def stratified_k_fold(dataset: pd.DataFrame, n_splits: int, columns: list, seed:
     y = []
 
     for column in columns:
-        dataset[column].replace(np.nan, 'unk')
+        dataset[column].replace(np.nan, 'unk', inplace=True)
 
     for g, rows in dataset.groupby(columns):
         if not isinstance(g, str):
