@@ -23,7 +23,7 @@ class Attributes(PluginHandler):
     def get_sinks(self):
         self.get('train_data')
 
-    def run(self, dataset: pd.DataFrame, technique: str = "", seed: int = 0, target_primary_sfp: int = None,
+    def run(self, dataset: pd.DataFrame, technique: str = "", seed: int = 0, target_bf_class: str = None,
             drop_ratio: float = None, drop_tag: str = None, target_cwe: int = None, target_project: str = None,
             target_software_type: str = None, **kwargs) -> Union[pd.DataFrame, None]:
 
@@ -42,17 +42,17 @@ class Attributes(PluginHandler):
             if 'tag' in train_data:
                 self.app.log.info(f"{train_data['tag'].value_counts()}")
 
-            if target_primary_sfp:
-                if target_primary_sfp not in self.cwe_list_handler.sfp_primary_ids:
-                    self.app.log.error(f"Could not found SFP ID {target_primary_sfp}")
-                    return None
+            if target_bf_class:
+                # TODO: check if BF-class exists
 
                 if 'bf_class' not in train_data.columns:
                     self.app.log.error(f"'bf_class' column with primary bf_class type not found in the dataset")
                     return None
 
-                not_target_sfp = train_data[train_data['label'] == 'unsafe' and (train_data['sfp'] != target_primary_sfp)]
-                train_data = train_data.drop(not_target_sfp.index)
+                not_target_bf_class = train_data[train_data['label'] == 'unsafe' and (train_data['bf_class'] != target_bf_class)]
+                not_target_safe = train_data[(train_data['label'] == 'safe') & (train_data['vuln_commit_hash'].isin(not_target_bf_class['vuln_commit_hash']))]
+                train_data = train_data.drop(not_target_bf_class.index)
+                train_data = train_data.drop(not_target_safe.index)
 
             if target_cwe:
                 # TODO: check if CWE-ID exists
@@ -62,9 +62,9 @@ class Attributes(PluginHandler):
                     return None
 
                 train_data['cwe_id'] = train_data['cwe_id'].apply(lambda x: self.cwe_list_handler.parse_cwe_id(x))
-                target_cwe_data = train_data[train_data['cwe_id'] == target_cwe]
-                not_target_cwe = train_data[(train_data['label'] == 'unsafe') & (~target_cwe_data)]
-                not_target_safe = train_data[(train_data['label'] == 'safe') & (train_data['vuln_commit_hash'].isin(target_cwe_data['vuln_commit_hash']))]
+
+                not_target_cwe = train_data[(train_data['label'] == 'unsafe') & (train_data['cwe_id'] != target_cwe)]
+                not_target_safe = train_data[(train_data['label'] == 'safe') & (train_data['vuln_commit_hash'].isin(not_target_cwe['vuln_commit_hash']))]
                 train_data = train_data.drop(not_target_cwe.index)
                 train_data = train_data.drop(not_target_safe.index)
 
