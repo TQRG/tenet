@@ -62,8 +62,11 @@ class Attributes(PluginHandler):
                     return None
 
                 train_data['cwe_id'] = train_data['cwe_id'].apply(lambda x: self.cwe_list_handler.parse_cwe_id(x))
-                not_target_cwe = train_data[train_data['label'] == 'unsafe' and (train_data['cwe_id'] != target_cwe)]
+                target_cwe_data = train_data[train_data['cwe_id'] == target_cwe]
+                not_target_cwe = train_data[(train_data['label'] == 'unsafe') & (~target_cwe_data)]
+                not_target_safe = train_data[(train_data['label'] == 'safe') & (train_data['vuln_commit_hash'].isin(target_cwe_data['vuln_commit_hash']))]
                 train_data = train_data.drop(not_target_cwe.index)
+                train_data = train_data.drop(not_target_safe.index)
 
             if target_project:
                 if target_project not in train_data['project'].unique():
