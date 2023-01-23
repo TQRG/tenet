@@ -49,11 +49,22 @@ class Base(Controller):
             (['-gt', '--tokens'], {'help': 'Comma-separated list of tokens for the GitHub API.', 'type': str,
                                    'required': True}),
             (['-b', '--bind'], {'help': 'Docker directory path to bind (to workdir as a volume).',
-                                'type': str, 'required': False})
+                                'type': str, 'required': False}),
+            (['-x', '--ext'], {'help': 'Overwrite/set the file extension/code language in the config file.',
+                               'type': str, 'required': False})
         ]
     )
     def run(self):
         self.app.extend('workdir', Path(self.app.pargs.workdir))
+
+        if self.app.pargs.ext:
+            file_handler = self.app.handler.get('handlers', 'file_parser', setup=True)
+            available_exts = [ext for exts in file_handler.extension_mapping.values() for ext in exts]
+
+            if self.app.pargs.ext.lower() not in available_exts:
+                raise TenetError(f"Extension {self.app.pargs.ext.lower()} not available.")
+
+            self.app.config.set('tenet', 'proj_ext', [self.app.pargs.ext.lower()])
 
         if not self.app.workdir.exists():
             raise TenetError(f"Working directory {self.app.workdir} not found")

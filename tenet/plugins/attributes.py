@@ -49,7 +49,7 @@ class Attributes(PluginHandler):
                     self.app.log.error(f"'bf_class' column with primary bf_class type not found in the dataset")
                     return None
 
-                not_target_bf_class = train_data[train_data['label'] == 'unsafe' and (train_data['bf_class'] != target_bf_class)]
+                not_target_bf_class = train_data[(train_data['label'] == 'unsafe') & (train_data['bf_class'] != target_bf_class)]
                 not_target_safe = train_data[(train_data['label'] == 'safe') & (train_data['vuln_commit_hash'].isin(not_target_bf_class['vuln_commit_hash']))]
                 train_data = train_data.drop(not_target_bf_class.index)
                 train_data = train_data.drop(not_target_safe.index)
