@@ -15,6 +15,12 @@ class HybridHandler(PluginHandler):
     def __init__(self, **kw):
         super().__init__(**kw)
 
+    def set_sources(self):
+        pass
+
+    def get_sinks(self):
+        pass
+
     def run(self, dataset: pd.DataFrame, inner_join: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin

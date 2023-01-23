@@ -8,5 +8,5 @@ mkdir -p "${ROOT_DIR}/config"
 mkdir -p "${ROOT_DIR}/plugins"
 
 # the configuration file and plugin scripts must be correctly placed in their respective location
-cp -a config/. "${ROOT_DIR}/config"
+cp -a tenet/config/. "${ROOT_DIR}/config"
 cp -a tenet/plugins/* "${ROOT_DIR}/plugins"

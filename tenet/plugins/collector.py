@@ -23,21 +23,15 @@ class Collector(PluginHandler):
 
     def __init__(self, **kw):
         super().__init__(**kw)
-        self.files_dir: Path = None
         self.diff_dir: Path = None
 
-    def set_dirs(self):
-        # TODO: refactor this
-        self.files_dir = Path(self.path, 'files')
-        check_or_create_dir(self.files_dir)
-        self.set('files_path', self.files_dir)
+    def set_sources(self):
+        self.set('files_path', Path(self.path, 'files'))
 
-        # Save diff texts as files in the directory
-        self.diff_dir = Path(self.path, 'diffs')
-        check_or_create_dir(self.diff_dir)
+    def get_sinks(self):
+        pass
 
-    def run(self, dataset: pd.DataFrame, tokens: list = None, max_size: int = None, **kwargs) \
-            -> Union[pd.DataFrame, None]:
+    def run(self, dataset: pd.DataFrame, max_size: int = None, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
@@ -46,9 +40,11 @@ class Collector(PluginHandler):
         if not all([col in dataset.columns for col in cols]):
             raise TenetError(f"Missing columns. (Dataset must contain {cols})")
 
-        self.github_handler.tokens = tokens
-        self.set_dirs()
-        self.set('dataset', self.output)
+        check_or_create_dir(self.sources['files_path'])
+
+        # Save diff texts as files in the directory
+        self.diff_dir = Path(self.path, 'diffs')
+        check_or_create_dir(self.diff_dir)
 
         # Select columns: repo, sha_list, parents and ensure no duplicates
         dataset = dataset.drop_duplicates().reset_index(drop=True)
@@ -102,11 +98,11 @@ class Collector(PluginHandler):
                 entry = Entry(owner=owner, project=project, a_version=vuln_sha, b_version=fix_sha, label=label,
                               diff_block=diff_block)
                 # Get the contents of the two files using GitHub API
-                a_output_file = self.files_dir / entry.full_a_path
+                a_output_file = self.sources['files_path'] / entry.full_a_path
                 _, entry.a_file_size = self.github_handler.get_file_from_commit(commit=vuln_commit,
                                                                                 repo_file_path=diff_block.a_path,
                                                                                 output_path=a_output_file)
-                b_output_file = self.files_dir / entry.full_b_path
+                b_output_file = self.sources['files_path'] / entry.full_b_path
                 _, entry.b_file_size = self.github_handler.get_file_from_commit(commit=fix_commit,
                                                                                 repo_file_path=diff_block.b_path,
                                                                                 output_path=b_output_file)

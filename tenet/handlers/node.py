@@ -4,9 +4,10 @@ from typing import Any
 import pandas as pd
 from cement import Handler
 
-from tenet.core.exc import Skip
+from tenet.core.exc import Skip, TenetError
 from tenet.core.interfaces import PluginsInterface
-from tenet.data.schema import Edge
+from tenet.data.plugin import Sources, Sinks
+from tenet.data.schema import Node
 
 
 class NodeHandler(PluginsInterface, Handler):
@@ -17,8 +18,10 @@ class NodeHandler(PluginsInterface, Handler):
         super().__init__(**kw)
         self.path = None
         self.output = None
-        self.edge = None
         self.node = None
+        self.edge = None
+        self.sources = Sources()
+        self.sinks = Sinks()
 
     def load_dataset(self, suffix: str = '.csv', terminate: bool = False):
         """
@@ -33,8 +36,8 @@ class NodeHandler(PluginsInterface, Handler):
             try:
                 return pd.read_csv(str(self.output))
             except pd.errors.EmptyDataError as ede:
-                self.app.log.warning(ede)
-                return self.output.open(mode='r').read()
+                self.app.log.warning(f"Empty Data Error: {ede}")
+                return pd.DataFrame()
 
         self.app.log.error("dataset not found")
 
@@ -43,37 +46,53 @@ class NodeHandler(PluginsInterface, Handler):
 
         return None
 
+    def check_sink(self, name: str):
+        if not self.sinks[name]:
+            raise TenetError(f"Sink '{name}' of '{self.node.name}' node not instantiated")
+
+        # check if path exists
+        if isinstance(self.sinks[name], Path) and not self.sinks[name].exists():
+            raise TenetError(f"Path '{self.sinks[name]}' for sink '{name}' of '{self.node.name}' node not found.")
+
+        if isinstance(self.sinks[name], list):
+            # check if path exists
+            for el in self.sinks[name]:
+                if isinstance(el, Path) and not el.exists():
+                    raise TenetError(f"Path '{el}' for sink '{name}' of '{self.node.name}' node not found.")
+
     def get(self, attr: str, default: Any = None):
         try:
-            return self.app.connectors[self.edge.name, attr]
+            self.sinks[attr] = self.app.connectors[self.node.name, attr]
+            self.check_sink(attr)
+            return self.app.connectors[self.node.name, attr]
         except KeyError as ke:
-            self.app.log.warning(ke)
-            return default
+            if not default:
+                raise TenetError(f"Sink '{ke}' of '{self.node.name}' node not found")
 
-    def set(self, attr: str, value: Any, skip: bool = True):
-        self.app.connectors[self.edge.name, attr] = value
+            self.sinks[attr] = default
 
-        if self.has_dataset and self.app.connectors.has_source(self.edge.name) and \
-                self.app.connectors.has_values(self.edge.name) and skip:
-            raise Skip(f"Connectors for source \"{self.edge.name}\" are instantiated and exist.")
+    def set(self, attr: str, value: Any):
+        self.app.connectors[self.node.name, attr] = value
+        self.sources[attr] = value
 
-    def load(self, edge: Edge, dataset_name: str, ext: str = '.csv'):
+    def load(self, node: Node, dataset_name: str, ext: str = '.csv'):
         """
             Loads all the related paths to the workflow
 
-            :param edge: edge object
+            :param node: node object
+            :param dataset_name: name of the dataset
+            :param ext: extension of the dataset
         """
 
-        paths = {p.name: p for p in self.app.workdir.iterdir()}
+        self.path = self.app.workdir / node.layer / node.name
 
-        if edge.name in paths:
-            self.app.log.info(f"Loading node {edge.name}")
-            self.path = Path(paths[edge.name])
+        if self.path.exists():
+            self.app.log.info(f"Loading node {node.name}")
+            self.path = Path(self.path)
             # TODO: include correct datasets, and add the layer as well
         else:
-            self.app.log.info(f"Making directory for {edge.name}.")
-            self.path = Path(self.app.workdir / edge.name)
-            self.path.mkdir()
+            self.app.log.info(f"Making directory for {node.name}.")
+            self.path.mkdir(parents=True, exist_ok=True)
 
         self.output = self.path / f"{dataset_name}{ext}"
 
@@ -82,7 +101,6 @@ class NodeHandler(PluginsInterface, Handler):
         """
             Checks whether output exists.
         """
-
         return self.output.exists()
 
     @property
@@ -90,7 +108,7 @@ class NodeHandler(PluginsInterface, Handler):
         """
             Checks whether node execution can be skipped, that is, output exists and node does not have dependencies.
         """
-        return self.has_dataset and not self.app.connectors.has_source(self.edge.name)
+        return self.has_dataset and len(self.sources) == 0
 
     def __str__(self):
-        return self.edge.name if self.edge else ""
+        return self.node.name if self.node else ""

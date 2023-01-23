@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 
 import sklearn
 import imblearn
@@ -11,6 +11,7 @@ from collections import Counter
 
 from tenet.core.sampling import smote as sm
 from tenet.data.dataset import XYDataset, Dataset
+from sklearn.model_selection import StratifiedKFold
 
 default_label = "safe"
 other_label = "unsafe"
@@ -553,6 +554,27 @@ def stratified_column(dataset: pd.DataFrame, column: str, seed: int) -> Tuple[pd
     test = pd.concat(test_splits).sample(frac=1, random_state=seed)
 
     return train, val, test
+
+
+def stratified_k_fold(dataset: pd.DataFrame, n_splits: int, columns: list, seed: int, shuffle: bool = True)\
+        -> List[Tuple[List[int], List[int]]]:
+    y = []
+
+    for column in columns:
+        dataset[column].replace(np.nan, 'unk', inplace=True)
+
+    for g, rows in dataset.groupby(columns):
+        if not isinstance(g, str):
+            str_group = '_'.join([el for el in g])
+        else:
+            str_group = g
+
+        for _ in rows.iterrows():
+            y.append(str_group)
+
+    skf = StratifiedKFold(n_splits=n_splits, random_state=seed, shuffle=shuffle)
+
+    return [(train_index, test_index) for i, (train_index, test_index) in enumerate(skf.split(dataset, y))]
 
 
 def stratified_pair_hash(dataset: pd.DataFrame, seed: int, undersample_safe: float = None) \

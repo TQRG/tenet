@@ -23,105 +23,110 @@ class CodeMining(PluginHandler):
         self.max_features: int = 1000
         self.vectorizer_type: str = 'tfidf'
 
+    def set_sources(self):
+        if 'vectorizer_type' in self.node.kwargs:
+            self.vectorizer_type = self.node.kwargs['vectorizer_type']
+
+        if isinstance(self.sinks['train_data_path'], list):
+            train_sparse_matrix_path = []
+            test_sparse_matrix_path = []
+            train_labels_path = []
+            test_labels_path = []
+
+            for i, _ in enumerate(self.sinks['train_data_path']):
+                train_sparse_matrix_path.append(
+                    self.path / f"{self.vectorizer_type}_{self.output.stem}_train_features_sparse_{i}.npz")
+                test_sparse_matrix_path.append(
+                    self.path / f"{self.vectorizer_type}_{self.output.stem}_test_features_sparse_{i}.npz")
+                train_labels_path.append(self.path / f"{self.output.stem}_train_labels_{i}.csv")
+                test_labels_path.append(self.path / f"{self.output.stem}_test_labels_{i}.csv")
+        else:
+            train_sparse_matrix_path = [
+                self.path / f"{self.vectorizer_type}_{self.output.stem}_train_features_sparse.npz"]
+            test_sparse_matrix_path = [
+                self.path / f"{self.vectorizer_type}_{self.output.stem}_test_features_sparse.npz"]
+            train_labels_path = [self.path / f"{self.output.stem}_train_labels.csv"]
+            test_labels_path = [self.path / f"{self.output.stem}_test_labels.csv"]
+
+        self.set('train_sparse_matrix_path', train_sparse_matrix_path)
+        self.set('test_sparse_matrix_path', test_sparse_matrix_path)
+        self.set('train_labels_path', train_labels_path)
+        self.set('test_labels_path', test_labels_path)
+
+    def get_sinks(self):
+        self.get('train_data_path')
+        self.get('test_data_path')
+
     def run(self, dataset: pd.DataFrame, max_features: int = 1000, vectorizer_type: str = 'tfidf',
-            drop_ratio: float = None, drop_tag: str = None, remove_comments: bool = False, **kwargs) \
-            -> Union[pd.DataFrame, None]:
+            remove_comments: bool = False, **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
         self.max_features = max_features
         self.vectorizer_type = vectorizer_type
 
-        dataset_name = self.output.stem
-        train_vectorizer_model_path = Path(self.path, f"bow_{vectorizer_type}_{dataset_name}_train.model")
-        test_vectorizer_model_path = Path(self.path, f"bow_{vectorizer_type}_{dataset_name}_test.model")
-        train_vocabulary_path = Path(self.path, f"bow_{vectorizer_type}_{dataset_name}_train_vocab.txt")
-        test_vocabulary_path = Path(self.path, f"bow_{vectorizer_type}_{dataset_name}_test_vocab.txt")
-        train_sparse_matrix_path = Path(self.path, f"{vectorizer_type}_{dataset_name}_train_features_sparse.npz")
-        test_sparse_matrix_path = Path(self.path, f"{vectorizer_type}_{dataset_name}_test_features_sparse.npz")
-        train_labels_path = Path(self.path, f"{dataset_name}_train_labels.csv")
-        test_labels_path = Path(self.path, f"{dataset_name}_test_labels.csv")
+        if not isinstance(self.sinks['train_data_path'], list):
+            self.sinks['train_data_path'] = [self.sinks['train_data_path']]
+            self.sinks['test_data_path'] = [self.sinks['test_data_path']]
 
-        # TODO: fix this
-        #self.set('train_tokenizer_model_path', train_vectorizer_model_path)
-        #self.set('test_tokenizer_model_path', test_vectorizer_model_path)
-        self.set('train_sparse_matrix_path', train_sparse_matrix_path)
-        self.set('test_sparse_matrix_path', test_sparse_matrix_path)
-        self.set('train_labels_path', train_labels_path)
-        self.set('test_labels_path', test_labels_path)
+        paths = zip(self.sinks['train_data_path'], self.sources['train_labels_path'],
+                    self.sources['train_sparse_matrix_path'], self.sinks['test_data_path'],
+                    self.sources['test_labels_path'], self.sources['test_sparse_matrix_path'])
 
-        train_data_path = self.get('train_data_path')
-        test_data_path = self.get('test_data_path')
+        for i, (train_data_path, train_labels_path, train_sparse_matrix_path, test_data_path, test_labels_path, test_sparse_matrix_path) in enumerate(paths):
+            train_vectorizer_model_path = Path(self.path, f"bow_{vectorizer_type}_{self.output.stem}_train_{i}.model")
+            test_vectorizer_model_path = Path(self.path, f"bow_{vectorizer_type}_{self.output.stem}_test_{i}.model")
+            train_vocabulary_path = Path(self.path, f"bow_{vectorizer_type}_{self.output.stem}_train_vocab_{i}.txt")
+            test_vocabulary_path = Path(self.path, f"bow_{vectorizer_type}_{self.output.stem}_test_vocab_{i}.txt")
 
-        if not train_data_path:
-            self.app.log.error(f"Train data path not instantiated")
-            return None
+            # get test/train data
+            train_data = pd.read_csv(str(train_data_path))
+            test_data = pd.read_csv(str(test_data_path))
 
-        if not test_data_path:
-            self.app.log.error(f"Test data path not instantiated")
-            return None
+            if remove_comments:
+                self.app.log.info(f"Removing comments from code...")
+                if 'fpath' in train_data:
+                    train_data.rename(columns={'fpath': 'file_path'}, inplace=True)
+                train_data = self.clean_data(train_data)
+                del self.multi_task_handler
+                if 'fpath' in test_data:
+                    test_data.rename(columns={'fpath': 'file_path'}, inplace=True)
+                test_data = self.clean_data(test_data)
 
-        # get test/train data
-        train_data = pd.read_csv(str(train_data_path))
-        test_data = pd.read_csv(str(test_data_path))
+            x_train = train_data.input.to_numpy()
+            x_test = test_data.input.to_numpy()
 
-        if drop_ratio and 'tag' in train_data and drop_tag in train_data['tag'].unique():
-            if drop_ratio < 1:
-                train_data_tag = train_data[train_data['tag'] == drop_tag]
-                drop_indices = np.random.choice(train_data_tag.index, round(drop_ratio*len(train_data_tag)),
-                                                replace=False)
-                train_data = train_data.drop(drop_indices)
-            else:
-                train_data = train_data[train_data['tag'] != drop_tag]
+            # save labels
+            train_data.label.to_csv(str(train_labels_path))
+            test_data.label.to_csv(str(test_labels_path))
 
-        # todo: move related code to different plugin
-        if 'tag' in train_data:
-            self.app.log.info(f"{train_data['tag'].value_counts()}")
+            # if model:
+            #    features = apply_model(vectorizer, sentences, model_path=model)
+            # else:
+            #    features = train_model(vectorizer, sentences, n_feats, project)
 
-        if remove_comments:
-            self.app.log.info(f"Removing comments from code...")
-            if 'fpath' in train_data:
-                train_data.rename(columns={'fpath': 'file_path'}, inplace=True)
-            train_data = self.clean_data(train_data)
-            del self.multi_task_handler
-            if 'fpath' in test_data:
-                test_data.rename(columns={'fpath': 'file_path'}, inplace=True)
-            test_data = self.clean_data(test_data)
+            train_feature_model = self.train_bag_of_words(x_train, train_vectorizer_model_path)
+            test_feature_model = self.train_bag_of_words(x_test, test_vectorizer_model_path)
 
-        x_train = train_data.input.to_numpy()
-        x_test = test_data.input.to_numpy()
+            # Print the vocab of the 'BoW' model.
+            self.app.log.info(f"Writing train vocabulary of the model to {train_vocabulary_path}")
 
-        # save labels
-        train_data.label.to_csv(str(train_labels_path))
-        test_data.label.to_csv(str(test_labels_path))
+            with train_vocabulary_path.open(mode='w') as vp:
+                vp.write('\n'.join(train_feature_model.vocabulary_))
 
-        #if model:
-        #    features = apply_model(vectorizer, sentences, model_path=model)
-        #else:
-        #    features = train_model(vectorizer, sentences, n_feats, project)
+            self.app.log.info(f"Writing test vocabulary of the model to {test_vocabulary_path}")
+            with test_vocabulary_path.open(mode='w') as vp:
+                vp.write('\n'.join(test_feature_model.vocabulary_))
 
-        train_feature_model = self.train_bag_of_words(x_train, train_vectorizer_model_path)
-        test_feature_model = self.train_bag_of_words(x_test, test_vectorizer_model_path)
+            self.app.log.info("Inferring...")
+            train_features = train_feature_model.transform(x_train)
+            test_features = test_feature_model.transform(x_test)
 
-        # Print the vocab of the 'BoW' model.
-        self.app.log.info(f"Writing train vocabulary of the model to {train_vocabulary_path}")
+            self.app.log.info(f"Train features shape: {train_features.shape}")
+            self.app.log.info(f"Test features shape: {test_features.shape}")
 
-        with train_vocabulary_path.open(mode='w') as vp:
-            vp.write('\n'.join(train_feature_model.vocabulary_))
-
-        self.app.log.info(f"Writing test vocabulary of the model to {test_vocabulary_path}")
-        with test_vocabulary_path.open(mode='w') as vp:
-            vp.write('\n'.join(test_feature_model.vocabulary_))
-
-        self.app.log.info("Inferring...")
-        train_features = train_feature_model.transform(x_train)
-        test_features = test_feature_model.transform(x_test)
-
-        self.app.log.info(f"Train features shape: {train_features.shape}")
-        self.app.log.info(f"Test features shape: {test_features.shape}")
-
-        save_npz(str(train_sparse_matrix_path), train_features)
-        save_npz(str(test_sparse_matrix_path), test_features)
+            save_npz(str(train_sparse_matrix_path), train_features)
+            save_npz(str(test_sparse_matrix_path), test_features)
 
         return dataset
 

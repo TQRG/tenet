@@ -15,6 +15,13 @@ class FusionHandler(PluginHandler):
     def __init__(self, **kw):
         super().__init__(**kw)
 
+    def set_sources(self):
+        pass
+
+    def get_sinks(self):
+        self.get('diff_labelled_data_path')
+        self.get('static_labelled_data_path')
+
     def run(self, dataset: pd.DataFrame, sa_labels: bool = False, da_labels: bool = False,
             **kwargs) -> Union[pd.DataFrame, None]:
         """
@@ -23,19 +30,8 @@ class FusionHandler(PluginHandler):
             :param sa_labels: flag to return datasets with only static labels
         """
 
-        diff_labelled_data_path = self.get('diff_labelled_data_path')
-        static_labelled_data_path = self.get('static_labelled_data_path')
-
-        if not diff_labelled_data_path:
-            self.app.log.error(f"Diff labelled data path not instantiated")
-            return None
-
-        if not static_labelled_data_path:
-            self.app.log.error(f"Static labelled data path not instantiated")
-            return None
-
-        diff_labelled_data = pd.read_csv(str(diff_labelled_data_path))
-        static_labelled_data = pd.read_csv(str(static_labelled_data_path))
+        diff_labelled_data = pd.read_csv(str(self.sinks['diff_labelled_data_path']))
+        static_labelled_data = pd.read_csv(str(self.sinks['static_labelled_data_path']))
         self.set_labels(diff_labelled_data, label_type='diff')
         self.set_labels(static_labelled_data, label_type='sa')
 

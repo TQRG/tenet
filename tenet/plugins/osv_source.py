@@ -12,7 +12,7 @@ from tqdm import tqdm
 from google.cloud import storage
 
 from tenet.handlers.plugin import PluginHandler
-from tenet.utils.misc import split_commits, filter_references, normalize_commits,\
+from tenet.utils.misc import split_commits, filter_references, normalize_commits, \
     filter_commits_by_source, load_json_file, create_df, get_source
 from tenet.core.plotter import Plotter
 from tenet.utils.ghsa import dump
@@ -25,7 +25,13 @@ class OSVSource(PluginHandler):
 
     class Meta:
         label = "osv_source"
-        
+
+    def set_sources(self):
+        pass
+
+    def get_sinks(self):
+        pass
+
     def plot(self, dataset: pd.DataFrame, **kwargs):
         """ Print commits statistics. """
 
@@ -49,17 +55,16 @@ class OSVSource(PluginHandler):
             else:
                 print(f"{source}\t\t{n_source}\t\t{(n_source / len(sources)) * 100:.2f}%")
 
-
-    def run(self, 
-            dataset: pd.DataFrame, 
+    def run(self,
+            dataset: pd.DataFrame,
             normalize: bool = True,
             code_source: str = 'github',
             **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
-        
-        token, df_ecosystems = kwargs['tokens'][-1], []
+
+        df_ecosystems = []
         # set folder for GHSA dump
         ecosystem = 'GHSA'
         ghsa_metadata_path = Path(self.path / ecosystem)
@@ -68,14 +73,14 @@ class OSVSource(PluginHandler):
             ghsa_metadata_path.mkdir()
         # get GitHub advisories (GHSA)
         self.app.log.info(f"Downloading {ecosystem} metadata...")
-        dump(ghsa_metadata_path, token)
+        dump(ghsa_metadata_path, self.app.pargs.tokens.split(',')[0])
 
         # df_metadata_path = self.path / kwargs['dataset_name']
         ghsa_results = self.parse_json_ghsa(fin_path=ghsa_metadata_path)
         df_ecosystems.append(ghsa_results)
         self.app.log.info(f"Found {len(ghsa_results)} vulnerabilities from {ecosystem}.")
         shutil.rmtree(ghsa_metadata_path)
-        
+
         client = storage.Client.create_anonymous_client()
         bucket = client.bucket('osv-vulnerabilities')
         for ecosystem in kwargs['ecosystems']:
@@ -86,41 +91,41 @@ class OSVSource(PluginHandler):
             self.app.log.info(f"Downloading {ecosystem} metadata...")
             blob_zip_file_path = Path(f"{self.path}/{ecosystem}.zip")
             blob.download_to_filename(blob_zip_file_path)
-            
+
             # creata output dir
             ecosystem_metadata_path = Path(self.path / ecosystem)
             if not os.path.exists(ecosystem_metadata_path):
                 ecosystem_metadata_path.mkdir()
 
             # unzip data
-            with zipfile.ZipFile(blob_zip_file_path,"r") as zip_ref:
+            with zipfile.ZipFile(blob_zip_file_path, "r") as zip_ref:
                 zip_ref.extractall(ecosystem_metadata_path)
-                
+
             # remove ecosystem.zip
             blob_zip_file_path.unlink()
-            
+
             ecosystem_results = self.parse_json_ecosystem(
-                    ecosystem, 
-                    fin_path=ecosystem_metadata_path 
-                    ) 
+                ecosystem,
+                fin_path=ecosystem_metadata_path
+            )
             df_ecosystems.append(ecosystem_results)
             self.app.log.info(f"Found {len(ecosystem_results)} vulnerabilities from {ecosystem}.")
             shutil.rmtree(ecosystem_metadata_path)
-        
+
         df = pd.concat(df_ecosystems, ignore_index=True)
         self.app.log.info(f"Initial DataFrame size: {len(df)}")
         df['refs'] = df['refs'].apply(lambda ref: np.nan if ref == 'nan' else ref)
         # drop rows without refs
         df = df.dropna(subset=['refs'])
         self.app.log.info(f"Size after nan refs drop: {len(df)}")
-        
+
         if normalize:
             df = self.normalize(df, code_source)
-        
+
         return df
-    
+
     # TODO: This function is common to NVD and OSV;
-    # what should we do? the plot function should 
+    # what should we do? the plot function should
     # also be repeated.
     def normalize(self, df: pd.DataFrame, code_source: str):
         # normalize refs
@@ -137,7 +142,7 @@ class OSVSource(PluginHandler):
             df = filter_commits_by_source(df, source=code_source)
 
         return df
-    
+
     def parse_json_ecosystem(self, ecosystem: str, fin_path: Path) -> pd.DataFrame:
         """Processes vulnerability reports per ecosystem.
         Args:
@@ -155,7 +160,7 @@ class OSVSource(PluginHandler):
             """
             if "affected" in data.keys():
                 if "ranges" in data["affected"][0].keys():
-                    return data["affected"][0]["ranges"]     
+                    return data["affected"][0]["ranges"]
             return []
 
         def normalize_ref(repo):
@@ -171,7 +176,7 @@ class OSVSource(PluginHandler):
                 set: commits that fix the vulnerability
             """
             introduced, fixed, ranges = set(), set(), get_ranges(data)
-                        
+
             if ranges:
                 for range in ranges:
                     if range["type"] == "GIT":
@@ -258,7 +263,7 @@ class OSVSource(PluginHandler):
                 "refs": str(refs),
                 "introduced": str(introduced),
             }
-            
+
             if first:
                 df, first = create_df(vuln_data), False
             else:
@@ -266,7 +271,6 @@ class OSVSource(PluginHandler):
 
         return df
 
-    
     def parse_json_ghsa(self, fin_path: Path, ecosystem="GHSA") -> pd.DataFrame:
         """Processes GHSA vulnerability reports.
             Args:
@@ -306,15 +310,15 @@ class OSVSource(PluginHandler):
                 float: vulnerability score.
             """
             return data["cvss"]["score"]
-        
+
         df, first = None, True
-        
+
         # get reports available for GHSA ecosystem
         reports = [
             os.path.join(fin_path, f) for f in os.listdir(fin_path) \
-                if os.path.isfile(os.path.join(fin_path, f))
+            if os.path.isfile(os.path.join(fin_path, f))
         ]
-        
+
         # iterate over the ecosystem vulns
         for file_path in tqdm(reports):
 
@@ -341,7 +345,7 @@ class OSVSource(PluginHandler):
                 df = pd.concat([df, create_df(vuln_data)], ignore_index=True)
 
         return df
-    
+
     @staticmethod
     def get_field(data, field):
         """Verifies if field exists in the vulnerability report.
@@ -352,7 +356,7 @@ class OSVSource(PluginHandler):
             string: value from field in data.
         """
         return data[field] if field in data.keys() else np.nan
-                
+
     @staticmethod
     def get_references(data):
         """Gets references from vulnerability report.

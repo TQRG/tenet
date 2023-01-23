@@ -1,22 +1,28 @@
-import re
 from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple, Union, Generator
 
+from cement import Handler
 from docker.errors import APIError, NotFound
 from docker.models.containers import Container
-from tqdm import tqdm
 
+from tenet.core.interfaces import HandlersInterface
 from tenet.data.output import CommandData
 from tenet.core.exc import TenetError, CommandError
-from tenet.data.schema import ContainerCommand, Placeholder
-from tenet.handlers.node import NodeHandler
+from tenet.data.schema import ContainerCommand
 from tenet.utils.misc import str_to_tarfile
 
 
-class ContainerHandler(NodeHandler):
+class ContainerHandler(HandlersInterface, Handler):
     class Meta:
         label = 'container'
+
+    def __init__(self, working_dir: Path = None, output: Path = None, local_working_dir: Path = None, **kw):
+        super().__init__(**kw)
+        # TODO: fix this, use volumes instead of working_dir
+        self.working_dir = working_dir
+        self.output = output
+        self.local_working_dir = local_working_dir
 
     def __getitem__(self, name: str):
         try:
@@ -43,73 +49,6 @@ class ContainerHandler(NodeHandler):
             output.append(step)
 
         return output
-
-    @property
-    def working_dir(self):
-        return Path(str(self.path).replace(str(self.app.workdir), str(self.app.bind)))
-
-    def find_output(self):
-        """
-            Returns the output path.
-        """
-        match = re.findall("\{(p\d+)\}", str(self.node.output))
-
-        if match:
-            output = str(self.node.output).format(**{m: self.edge.placeholders[m].value for m in match})
-            self.app.log.info(f"Parsed output entry: {output}")
-
-            if output.startswith(self.app.bind):
-                output = output.replace(self.app.bind, str(self.app.workdir))
-
-            self.output = Path(output)
-            # Update as well the connectors
-            if self.app.connectors.has_source(self.edge.name, attr='output'):
-                self.set('output', self.output, skip=False)
-
-        return self.output.exists()
-
-    def parse(self):
-        """
-            Inserts the placeholders in the commands
-        """
-        # parse placeholders from the sinks
-
-        if self.edge.name in self.app.connectors.sinks:
-            for _, sink in self.app.connectors.sinks[self.edge.name].items():
-                for tag, value in sink.map_placeholders().items():
-                    if value is None:
-                        self.app.log.error(f"Placeholder {tag} is None.")
-                        exit(1)
-
-                    self.edge.placeholders.update({tag: Placeholder(tag=tag, value=value, node=sink.sink)})
-
-        # init placeholder sources
-        if self.edge.sources:
-            for p in self.edge.sources:
-                if p in self.edge.placeholders:
-                    value = self.edge.placeholders[p].value
-
-                    if isinstance(value, str) and value.startswith(self.app.bind):
-                        value = value.replace(self.app.bind, str(self.app.workdir))
-
-                    self.set(p, value)
-
-        for cmd in self.node.cmds:
-            if self.edge.placeholders:
-                # TODO: allow placeholders to have varied names
-                for p in re.findall("\{(p\d+)\}", cmd.org):
-                    if p not in self.edge.placeholders:
-                        raise ValueError(f"Missing placeholder {p}")
-
-                    value = str(self.edge.placeholders[p].value).replace(str(self.app.workdir), self.app.bind)
-                    cmd.placeholders[p] = Placeholder(tag=p, value=value, node=self.edge.name)
-
-                if not cmd.placeholders:
-                    cmd.parsed = cmd.org
-                else:
-                    cmd.parsed = cmd.org.format(**cmd.get_placeholders())
-            else:
-                cmd.parsed = cmd.org
 
     def start(self, container_id: str):
         """
@@ -143,7 +82,8 @@ class ContainerHandler(NodeHandler):
         cmd.skip = True
         return True
 
-    def run_cmds(self, container_id: str, cmds: List[ContainerCommand]) -> Tuple[bool, List[CommandData]]:
+    def run_cmds(self, container_id: str, cmds: List[ContainerCommand], supress_err: bool = False) \
+            -> Tuple[bool, List[CommandData]]:
         """
             Run commands inside the specified container.
         """
@@ -165,14 +105,13 @@ class ContainerHandler(NodeHandler):
                 if cmd.parse_fn is not None:
                     cmd_data.parsed_output = cmd.parse_fn(cmd_data.output)
 
-            if cmd_data.error or cmd_data.return_code != 0:
+            if (cmd_data.error or cmd_data.return_code != 0) and (not supress_err):
                 return False, cmds_data
 
         return True, cmds_data
 
-    def run(self, image_name: str, node_name: str = None, pull_image: bool = True):
-        # TODO: Fix this, folder set to the layer name (astminer container inside layer gets codeql folder)
-        container_name = f"{self.app.workdir.name}_{node_name if node_name else self.node.name}"
+    def run(self, image_name: str, pull_image: bool = True):
+        container_name = f"{self.app.workdir.name}_{self.local_working_dir.stem}"
         container = self[container_name]
 
         if not container:
@@ -287,8 +226,8 @@ class ContainerHandler(NodeHandler):
         out = []
         err = []
 
-        with (self.path / f'{exec_id}_out.txt').open(mode='a') as out_file, \
-                (self.path / f'{exec_id}_err.txt').open(mode='a') as err_file:
+        with (self.local_working_dir / f'{exec_id}_out.txt').open(mode='a') as out_file, \
+                (self.local_working_dir / f'{exec_id}_err.txt').open(mode='a') as err_file:
 
             for stdout, stderr in self.app.docker.api.exec_start(exec_id, stream=True, demux=True):
                 if stdout:

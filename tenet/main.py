@@ -13,6 +13,7 @@ from tenet.handlers.github import GithubHandler
 from tenet.handlers.command import CommandHandler
 from tenet.handlers.runner import MultiTaskHandler
 from tenet.handlers.workflow import WorkflowHandler
+from tenet.handlers.pipeline import PipelineHandler
 from tenet.handlers.plugin_loader import PluginLoader
 from tenet.handlers.container import ContainerHandler
 from tenet.handlers.code_parser import CodeParserHandler
@@ -47,7 +48,8 @@ class Tenet(App):
             get_absolute_path(label, 'config/abstractions.yml'), 
             get_absolute_path(label, 'config/mappings.yml'),
             get_absolute_path(label, 'config/keywords.yml'),
-            get_absolute_path(label, 'config/tenet.yml')
+            get_absolute_path(label, 'config/tenet.yml'),
+            get_absolute_path(label, 'config/sw_type.yml')
         ]
 
         # configuration handler
@@ -72,7 +74,7 @@ class Tenet(App):
         # register handlers
         handlers = [
             Base, Plugin, CWE, PluginLoader, ContainerHandler, CommandHandler, WorkflowHandler, CodeParserHandler,
-            MultiTaskHandler, GithubHandler, CWEListHandler, FileParserHandler, SamplingHandler
+            MultiTaskHandler, GithubHandler, CWEListHandler, FileParserHandler, SamplingHandler, PipelineHandler
         ]
 
     def get_config(self, key: str):
@@ -82,30 +84,29 @@ class Tenet(App):
 
         return None
 
-    def get_plugin_handler(self, name: str, setup: bool = True):
+    def get_plugin_handler(self, name: str):
         """
             Gets the handler associated to the plugin
 
             :param name: label of the plugin
-            :param setup: setup of the plugin
             :return: handler for the plugin
         """
 
         try:
-            if name not in self.plugin.get_enabled_plugins():
-                self.log.error(f"Plugin {name} not enabled.")
-                exit(1)
 
             if name not in self.plugin.get_loaded_plugins():
-                self.log.error(f"Plugin {name} not loaded.")
-                exit(1)
+                self.plugin.load_plugin(name)
 
-            if name not in [el.Meta.label for el in self.handler.list('plugins')]:
-                return self.handler.resolve('plugins', name)
+            plugin = self.handler.resolve('plugins', name)
+            plugin.__init__()
+            plugin._setup(self)
+            return plugin
 
-            return self.handler.get('plugins', name, setup=setup)
         except InterfaceError as ie:
             self.log.error(str(ie))
+            exit(1)
+        except TypeError as te:
+            self.log.error(str(te))
             exit(1)
 
 
@@ -133,6 +134,10 @@ def main():
 
         if not app.config.has_section('keywords'):
             app.log.error(f"Keywords not found, make sure /tenet/config/keywords.yml exists")
+            exit(1)
+
+        if not app.config.has_section('sw_type'):
+            app.log.error(f"Keywords not found, make sure /tenet/config/sw_type.yml exists")
             exit(1)
 
         try:

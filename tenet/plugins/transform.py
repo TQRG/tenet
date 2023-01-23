@@ -20,29 +20,30 @@ class Transform(PluginHandler):
         label = "transform"
 
     def __init__(self, **kw):
-        super().__init__(**kw)
-        self.files_path = None
-        self.real = None
-        self.snippet = None
-        self.fix = None
-        self.clean_files_dir: Path = None
-
-    def run(self, dataset: pd.DataFrame, real: bool = False, fix: bool = False, snippet: bool = False) \
-            -> Union[pd.DataFrame, None]:
         """
             runs the plugin
             Args:
-            real (bool): flag to add the other parts of file as non-vuln snippets
             fix (bool): flag to add fix file
             snippet (bool): flag to transform samples to snippet granularity
         """
-        self.files_path = self.get('files_path')
-        self.clean_files_dir = Path(self.path, 'files')
-        check_or_create_dir(self.clean_files_dir)
-        self.set('clean_files_path', self.clean_files_dir)
-        self.real = real
+        super().__init__(**kw)
+        self.fix = False
+
+    def set_sources(self):
+        self.set('clean_files_path', Path(self.path, 'files'))
+
+    def get_sinks(self):
+        self.get('files_path')
+
+    def run(self, dataset: pd.DataFrame, fix: bool = False) -> Union[pd.DataFrame, None]:
+        """
+            runs the plugin
+            Args:
+            fix (bool): flag to add fix file
+            snippet (bool): flag to transform samples to snippet granularity
+        """
+        check_or_create_dir(self.sources['clean_files_path'])
         self.fix = fix
-        self.snippet = snippet
 
         for row in tqdm(dataset.to_dict(orient='records')):
             self.multi_task_handler.add(row=row)
@@ -58,7 +59,7 @@ class Transform(PluginHandler):
         return None
 
     def get_triplet(self, row: dict) -> Tuple[LocalGitFile, LocalGitFile, LocalGitFile]:
-        project_path = self.files_path / row['project_name']
+        project_path = self.sinks['files_path'] / row['project']
 
         if 'raw_url_vuln' in row and not pd.isnull(row['raw_url_vuln']):
             vuln_file = LocalGitFile(url=row['raw_url_vuln'], short=Path(row['file_path']), tag='vuln',
@@ -72,7 +73,7 @@ class Transform(PluginHandler):
         else:
             fix_file = None
 
-        if 'raw_url_non_vuln' in row:
+        if 'raw_url_non_vuln' in row and not pd.isnull(row['raw_url_non_vuln']):
             non_vuln_file = LocalGitFile(url=row["raw_url_non_vuln"], short=Path(row['non_vuln_file_path']),
                                          tag='non-vuln',
                                          path=project_path / row['non_vuln_commit_hash'] / row['non_vuln_file_path'])
@@ -88,11 +89,11 @@ class Transform(PluginHandler):
         if not vuln_file and not fix_file and not non_vuln_file:
             raise TenetError("Empty row")
 
-        fix_file_content = self.get_clean_content(project=row['project_name'], commit=row['fixed_commit_hash'],
+        fix_file_content = self.get_clean_content(project=row['project'], commit=row['fixed_commit_hash'],
                                                   file=fix_file)
-        vuln_file_content = self.get_clean_content(project=row['project_name'], commit=row['vuln_commit_hash'],
+        vuln_file_content = self.get_clean_content(project=row['project'], commit=row['vuln_commit_hash'],
                                                    file=vuln_file)
-        non_vuln_file_content = self.get_clean_content(project=row['project_name'], commit=row['non_vuln_commit_hash'],
+        non_vuln_file_content = self.get_clean_content(project=row['project'], commit=row['non_vuln_commit_hash'],
                                                        file=non_vuln_file)
 
         vuln_str, size_vuln_lines, fix_str, size_fix_lines = self.code_parser_handler.get_pair_snippet(fix_file_content,
@@ -123,7 +124,7 @@ class Transform(PluginHandler):
         if file is None:
             return None
 
-        clean_file = self.clean_files_dir / project / commit / file.short
+        clean_file = self.sources['clean_files_path'] / project / commit / file.short
 
         if clean_file.exists():
             return clean_file.open(mode='r').read()
