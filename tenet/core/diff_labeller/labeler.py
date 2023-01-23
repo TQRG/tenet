@@ -63,13 +63,13 @@ class Labeler:
         # Save the pretty printed inline diffs
         if self.inline_file.exists():
             with self.inline_file.open(mode="r") as ilf:
-                print(f"Reading {self.inline_file}")
+                #print(f"Reading {self.inline_file}")
                 self.inline_diff_text = ilf.read()
         else:
             self.inline_diff_text = "".join(difflib.unified_diff(self.a_formatted_lines, self.b_formatted_lines))
 
             with self.inline_file.open(mode='w') as diff_temp:
-                print(f"Writing {self.inline_file}")
+                #print(f"Writing {self.inline_file}")
                 diff_temp.write(self.inline_diff_text)
 
     def pretty_printing(self, a_str: str, b_str: str):
@@ -89,19 +89,19 @@ class Labeler:
 
         else:
             with self.a_path_file.open(mode="r") as apf:
-                print(f"Reading {self.a_path_file}")
+                #print(f"Reading {self.a_path_file}")
                 self.a_formatted = apf.read()
 
         if not self.b_path_file.exists():
             self.b_formatted = jsbeautifier.beautify(b_str, opts)
 
             with self.b_path_file.open(mode="w") as b_temp:
-                print(f"Writing {self.b_path_file}")
+                #print(f"Writing {self.b_path_file}")
                 b_temp.write(self.b_formatted)
 
         else:
             with self.b_path_file.open(mode="r") as bpf:
-                print(f"Reading {self.b_path_file}")
+                #print(f"Reading {self.b_path_file}")
                 self.b_formatted = bpf.read()
 
     def add_inline_diffs(self, owner: str, project: str, version: str, file_path: str, formatted_range: List,

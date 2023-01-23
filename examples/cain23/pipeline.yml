@@ -1,0 +1,263 @@
+nodes:
+  - osv_raw:
+      plugin: osv_source
+      kwargs:
+        ecosystems: ["Android", "Go", "Linux", "Maven", "NuGet", "OSS-Fuzz", "PyPI", "RubyGems", "crates.io", "npm", "Hex", "Packagist"]
+  - osv_prepare:
+      plugin: osv_prepare
+  - nvd_raw:
+      plugin: nvd_source
+  - nvd_prepare:
+      plugin: nvd_prepare
+      kwargs:
+        include_comments: false
+  - clean:
+      plugin: clean_source
+      kwargs:
+          drop_multi_cwe: true
+          drop_unk_cwe: true
+          projects_blacklist: 
+            - 'chrisd1100/uncurl'
+            - 'Oryx-Embedded/CycloneTCP'
+            - 'derrekr/android_security'
+            - 'yarolig/didiwiki'
+            - 'joyent/node'
+            - 'kmatheussen/das_watchdog'
+            - 'Uninett/mod_auth_mellon'
+            - 'stnoonan/spnego-http-auth-nginx-module'
+            - 'sqreen/PyMiniRacer'
+            - 'star7th/showdoc'
+            - 'esl/MongooseIM'
+            - 'pediapress/pyfribidi'
+            - 'apache/cordova-plugin-inappbrowser'
+            - 'https://github.com/objsys/oocborrt'
+            - 'https://github.com/flexpaper/pdf2json'
+  - create_dataset:
+       plugin: generate
+       kwargs: 
+         scenario: fix
+         languages: 
+            - JavaScript
+  - collect_files:
+      plugin: collector
+      kwargs:
+        max_size: 262144
+  - labels:
+      plugin: labeler
+      kwargs:
+        multi_label: false
+  - codeql_labels:
+      plugin: codeql
+      kwargs:
+        image_name: epicosy/securityaware:codeql
+        drop_unavailable: true
+        drop_cwes: [20]
+  - jscodeshift:
+      plugin: jscodeshift
+      kwargs:
+        image_name: epicosy/securityaware:jscodeshift
+  - functions:
+      plugin: astminer
+      kwargs:
+        extract_cp: false
+        image_name: epicosy/securityaware:astminer
+  - contexts:
+      plugin: astminer
+      kwargs:
+        extract_cp: true
+        image_name: epicosy/securityaware:astminer
+  - sampling:
+      plugin: sampling
+      kwargs:
+        technique: stratified_pair_hash
+  - features:
+      plugin: code_mining
+  - truncate:
+      plugin: preprocess
+      kwargs:
+        max_contexts: 90
+  - jsonifier:
+      plugin: jsonifier
+      kwargs:
+        offset: true
+  - evaluate_ada:
+      plugin: ml_pipeline
+      kwargs:
+        model_type: ADA
+  - evaluate_knn:
+      plugin: ml_pipeline
+      kwargs:
+        model_type: KNN
+  - evaluate_svc:
+      plugin: ml_pipeline
+      kwargs:
+        model_type: SVC
+  - evaluate_rfc:
+      plugin: ml_pipeline
+      kwargs:
+        model_type: RFC
+  - evaluate_c2v:
+      plugin: code2vec
+      kwargs:
+        max_contexts: 90
+        image_name: 'epicosy/securityaware:code2vec'
+  - evaluate_codebert:
+      plugin: codebert
+      kwargs: 
+        train: true
+        evaluate: false
+        max_epochs: 5 
+        image_name: 'epicosy/securityaware:codebert'
+
+edges:
+   - osv_data:
+       at: osv_raw 
+       to: osv_prepare
+   - join_osv:
+       at: osv_prepare
+       to: clean
+   - nvd_data:
+       at: nvd_raw
+       to: nvd_prepare
+   - join_nvd:
+       at: nvd_prepare
+       to: clean
+   - clean_data: 
+       at: clean
+       to: create_dataset
+   - collect_data: 
+       at: create_dataset
+       to: collect_files
+   - diff_labels:
+       at: collect_files
+       to: labels
+   - codeql_labels:
+       at: collect_files
+       to: codeql_labels
+   - jscodeshift_diff:
+       at: labels
+       to: jscodeshift
+   - jscodeshift_codeql:
+       at: codeql_labels
+       to: jscodeshift
+   - get_fns:
+       at: jscodeshift
+       to: functions
+   - sample_fns:
+       at: functions
+       to: sampling
+   - fns_features:
+       at: sampling
+       to: features
+   - json_fns:
+       at: sampling
+       to: jsonifier
+   - branch_ada:
+       at: features
+       to: evaluate_ada
+   - branch_knn:
+       at: features
+       to: evaluate_knn
+   - branch_svc:
+       at: features
+       to: evaluate_svc
+   - branch_rfc:
+       at: features
+       to: evaluate_rfc
+   - get_cps:
+       at: jscodeshift
+       to: contexts
+   - sample_cps:
+       at: contexts
+       to: sampling
+   - cps_features:
+       at: sampling
+       to: truncate
+   - eval_c2v:
+       at: truncate
+       to: evaluate_c2v
+   - eval_codebert:
+       at: jsonifier
+       to: evaluate_codebert
+
+links:
+    collect_files:      
+      files_path: 
+        raw_files_path: [labels, codeql_labels, jscodeshift, functions, contexts, jsonifier]
+    sampling:
+      val_data: 
+        val_data_path: [truncate, jsonifier]
+      train_data: 
+        train_data_path: [truncate, features, jsonifier, evaluate_ada, evaluate_knn, evaluate_svc, evaluate_rfc]
+      test_data: 
+        test_data_path: [truncate, features, jsonifier, evaluate_ada, evaluate_knn, evaluate_svc, evaluate_rfc]
+    features:
+      train_sparse_matrix_path: 
+        train_features_path: [evaluate_ada, evaluate_knn, evaluate_svc, evaluate_rfc]
+      test_sparse_matrix_path: 
+        test_features_path: [evaluate_ada, evaluate_knn, evaluate_svc, evaluate_rfc]
+      train_labels_path: 
+        train_labels_path: [evaluate_ada, evaluate_knn, evaluate_svc, evaluate_rfc]
+      test_labels_path: 
+        test_labels_path: [evaluate_ada, evaluate_knn, evaluate_svc, evaluate_rfc]
+    truncate:
+      val_output_path:
+        val_data_path: [evaluate_c2v]
+      test_output_path: 
+        test_data_path: [evaluate_c2v]
+      train_output_path: 
+        train_data_path: [evaluate_c2v] 
+    jscodeshift:
+      dataset_path: 
+        raw_fn_bounds_file: [functions, contexts]
+    jsonifier:
+      train_lines: 
+        train_lines_path: [evaluate_codebert]
+      val_lines: 
+        val_lines_path: [evaluate_codebert]
+      test_lines: 
+        test_lines_path: [evaluate_codebert]
+      train_offset_path: 
+        train_offset_file: [evaluate_codebert]
+      val_offset_path: 
+        val_offset_file: [evaluate_codebert]
+      test_offset_path: 
+        test_offset_file: [evaluate_codebert]
+
+layers:
+  get_data:
+      - [osv_data, join_osv]
+      - [nvd_data, join_nvd]
+  prepare_data: [clean_data, collect_data]
+  diff_analysis: [diff_labels, jscodeshift_diff]
+  static_analysis: [codeql_labels, jscodeshift_codeql]
+  diff_sample_fns: [get_fns, sample_fns]
+  static_sample_fns: [get_fns, sample_fns]
+  diff_functions_features: [fns_features]
+  diff_json_functions: [json_fns]
+  static_functions_features: [fns_features]
+  static_json_functions: [json_fns]
+  diff_context_paths: [get_cps, sample_cps, cps_features]
+  static_context_paths: [get_cps, sample_cps, cps_features]
+  diff_evaluate_basic: 
+    - [branch_ada]
+    - [branch_knn]
+    - [branch_svc]
+    - [branch_rfc]
+  static_evaluate_basic: 
+    - [branch_ada]
+    - [branch_knn]
+    - [branch_svc]
+    - [branch_rfc]
+  diff_evaluate_c2v: [eval_c2v]
+  static_evaluate_c2v: [eval_c2v]
+  diff_evaluate_codebert: [eval_codebert]
+  static_evaluate_codebert: [eval_codebert]
+
+workflows:
+    eval_basic_diff: [get_data, prepare_data, diff_analysis, diff_sample_fns, diff_functions_features, diff_evaluate_basic]
+    eval_basic_static: [get_data, prepare_data, static_analysis, static_sample_fns, static_functions_features, static_evaluate_basic]
+    eval_c2v_diff: [get_data, prepare_data, diff_analysis, diff_context_paths, diff_evaluate_c2v]
+    eval_c2v_static: [get_data, prepare_data, static_analysis, static_context_paths, static_evaluate_c2v]
+    eval_codebert_diff: [get_data, prepare_data, diff_analysis, diff_sample_fns, diff_json_functions, diff_evaluate_codebert]
+    eval_codebert_static: [get_data, prepare_data, static_analysis, static_sample_fns, static_json_functions, static_evaluate_codebert]

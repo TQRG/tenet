@@ -54,10 +54,10 @@ class Code2vecHandler(PluginHandler):
         count_labels(self.sinks['val_data_path'], 'validation')
         count_labels(self.sinks['test_data_path'], 'test')
 
-        val_data_path = self.sinks['val_data_path'].replace(str(self.app.workdir), str(self.app.bind))
+        val_data_path = str(self.sinks['val_data_path']).replace(str(self.app.workdir), str(self.app.bind))
         container = self.container_handler.run(image_name=image_name)
         # TODO: find better way of performing this bind
-        save_path = self.sources['save_path'].replace(str(self.app.workdir), str(self.app.bind))
+        save_path = str(self.sources['save_path']).replace(str(self.app.workdir), str(self.app.bind))
         dataset_name = Path(val_data_path).stem.split('.')[0]
         data_dir = Path(Path(val_data_path).parent, dataset_name)
         # step = 'train' if train else 'test'
