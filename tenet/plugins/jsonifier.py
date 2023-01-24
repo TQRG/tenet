@@ -30,7 +30,7 @@ class JSONifierHandler(PluginHandler):
             self.set(jsonlines_path, self.jsonlines_files[jsonlines_path])
 
         if 'offset' in self.node.kwargs and self.node.kwargs['offset']:
-            for name, file in self.sinks.values():
+            for name, file in self.sinks.items():
                 if name == 'raw_files_path':
                     continue
                 offset_path = f'{file.stem}_offset_path'
@@ -47,12 +47,6 @@ class JSONifierHandler(PluginHandler):
         """
             runs the plugin
         """
-
-        raw_files_path = Path(self.sinks['raw_files_path_str'])
-
-        if not raw_files_path.exists():
-            self.app.log.warning(f"{raw_files_path} not found")
-            return None
 
         for jsonlines_file, (name, split_file) in zip(self.jsonlines_files.values(), self.sinks.items()):
             if name == 'raw_files_path':
