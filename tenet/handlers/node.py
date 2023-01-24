@@ -66,6 +66,14 @@ class NodeHandler(PluginsInterface, Handler):
             self.check_sink(attr)
             return self.app.connectors[self.node.name, attr]
         except KeyError as ke:
+            if (self.path / f"_{attr}.src").exists():
+                # hack to run the node with a cache of previous sources
+                # TODO: serialize this
+                self.app.log.info(f"Loading saved source {self.path / f'_{attr}.src'}")
+                with (self.path / f"_{attr}.src").open(mode='r') as f:
+                    value = f.read().splitlines()[0]
+                    self.sinks[attr] = value
+                    return value
             if not default:
                 raise TenetError(f"Sink '{ke}' of '{self.node.name}' node not found")
 

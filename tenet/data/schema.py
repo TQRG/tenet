@@ -6,6 +6,7 @@ from typing import Dict, Any, Tuple, Callable, List, Union, OrderedDict
 
 from schema import Schema, And, Optional, Or
 
+from tenet.core.exc import TenetError
 from tenet.utils.misc import random_id
 
 
@@ -260,7 +261,15 @@ class Connectors:
 
     def init_links(self, at_node: str, to_node: str, links: dict):
         connector = Connector(source=at_node, sink=to_node, attrs={}, links=links)
+
+        if at_node not in self.sources:
+            raise TenetError(f"'{at_node}' 'at node' not found in sources")
+
         self.sources[at_node][to_node] = connector
+
+        if to_node not in self.sources:
+            raise TenetError(f"'{to_node}' node in the links of '{at_node}' node not found.")
+
         self.sources[to_node][at_node] = connector
 
     def __getitem__(self, sink_key: Tuple[str, str]):
