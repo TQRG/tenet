@@ -3,6 +3,8 @@
 
 ROOT_DIR=~/.tenet/
 
+apt-get install liblzma-dev lzma
+
 # the two main directories are: config and plugins
 mkdir -p "${ROOT_DIR}/config"
 mkdir -p "${ROOT_DIR}/plugins"

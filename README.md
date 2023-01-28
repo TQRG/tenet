@@ -13,6 +13,8 @@ $ cd tenet
 $ pip install -r requirements.txt
 $ pip install .
 $ ./setup.sh
+$ docker pull postgresql:15.1
+$ docker run --name tenet_db -e POSTGRES_PASSWORD=tenet123 -e POSTGRES_USER=tenet -d -p 5432:5432 postgres
 ```
 
 ## Architecture

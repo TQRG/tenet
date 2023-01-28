@@ -38,6 +38,7 @@ class Tenet(App):
         extensions = [
             'tenet.ext.setup',
             'tenet.ext.docker',
+            'tenet.ext.database',
             'yaml',
             'colorlog',
             'jinja2',

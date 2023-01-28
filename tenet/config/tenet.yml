@@ -29,6 +29,13 @@ tenet:
     safe: 0
     unsafe: 1
 
+  dialect: 'postgresql'
+  username: 'tenet'
+  password: 'tenet123'
+  host: 'localhost'
+  port: '5432'
+  database: 'tenet'
+
 log.colorlog:
 
 ### Where the log file lives (no log file by default)
@@ -48,3 +55,6 @@ log.colorlog:
 
 ### The maximun number of log files to maintain when rotating
   max_files: 4
+
+### Whether to log the database queries
+  database: false
