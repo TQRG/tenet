@@ -61,7 +61,7 @@ class LocalGitFile:
 
     def read(self):
         if not self.content:
-            print(f'Reading from {self.path}')
+            #print(f'Reading from {self.path}')
 
             if not self.path.exists() or self.path.stat().st_size == 0:
                 if self.tag:
@@ -178,16 +178,59 @@ class GithubHandler(HandlersInterface, Handler):
         self.lock = threading.Lock()
         # Size of the paginated list returned by get_commits, may change
         self.paginated_list_size = 30
+        self._sw_types = None
 
     def has_rate_available(self):
         return self.git_api.get_rate_limit().core.remaining > 0
 
     @property
+    def sw_types(self):
+        if self._sw_types is None:
+            self._sw_types = {}
+            # normalize owner and project names
+            for owner, projects in self.app.config.get_section_dict('sw_type').items():
+                normalized_owner = owner.strip().lower()
+                self._sw_types[normalized_owner] = {}
+
+                for project, sw_type in projects.items():
+                    normalized_project = project.strip().lower()
+                    self._sw_types[normalized_owner][normalized_project] = sw_type
+
+        return self._sw_types
+
+    def get_sw_type(self, owner: str, project: str) -> Union[str, None]:
+        if owner is None or pd.isna(owner):
+            return 'unk'
+
+        if project is None or pd.isna(project):
+            return 'unk'
+
+        normalized_owner = owner.strip().lower()
+        normalized_project = project.strip().lower()
+
+        if normalized_owner in self.sw_types and normalized_project in self.sw_types[normalized_owner]:
+            return self.sw_types[normalized_owner][normalized_project]
+
+        return 'unk'
+
+    @property
     def git_api(self):
         with self.lock:
-            if self._git_api is None:
+            if not self._tokens:
+                tokens = self.app.pargs.tokens.split(',')
+                self._tokens = deque(tokens, maxlen=len(tokens))
+
+            if not self._git_api:
                 self._git_api = Github(self._tokens[0])
                 self._tokens.rotate(-1)
+
+            count = 0
+            while not self._git_api.get_rate_limit().core.remaining > 0:
+                if count == len(self._tokens):
+                    raise TenetError(f"Tokens exhausted")
+                self._git_api = Github(self._tokens[0])
+                self._tokens.rotate(-1)
+                count += 1
 
             return self._git_api
 
@@ -195,18 +238,6 @@ class GithubHandler(HandlersInterface, Handler):
     def git_api(self):
         with self.lock:
             self._git_api = None
-
-    @property
-    def tokens(self):
-        self._tokens.rotate(-1)
-        return self._tokens[0]
-
-    @tokens.setter
-    def tokens(self, value: Union[str, list]):
-        if isinstance(value, str):
-            value = []
-
-        self._tokens = deque(value, maxlen=len(value))
 
     @staticmethod
     def parse_commit_sha(commit_sha: Union[list, str]) -> list:
@@ -234,16 +265,9 @@ class GithubHandler(HandlersInterface, Handler):
         except (ValueError, GithubException):
             err_msg = f"Commit {commit_sha} for repo {repo.name} unavailable: "
         except RateLimitExceededException as rle:
-            del self.git_api
-
-            if self.has_rate_available():
-                owner, project = repo.full_name.split('/')
-                repo = self.get_repo(owner=owner, project=project)
-                return repo.get_commit(sha=commit_sha)
-
             err_msg = f"Rate limit exhausted: {rle}"
-        except Exception:
-            err_msg = f"Unexpected error {sys.exc_info()}"
+        #except Exception:
+        #    err_msg = f"Unexpected error {sys.exc_info()}"
 
         if raise_err:
             raise TenetError(err_msg)
@@ -259,17 +283,11 @@ class GithubHandler(HandlersInterface, Handler):
             self.app.log.info(f"Getting repo {repo_path}")
             return self.git_api.get_repo(repo_path)
         except RateLimitExceededException as rle:
-            del self.git_api
-
-            if self.has_rate_available():
-                return self.git_api.get_repo(repo_path)
-
             err_msg = f"Rate limit exhausted: {rle}"
-
         except UnknownObjectException:
             err_msg = f"Repo not found. Skipping {owner}/{project} ..."
-        except Exception:
-            err_msg = f"Unexpected error {sys.exc_info()}"
+        #except Exception:
+        #    err_msg = f"Unexpected error {sys.exc_info()}"
 
         if raise_err:
             raise TenetError(err_msg)
@@ -335,7 +353,7 @@ class GithubHandler(HandlersInterface, Handler):
         num_paths = len(diff_path_bound)
         diff_path_bound.append(len(lines))
         blocks = []
-
+        # TODO: we want this too be more flexible, adapt
         extensions = extensions if extensions else self.app.get_config('proj_ext')
 
         for path_id in range(num_paths):
@@ -416,15 +434,6 @@ class GithubHandler(HandlersInterface, Handler):
         # chain of commit and datetime
         return list(df['commit']), list(df['datetime'])
 
-    def get_repo_from_link(self, repo_link: str, raise_err: bool = False) -> Union[Repository, None]:
-        # get owner and project
-        if not pd.notna(repo_link):
-            return None
-
-        owner, project = repo_link.split('/')[3::]
-
-        return self.get_repo(owner, project, raise_err=raise_err)
-
     @staticmethod
     def get_commit_parents(commit: Commit) -> set:
         return set([c.sha for c in commit.commit.parents])
@@ -432,33 +441,25 @@ class GithubHandler(HandlersInterface, Handler):
     def get_commit_comments(self, commit: Commit, raise_err: bool = False) -> dict:
         comments, count = {}, 1
         err_msg = None
-        commit_comments = []
 
         try:
-            commit_comments = commit.get_comments()
+            for comment in commit.get_comments():
+                comments[f'com_{count}'] = {
+                    'author': comment.user.login,
+                    'datetime': comment.created_at.strftime("%m/%d/%Y, %H:%M:%S"),
+                    'body': comment.body.strip()
+                }
+                count += 1
         except RateLimitExceededException as rle:
-            del self.git_api
-
-            if self.has_rate_available():
-                commit_comments = commit.get_comments()
-            else:
-                err_msg = f"Rate limit exhausted: {rle}"
-        except Exception:
-            err_msg = f"Unexpected error {sys.exc_info()}"
+            err_msg = f"Rate limit exhausted: {rle}"
+        #except Exception:
+        #    err_msg = f"Unexpected error {sys.exc_info()}"
 
         if err_msg:
             if raise_err:
                 raise TenetError(err_msg)
 
             self.app.log.error(err_msg)
-
-        for comment in commit_comments:
-            comments[f'com_{count}'] = {
-                'author': comment.user.login,
-                'datetime': comment.created_at.strftime("%m/%d/%Y, %H:%M:%S"),
-                'body': comment.body.strip()
-            }
-            count += 1
 
         return comments
 
@@ -496,16 +497,11 @@ class GithubHandler(HandlersInterface, Handler):
             try:
                 chain_ord_sha.append(commit.commit.sha)
             except RateLimitExceededException as rle:
-                del self.git_api
-
-                if self.has_rate_available():
-                    chain_ord_sha.append(commit.commit.sha)
-                else:
-                    err_msg = f"Rate limit exhausted: {rle}"
-                    break
-            except Exception:
-                err_msg = f"Unexpected error {sys.exc_info()}"
+                err_msg = f"Rate limit exhausted: {rle}"
                 break
+            #except Exception:
+            #    err_msg = f"Unexpected error {sys.exc_info()}"
+            #    break
 
         # self.app.log.info(f"Chain order: {chain_ord_sha}")
 
@@ -524,7 +520,7 @@ class GithubHandler(HandlersInterface, Handler):
             self.app.log.error(f"{ve}")
             return None
 
-        parents = self.get_commit_parents(chain_ord[-1])
+        parents = list(self.get_commit_parents(chain_ord[-1]))
 
         commit_datetime = chain_datetime[chain_idx].strftime("%m/%d/%Y, %H:%M:%S")
         commit_metadata = self.get_commit_metadata(chain_ord[chain_idx], include_comments=include_comments)
@@ -533,29 +529,56 @@ class GithubHandler(HandlersInterface, Handler):
                              chain_ord_pos=chain_idx + 1, last_fix_commit=chain_ord[-1].commit.sha,
                              commit_sha=commit_sha, commit_datetime=commit_datetime)
 
-    def get_project_metadata(self, project: str, chains: list, commits: list, indexes: list,
-                             include_comments: bool = True) -> Union[pd.DataFrame, None]:
-        repo = self.get_repo_from_link(project)
+    def get_project_metadata(self, project: str, chains: list, commits: list, indexes: list, save_path: Path,
+                             include_comments: bool = True, drop_patch: bool = False) -> Union[pd.DataFrame, None]:
 
-        if not repo:
+        # get owner and project
+        if not pd.notna(project):
             return None
 
-        self.app.log.info(f"Getting the metadata from project {repo.name}...")
+        owner, project_name = project.split('/')[3::]
+        project_path = save_path / project_name
+
+        if project_path.exists() and ChainMetadata.has_commits(project_path, commits):
+            # in this case we do not need to query the api as the metadata has been saved previously
+            self.app.log.info(f"Found metadata for {owner}/{project_name}")
+            repo = None
+        else:
+            repo = self.get_repo(owner, project_name, raise_err=False)
+
+            if not repo:
+                return None
+
+        self.app.log.info(f"Getting the metadata for {len(commits)} commits from project {project_name}...")
         chain_metadata_entries = []
 
         for idx, chain, commit_sha in zip(indexes, chains, commits):
-            chain_ord, chain_datetime = self.sort_chain(repo, chain)
+            commit_metadata_path = project_path / f"{commit_sha}.json"
+            commit_metadata_path.parent.mkdir(parents=True, exist_ok=True)
+            chain_metadata_dict = ChainMetadata.load(path=commit_metadata_path)
 
-            if not chain_ord and not chain_datetime:
-                self.app.log.info(f"Skipping {commit_sha} ...")
-                continue
+            if not chain_metadata_dict:
+                if repo is None:
+                    repo = self.get_repo(owner, project_name, raise_err=False)
 
-            chain_metadata = self.get_chain_metadata(commit_sha=commit_sha, chain_ord=chain_ord,
-                                                     chain_datetime=chain_datetime, include_comments=include_comments)
-            if chain_metadata is None:
-                continue
+                    if repo is None:
+                        break
 
-            chain_metadata_dict = chain_metadata.to_dict(flatten=True)
+                chain_ord, chain_datetime = self.sort_chain(repo, chain)
+
+                if not chain_ord and not chain_datetime:
+                    self.app.log.info(f"Skipping {commit_sha} ...")
+                    continue
+
+                chain_metadata = self.get_chain_metadata(commit_sha=commit_sha, chain_ord=chain_ord,
+                                                         chain_datetime=chain_datetime, include_comments=include_comments)
+                if chain_metadata is None:
+                    continue
+
+                chain_metadata_dict = chain_metadata.save(path=commit_metadata_path)
+
+            if drop_patch and 'patch' in chain_metadata_dict:
+                del chain_metadata_dict['patch']
             chain_metadata_dict.update({'index': idx})
             chain_metadata_entries.append(chain_metadata_dict)
 
@@ -580,17 +603,11 @@ class GithubHandler(HandlersInterface, Handler):
             self.app.log.info(f"{repo.full_name} has {total_commits} commits (~{pages} pages).")
             return repo_commits, pages, total_commits
         except RateLimitExceededException as rle:
-            del self.git_api
-
-            if self.has_rate_available():
-                return self.get_repo_commits(repo, raise_err)
-
             err_msg = f"Rate limit exhausted: {rle}"
-
         except UnknownObjectException:
             err_msg = f"Failed to get {repo.full_name} repository commits..."
-        except Exception:
-            err_msg = f"Unexpected error {sys.exc_info()}"
+        #except Exception:
+        #    err_msg = f"Unexpected error {sys.exc_info()}"
 
         if raise_err:
             raise TenetError(err_msg)

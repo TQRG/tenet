@@ -1,6 +1,7 @@
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 
 @dataclass
@@ -21,7 +22,7 @@ class ChainMetadata:
     commit_metadata: CommitMetadata
     commit_sha: str
     chain_ord: list
-    before_first_fix_commit: set
+    before_first_fix_commit: list
     last_fix_commit: str
     chain_ord_pos: int
     commit_datetime: str
@@ -39,6 +40,28 @@ class ChainMetadata:
             chain_metadata.update({'commit_metadata': commit_metadata})
 
         return chain_metadata
+
+    def save(self, path: Path) -> dict:
+        content = self.to_dict(flatten=True)
+
+        with path.open(mode='w') as j:
+            json.dump(content, j)
+
+        return content
+
+    @staticmethod
+    def load(path: Path) -> Union[dict, None]:
+        if path.exists():
+            with path.open(mode='r') as j:
+                return json.load(j)
+
+        return None
+
+    @staticmethod
+    def has_commits(path: Path, lookup: list) -> bool:
+        if path.exists():
+            return all([f.stem in lookup for f in path.iterdir()])
+        return False
 
 
 @dataclass

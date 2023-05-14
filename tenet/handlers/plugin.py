@@ -31,7 +31,6 @@ class PluginHandler(NodeHandler):
 
     def __init__(self, **kw):
         super().__init__(**kw)
-
         self._multi_task_handler: MultiTaskHandler = None
         self._code_parser_handler: CodeParserHandler = None
         self._container_handler: ContainerHandler = None
@@ -83,9 +82,11 @@ class PluginHandler(NodeHandler):
     @property
     def container_handler(self):
         if not self._container_handler:
-            self._container_handler = self.app.handler.get('plugins', 'container', setup=True)
-            # TODO: fix this
-            self._container_handler.path = self.path
+            container_handler_class = self.app.handler.get('handlers', 'container')
+            working_dir = Path(str(self.path).replace(str(self.app.workdir), str(self.app.bind)))
+            self._container_handler = container_handler_class(working_dir=working_dir, output=self.output,
+                                                              local_working_dir=self.path)
+            self._container_handler._setup(self.app)
         return self._container_handler
 
     @container_handler.deleter
@@ -119,6 +120,20 @@ class PluginHandler(NodeHandler):
 
             :param dataset: dataframe with the dataset resulting from the previous node
             :return: dataframe with the processed dataset
+        """
+        pass
+
+    @abstractmethod
+    def set_sources(self):
+        """
+            Sets sources of the plugin for sinks of other plugins
+        """
+        pass
+
+    @abstractmethod
+    def get_sinks(self):
+        """
+            Inits sinks of the plugin with sources of other plugins
         """
         pass
 

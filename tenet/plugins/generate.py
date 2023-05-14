@@ -28,16 +28,20 @@ class Generate(PluginHandler):
         self.early_stopping_limit = None
         self.skip_search = None
 
-    def run(self, dataset: pd.DataFrame, scenario: str = 'fix', augment: int = None, tokens: list = None,
-            target_files_factor: int = 3, languages: list = None,  max_commits: int = None, skip_search: bool = False,
+    def set_sources(self):
+        pass
+
+    def get_sinks(self):
+        pass
+
+    def run(self, dataset: pd.DataFrame, scenario: str = 'fix', augment: int = None, target_files_factor: int = 3,
+            languages: list = None,  max_commits: int = None, skip_search: bool = False,
             **kwargs) -> Union[pd.DataFrame, None]:
         """Generates sampling strategy
-
         Args:
             scenario (str): one of the following scenarios fix, random, controlled
             languages (list): list of target programming languages
             augment (int): factor for augmenting the negative classes in the dataset
-            tokens (list): GitHub API tokens
             skip_search (bool): flag to skip the search for the negative samples
             max_commits (int): limit of commits to search
             target_files_factor (int): the factor used to gather target files for the negative dataset,
@@ -64,8 +68,6 @@ class Generate(PluginHandler):
         self.target_files_factor = target_files_factor
         self.max_commits = max_commits
 
-        # TODO: pass through command line
-        self.github_handler.tokens = tokens
         # TODO: other scenarios should extend fix scenario
         fix_scn = self.sampling_handler.get_scenario(dataset, scenario='fix', extension=self.extensions)
         self.app.log.info(f"Generating fix scenario...")
@@ -76,9 +78,12 @@ class Generate(PluginHandler):
 
         if scenario == 'fix':
             fix_scn.df['scenario'] = [scenario] * len(fix_scn.df)
+            fix_scn.df['sw_type'] = fix_scn.df.apply(lambda x: self.github_handler.get_sw_type(x['owner'], x['project']),
+                                                     axis=1)
             return fix_scn.df
 
-        negative = self.generate_negative(dataset=fix_scn.df)
+        fix_dataset_samples = dataset[dataset['project_url'].isin(fix_scn.df['project_url'].unique())]
+        negative = self.generate_negative(dataset=fix_dataset_samples)
         scn = self.sampling_handler.get_scenario(fix_scn.df, scenario=scenario, negative=negative)
         self.app.log.info(f"Generating {scenario} scenario...")
         scn.generate()
@@ -86,6 +91,7 @@ class Generate(PluginHandler):
         scn.augment(augment)
 
         scn.df['scenario'] = [scenario] * len(scn.df)
+        scn.df['sw_type'] = scn.df.apply(lambda x: self.github_handler.get_sw_type(x['owner'], x['project']), axis=1)
 
         return scn.df
 
@@ -142,7 +148,7 @@ class Generate(PluginHandler):
             self.app.log.warning("Skipping search...")
             negative_samples = negative_samples[~negative_samples['file_path'].isnull()]
             return negative_samples
-
+        print(dataset.columns)
         for project_url, group in tqdm(dataset[~dataset['project_url'].isin(visited_projects)].groupby('project_url')):
             owner, project = project_url.split("/")[3:5]
             repo = self.github_handler.get_repo(owner=owner, project=project)
@@ -191,11 +197,13 @@ class Generate(PluginHandler):
         dataset = dataset[~dataset['bf_class'].isnull()]
         self.app.log.info(f"Entries with BF class: {len(dataset)}")
 
-        Plotter(self.path, fig_size=(20,10)).bar_labels(dataset, column='cwe_id', y_label='Occurrences',
-                                                        x_label='CWE-ID')
+        Plotter(self.path, fig_size=(20, 10)).bar_labels(dataset, column='cwe_id', y_label='Occurrences',
+                                                         x_label='CWE-ID')
         Plotter(self.path).bar_labels(dataset, column='bf_class', y_label='Occurrences', x_label='BF Class')
         Plotter(self.path, fig_size=(20, 10)).bar_labels(dataset, column='project', y_label='Occurrences',
                                                          x_label='Project', top_n=50)
+        Plotter(self.path, fig_size=(20, 10)).bar_labels(dataset, column='sw_type', y_label='Occurrences',
+                                                         x_label='Software Type')
 
 
 def load(app):

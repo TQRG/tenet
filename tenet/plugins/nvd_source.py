@@ -21,6 +21,12 @@ class NVDSource(PluginHandler):
     class Meta:
         label = "nvd_source"
 
+    def set_sources(self):
+        pass
+
+    def get_sinks(self):
+        pass
+
     def plot(self, dataset: pd.DataFrame, **kwargs):
         """ Print commits statistics. """
 
@@ -44,7 +50,7 @@ class NVDSource(PluginHandler):
             else:
                 print(f"{source}\t\t{n_source}\t\t{(n_source / len(sources)) * 100:.2f}%")
 
-    def run(self, dataset: pd.DataFrame, years: Union[Tuple, List] = (2002, 2022), normalize: bool = True,
+    def run(self, dataset: pd.DataFrame, years: Union[Tuple, List] = (2002, 2023), normalize: bool = True,
             code_source: str = 'github',
             base_url: str = 'https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-{year}.json.zip',
             **kwargs) -> Union[pd.DataFrame, None]:
