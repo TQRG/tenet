@@ -53,7 +53,9 @@ class Generate(PluginHandler):
                 if pd.isna(row['language']):
                     continue
 
-                if ast.literal_eval(row['language']).intersection(langs):
+                langs_set = ast.literal_eval(row['language']) if isinstance(row['language'], str) else row['language']
+
+                if langs_set.intersection(langs):
                     new_dataset.append(row.to_dict())
 
             dataset = pd.DataFrame(new_dataset)

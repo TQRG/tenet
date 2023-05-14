@@ -127,7 +127,8 @@ class OSVprepare(PluginHandler):
         dataset = dataset[dataset.language.isin(top_5_languages)]
         self.app.log.info(f"Entries for top 5 Languages ({top_5_languages}): {len(dataset)}")
 
-        languages = list(dataset[~dataset.language.isnull()]['language'].unique())
+        dataset['language'] = dataset[~dataset.language.isnull()]['language'].apply(lambda x: str(x) if not pd.isna(x) else None)
+        languages = dataset[~dataset['language'].isna()].language.unique()
         languages = [l for ls in languages for l in eval(ls)]
         languages = list(set(languages))
         node_labels = list(dataset['bf_class'].unique()) + list(languages)

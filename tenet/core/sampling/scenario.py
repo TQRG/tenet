@@ -87,7 +87,10 @@ class Scenario(ABC):
                 del dict_row['files']
 
                 try:
-                    instance = ast.literal_eval(r.files.strip())
+                    if isinstance(r.files, str):
+                        instance = ast.literal_eval(r.files.strip())
+                    else:
+                        instance = r.files
                 except SyntaxError:
                     continue
 
