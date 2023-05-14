@@ -217,7 +217,7 @@ class OSVSource(PluginHandler):
                     if "cwes" in db_spec.keys():
                         for cwe in db_spec["cwes"]:
                             cwes.add(cwe["cweId"])
-            return cwes if cwes else np.nan
+            return str(cwes) if cwes else np.nan
 
         def get_score(data):
             if "affected" in data.keys():

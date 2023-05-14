@@ -37,7 +37,7 @@ class CleanSource(PluginHandler):
         # filters only the patches with
         df = dataset[(cwe) & (commit) & (no_merge)]
         self.app.log.info(f"Size before filtering by patches {len(df)}")
-        df['before_first_fix_commit'] = df['before_first_fix_commit'].apply(lambda x: list(eval(x)))
+        df['before_first_fix_commit'] = df['before_first_fix_commit'].apply(lambda x: list(eval(x)) if isinstance(x, str) else x)
         df['before_first_fix_commit'] = df['before_first_fix_commit'].apply(lambda x: x[0] if x else None)
         df = df[~df['before_first_fix_commit'].isnull()]
         self.app.log.info(f"Size after filtering by patches {len(df)}")
