@@ -29,12 +29,8 @@ tenet:
     safe: 0
     unsafe: 1
 
-  dialect: 'postgresql'
-  username: 'tenet'
-  password: 'tenet123'
-  host: 'localhost'
-  port: '5432'
-  database: 'tenet'
+database:
+  uri: 'sqlite:///:memory:'
 
 log.colorlog:
 
