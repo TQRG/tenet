@@ -2,6 +2,7 @@ import string
 import sys
 import numpy as np
 
+from tenet.data.diff import Change, Deletion, Addition
 from itertools import accumulate
 from pathlib import Path
 from typing import TextIO, List, Tuple
@@ -34,8 +35,7 @@ def safe_write(outfile: TextIO, data: str, proj: str) -> None:
         print(e)
 
 
-def get_row_diff_range(lines: List[str], diff_bound: List[int],
-                       diff_id: int) -> Tuple[List[int], List[int], List[str], List[str]]:
+def get_row_diff_range(lines: List[str], diff_bound: List[int], diff_id: int) -> List[Change]:
     """
     Parses the diff text chunks, gets the line numbers and the contents where diffs occur.
     :param lines: A list of diff texts split by lines.
@@ -48,8 +48,7 @@ def get_row_diff_range(lines: List[str], diff_bound: List[int],
     """
     # Format of the diff range line:
     # @@ -<a_start>,<a_lines> +<b_start>,<b_lines> @@ [<func>]
-    diff_info = [x.strip() for x in lines[diff_bound[diff_id]].split("@@")
-                 if x.strip()]
+    diff_info = [x.strip() for x in lines[diff_bound[diff_id]].split("@@") if x.strip()]
 
     # if len(diff_info) > 1:
     #     diff_func = diff_info[-1]
@@ -58,30 +57,27 @@ def get_row_diff_range(lines: List[str], diff_bound: List[int],
     b_lineno = int(line_info[1].split(",")[0].strip("+"))
     diff_start = diff_bound[diff_id]
     diff_end = diff_bound[diff_id + 1]
-    a_del_linenos = []
-    b_add_linenos = []
-    a_del_lines = []
-    b_add_lines = []
+
+    changes = []
 
     for line_id in range(diff_start + 1, diff_end):
         if lines[line_id].startswith("-"):
             ln = lines[line_id][len("-"):]
             # Ignore comments or newline changes in the diff
             if ln.strip() and not (ln.strip().startswith("//") or ln.strip().startswith("/*")):
-                a_del_linenos.append(a_lineno)
-                a_del_lines.append(ln)
+                changes.append(Deletion(content=ln, number=a_lineno))
             a_lineno += 1
         elif lines[line_id].startswith("+"):
             ln = lines[line_id][len("+"):]
             if ln.strip() and not (ln.strip().startswith("//") or ln.strip().startswith("/*")):
-                b_add_linenos.append(b_lineno)
-                b_add_lines.append(ln)
+                changes.append(Addition(content=ln, number=b_lineno))
             b_lineno += 1
         elif lines[line_id].startswith(" "):
             a_lineno += 1
             b_lineno += 1
         # Ignore "\ No newline at end of file"
-    return a_del_linenos, b_add_linenos, a_del_lines, b_add_lines
+
+    return changes
 
 
 def shift_range(orig_one_line: str, formatted: str, included_chars: set):
