@@ -20,6 +20,7 @@ from tenet.handlers.code_parser import CodeParserHandler
 from tenet.handlers.cwe_list import CWEListHandler
 from tenet.handlers.file_parser import FileParserHandler
 from tenet.handlers.sampling import SamplingHandler
+from tenet.handlers.openai import OpenAIHandler
 
 
 class Tenet(App):
@@ -75,7 +76,8 @@ class Tenet(App):
         # register handlers
         handlers = [
             Base, Plugin, CWE, PluginLoader, ContainerHandler, CommandHandler, WorkflowHandler, CodeParserHandler,
-            MultiTaskHandler, GithubHandler, CWEListHandler, FileParserHandler, SamplingHandler, PipelineHandler
+            MultiTaskHandler, GithubHandler, CWEListHandler, FileParserHandler, SamplingHandler, PipelineHandler,
+            OpenAIHandler
         ]
 
     def get_config(self, key: str):
@@ -108,6 +110,10 @@ class Tenet(App):
             exit(1)
         except TypeError as te:
             self.log.error(str(te))
+            exit(1)
+        except KeyError as ke:
+            self.log.error("Plugin not found in the list of loaded plugins. Make sure plugin is placed in the "
+                           "correct location and it includes the 'load' function that register's it.")
             exit(1)
 
 

@@ -4,7 +4,7 @@ from typing import Any
 import pandas as pd
 from cement import Handler
 
-from tenet.core.exc import Skip, TenetError
+from tenet.core.exc import TenetError
 from tenet.core.interfaces import PluginsInterface
 from tenet.data.plugin import Sources, Sinks
 from tenet.data.schema import Node

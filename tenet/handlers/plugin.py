@@ -20,6 +20,7 @@ from tenet.handlers.github import GithubHandler
 from tenet.handlers.node import NodeHandler
 from tenet.handlers.runner import MultiTaskHandler
 from tenet.handlers.sampling import SamplingHandler
+from tenet.handlers.openai import OpenAIHandler
 
 
 class PluginHandler(NodeHandler):
@@ -38,6 +39,7 @@ class PluginHandler(NodeHandler):
         self._cwe_list_handler: CWEListHandler = None
         self._file_parser_handler: FileParserHandler = None
         self._sampling_handler: SamplingHandler = None
+        self._openai_handler: OpenAIHandler = None
 
     @property
     def github_handler(self):
@@ -112,6 +114,16 @@ class PluginHandler(NodeHandler):
     @sampling_handler.deleter
     def sampling_handler(self):
         self._sampling_handler = None
+
+    @property
+    def openai_handler(self):
+        if not self._openai_handler:
+            self._openai_handler = self.app.handler.get('handlers', 'openai', setup=True)
+        return self._openai_handler
+
+    @openai_handler.deleter
+    def openai_handler(self):
+        self._openai_handler = None
 
     @abstractmethod
     def run(self, dataset: pd.DataFrame, **kwargs) -> Union[pd.DataFrame, None]:
