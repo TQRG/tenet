@@ -5,7 +5,6 @@ import threading
 import numpy as np
 import pandas as pd
 import requests
-import sys
 
 from collections import deque
 from pathlib import Path
@@ -19,7 +18,7 @@ from github.GithubException import GithubException, RateLimitExceededException, 
 from github.PaginatedList import PaginatedList
 from github.Repository import Repository
 
-from tenet.core.diff_labeller.misc import safe_write
+from tenet.utils.misc import safe_write
 from tenet.core.exc import TenetError
 from tenet.core.interfaces import HandlersInterface
 from tenet.data.dataset import CommitMetadata, ChainMetadata
@@ -296,28 +295,31 @@ class GithubHandler(HandlersInterface, Handler):
 
         return None
 
-    def get_diff(self, commit: Commit, output_path: Path) -> str:
+    def get_diff(self, commit: Commit, output_path: Path = None) -> str:
 
-        if output_path.exists():
-            self.app.log.info(f"{output_path} exists, reading...")
+        if output_path is not None:
+            if output_path.exists():
+                self.app.log.info(f"{output_path} exists, reading...")
 
-            with output_path.open(mode='r') as df:
-                return df.read()
+                with output_path.open(mode='r') as df:
+                    return df.read()
 
         self.app.log.info(f"Requesting {commit.raw_data['html_url']}.diff")
         diff_text = requests.get(f"{commit.raw_data['html_url']}.diff").text
 
-        if output_path.exists() and output_path.stat().st_size != 0 and diff_text:
-            # Save the diff string as a file
+        if output_path is not None:
+            if output_path.exists() and output_path.stat().st_size != 0 and diff_text:
+                # Save the diff string as a file
 
-            with output_path.open(mode="w") as tmp_file:
-                self.app.log.info(f"Writing diff to {output_path}")
-                safe_write(tmp_file, diff_text, str(output_path.parents))
+                with output_path.open(mode="w") as tmp_file:
+                    self.app.log.info(f"Writing diff to {output_path}")
+                    safe_write(tmp_file, diff_text, str(output_path.parents))
 
         return diff_text
 
-    def get_file_from_commit(self, repo_file_path: str, commit: Commit, output_path: Path) -> Tuple[str, int]:
-        if output_path.exists() and output_path.stat().st_size != 0:
+    def get_file_from_commit(self, repo_file_path: str, commit: Commit, output_path: Path = None) \
+            -> Tuple[str, Union[None, int]]:
+        if output_path and output_path.exists() and output_path.stat().st_size != 0:
             self.app.log.info(f"{output_path} exists, reading...")
 
             with output_path.open(mode='r') as f:
@@ -327,13 +329,17 @@ class GithubHandler(HandlersInterface, Handler):
             self.app.log.info(f"Requesting {url}")
             f_str = requests.get(url).text
 
-            self.app.log.info(f"Writing {output_path}")
-            output_path.parent.mkdir(exist_ok=True, parents=True)
+            if output_path:
+                self.app.log.info(f"Writing {output_path}")
+                output_path.parent.mkdir(exist_ok=True, parents=True)
 
-            with output_path.open(mode="w") as f:
-                f.write(f_str)
+                with output_path.open(mode="w") as f:
+                    f.write(f_str)
 
-        return f_str, output_path.stat().st_size
+        if output_path:
+            return f_str, output_path.stat().st_size
+
+        return f_str, None
 
     def get_blocks_from_diff(self, diff_text: str, extensions: list = None) -> List[DiffBlock]:
         """
@@ -353,32 +359,35 @@ class GithubHandler(HandlersInterface, Handler):
         num_paths = len(diff_path_bound)
         diff_path_bound.append(len(lines))
         blocks = []
-        # TODO: we want this too be more flexible, adapt
-        extensions = extensions if extensions else self.app.get_config('proj_ext')
 
         for path_id in range(num_paths):
             # Only look for a_paths with the interested file extensions
-            for ext in extensions:
-                if lines[diff_path_bound[path_id]].endswith(ext):
-                    # Only consider file modification, ignore file additions for now
-                    block_start = diff_path_bound[path_id]
-                    if not lines[block_start + 1].startswith("+++ "):
-                        self.app.log.warning(f"Skipping block {block_start + 1} missing +++")
-                        continue
+            if extensions and len(extensions) > 0:
+                ext = Path(lines[diff_path_bound[path_id]]).suffix
 
-                    # Ignore file deletions for now
-                    if not lines[block_start + 1].endswith(" /dev/null"):
-                        # Format of the "---" and "+++" lines:
-                        # --- a/<a_path>
-                        # +++ b/<b_path>
-                        diff_block = DiffBlock(start=block_start, a_path=lines[block_start][len("--- a/"):],
-                                               b_path=lines[block_start + 1][len("+++ b/"):])
+                if ext not in extensions:
+                    continue
 
-                        # Do not include diff in the test files
-                        if "test" in diff_block.a_path or "test" in diff_block.b_path:
-                            continue
+            # Only consider file modification, ignore file additions for now
+            block_start = diff_path_bound[path_id]
+            if not lines[block_start + 1].startswith("+++ "):
+                self.app.log.warning(f"Skipping block {block_start + 1} missing +++")
+                continue
 
-                        blocks.append(diff_block)
+            # Ignore file deletions for now
+            if not lines[block_start + 1].endswith(" /dev/null"):
+                # Format of the "---" and "+++" lines:
+                # --- a/<a_path>
+                # +++ b/<b_path>
+                diff_block = DiffBlock(start=block_start, a_path=lines[block_start][len("--- a/"):],
+                                       b_path=lines[block_start + 1][len("+++ b/"):])
+
+                # Do not include diff in the test files
+                # TODO: should be provided as a parameter
+                if "test" in diff_block.a_path or "test" in diff_block.b_path:
+                    continue
+
+                blocks.append(diff_block)
 
         return blocks
 

@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from tenet.handlers.github import LocalGitFile
 from tenet.handlers.plugin import PluginHandler
-from tenet.core.diff_labeller.misc import check_or_create_dir
+from tenet.utils.misc import check_or_create_dir
 
 
 class Download(PluginHandler):

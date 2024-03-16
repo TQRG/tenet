@@ -5,7 +5,7 @@ import pandas as pd
 
 from typing import Union, Tuple, Hashable
 
-from tenet.core.diff_labeller.changes import Changes
+from tenet.core.diff.changes import Changes
 from tenet.core.exc import TenetError
 from tenet.utils.misc import df_init
 

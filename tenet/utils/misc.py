@@ -1,11 +1,9 @@
 import re
 import io
-import os
+import sys
 import tarfile
 import json
-from typing import List
 
-import networkx as nx
 import numpy as np
 import pandas as pd
 
@@ -14,6 +12,21 @@ from os import urandom
 from pathlib import Path
 
 from tqdm import tqdm
+from typing import TextIO
+
+
+def safe_write(outfile: TextIO, data: str, proj: str) -> None:
+    """
+    Calls the write method of the specified TextIO object safely, ignoring any UnicodeEncodeError.
+    :param outfile: The TextIO object of the file to be written to.
+    :param data: The text to be written to the file.
+    :param proj: A string containing the project id of the current commit.
+    """
+    try:
+        outfile.write(data)
+    except UnicodeEncodeError as e:
+        print(proj + ": ", end="")
+        print(e)
 
 
 def load_json_file(file):
@@ -25,6 +38,7 @@ def load_json_file(file):
     """
     with open(file) as jfile:
         return json.load(jfile)
+
 
 def create_df(data):
     """Create dataframe from vuln data.
@@ -110,6 +124,7 @@ def split_commits(chain: str):
 
 def join(summary, details):
     return f"{summary if pd.notna(summary) else ''} {details if pd.notna(details) else ''}".rstrip()
+
 
 def filter_references(df: pd.DataFrame, refs_col: str = 'refs') -> pd.DataFrame:
     """
@@ -348,3 +363,16 @@ def parse_published_date(datetime):
 def load_file(fin):
     with open(fin) as file:
         return file.read().splitlines()
+
+
+def check_or_create_dir(dirname: Path) -> None:
+    """
+    Creates a directory specified by the input if it does not exist, or terminates the program if
+    the directory name collides with an existing file.
+    :param dirname: The path of the directory to be created.
+    """
+    if not dirname.exists():
+        dirname.mkdir(parents=True)
+    elif not dirname.is_dir():
+        print("Error: {} is not a folder.".format(dirname), file=sys.stderr)
+        sys.exit(1)

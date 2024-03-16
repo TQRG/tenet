@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from typing import Union, Tuple
 
-from tenet.core.diff_labeller.misc import check_or_create_dir
+from tenet.core.diff.misc import check_or_create_dir
 from tenet.core.exc import TenetError
 from tenet.handlers.github import LocalGitFile
 from tenet.handlers.plugin import PluginHandler

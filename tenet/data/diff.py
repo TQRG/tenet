@@ -1,34 +1,6 @@
 import pandas as pd
 
 from dataclasses import dataclass
-from pathlib import Path
-
-
-@dataclass
-class Change:
-    content: str
-    number: int
-    type: str
-
-    @property
-    def start_col(self):
-        # TODO: This is a temporary solution. Need to find a better way to calculate the start column
-        line_with_spaces = self.content.expandtabs(4)
-        return (len(line_with_spaces) - len(line_with_spaces.lstrip())) + 1
-
-    @property
-    def end_col(self):
-        return len(self.content) - 1
-
-
-@dataclass
-class Addition(Change):
-    type: str = 'addition'
-
-
-@dataclass
-class Deletion(Change):
-    type: str = 'deletion'
 
 
 @dataclass
@@ -131,34 +103,3 @@ class DiffBlock:
     def to_dict(self):
         return {"start": self.start, "a_path": self.a_path, "b_path": self.b_path}
 
-
-@dataclass
-class Entry:
-    project: str
-    owner: str
-    a_version: str
-    b_version: str
-    diff_block: DiffBlock
-    label: str
-    a_file_size: int = None
-    b_file_size: int = None
-
-    @property
-    def full_a_path(self):
-        return Path(self.owner, self.project, self.a_version, self.diff_block.a_path)
-
-    @property
-    def full_b_path(self):
-        return Path(self.owner, self.project, self.b_version, self.diff_block.b_path)
-
-    def to_dict(self):
-        diff_block_dict = self.diff_block.to_dict()
-        diff_block_dict.update({"owner": self.owner, "project": self.project, "a_version": self.a_version,
-                                "b_version": self.b_version, "label": self.label, 'a_file_size': self.a_file_size,
-                                'b_file_size': self.b_file_size})
-
-        return diff_block_dict
-
-    def __str__(self):
-        return f"{self.owner},{self.project},{self.a_version},{self.b_version},{self.diff_block.start}," \
-               f"{self.diff_block.a_path},{self.diff_block.b_path},{self.a_file_size},{self.b_file_size},{self.label}"
