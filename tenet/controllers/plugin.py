@@ -1,5 +1,4 @@
 import yaml
-import pkg_resources
 
 from pathlib import Path
 from cement import Controller, ex
@@ -151,3 +150,33 @@ class Plugin(Controller):
                     break
             else:
                 self.app.log.warning(f"{plugin} not found.")
+
+    @ex(
+        help="Runs a plugin",
+        arguments=[
+            (['-n', '--name'], {'help': 'Name of the plugin.', 'required': True, 'type': str}),
+            (['-d', '--dataset'], {'help': 'Dataset id.', 'required': True, 'type': int})
+        ]
+    )
+    def run(self):
+        from arepo.models.data import DatasetModel
+        self.app.log.info(f"Loading plugin {self.app.pargs.name}")
+
+        node_handler = self.app.get_plugin_handler(self.app.pargs.name)
+        session = self.app.db.get_session()
+
+        self.app.log.info(f"Loading dataset {self.app.pargs.dataset}")
+        dataset = session.query(DatasetModel).filter(DatasetModel.id == self.app.pargs.dataset).first()
+
+        if not dataset:
+            self.app.log.error(f"Dataset {self.app.pargs.dataset} not found")
+            return
+
+        self.app.log.info(f"Dataset size {len(dataset)}")
+
+        # TODO: temporary solution for the output path
+        node_handler.output = Path('/tmp')
+
+        results = node_handler.run(dataset=dataset)
+
+        self.app.log.info(results)
