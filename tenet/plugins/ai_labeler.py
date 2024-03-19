@@ -60,18 +60,19 @@ class AILabeler(PluginHandler):
                 self.app.log.error(f"Vulnerability {vuln.id} has no CWE or patch")
                 continue
 
-            completion = self.openai_handler.label_diff(model='gpt-3.5-turbo', diff=patch, cwe_id=f"CWE-{cwe_id}")
+            prompt, completion = self.openai_handler.label_diff(model='gpt-3.5-turbo', diff=patch, cwe_id=f"CWE-{cwe_id}")
 
             if not completion:
                 self.app.log.error(f"Vulnerability {vuln.id} has no completion")
                 continue
 
-            self.save_completion(completion)
+            self.save_completion(completion,prompt)
 
-            if is_tuple(completion.completion):
+            if is_tuple(completion.choices[0].message.content):
                 weakness = WeaknessModel(completion_id=completion.id, vulnerability_id=vuln.id,
-                                         tuple=completion.completion)
-                weakness.save()
+                                         tuple=completion.choices[0].message.content)
+                session.add(weakness)
+                session.commit()
                 weaknesses.append(weakness)
             else:
                 self.app.log.error(f"Completion's {completion.id} text is not a tuple")
@@ -124,14 +125,18 @@ class AILabeler(PluginHandler):
 
         return patch
 
-    def save_completion(self, completion: openai.ChatCompletion) -> CompletionModel:
+    def save_completion(self, completion: openai.ChatCompletion, prompt: str ) -> CompletionModel:
         session = self.app.db.get_session()
+        print("completion")
+        print(completion)
+        
         completion_model = CompletionModel(id=completion.id, model=completion.model, object=completion.object,
-                                           created=completion.created, prompt=str(completion.message),
-                                           completion=completion.completion, finish_reason=completion.finish_reason,
-                                           prompt_tokens=completion.usage["prompt_tokens"],
-                                           total_tokens=completion.usage["total_tokens"],
-                                           completion_tokens=completion.usage["completion_tokens"])
+                                           created=completion.created, prompt=prompt[0]["content"],
+                                           completion=completion.choices[0].message.content,
+                                           finish_reason=completion.choices[0].finish_reason,
+                                           prompt_tokens=completion.usage.prompt_tokens,
+                                           total_tokens=completion.usage.total_tokens,
+                                           completion_tokens=completion.usage.completion_tokens)
         session.add(completion_model)
         session.commit()
 

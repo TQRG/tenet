@@ -1,7 +1,7 @@
 import time
 import openai
 
-from typing import Union
+from typing import Union, Tuple
 from cement import Handler
 
 from tenet.core.interfaces import HandlersInterface
@@ -75,9 +75,9 @@ class OpenAIHandler(HandlersInterface, Handler):
             exit(1)
 
     def label_diff(self, model: str, diff: str, cwe_id: str, delay: float = 1.5, **kwargs) \
-            -> Union[openai.ChatCompletion, None]:
+            -> Union[Tuple[str, openai.ChatCompletion], Tuple[str, None]]:
         messages = label_patch_root_cause(diff=diff, cwe_id=cwe_id)
-        return self.create_chat_completion(model=model, messages=messages, max_tokens=100, delay=delay, **kwargs)
+        return messages, self.create_chat_completion(model=model, messages=messages, max_tokens=100, delay=delay, **kwargs)
 
     def generate_software_type(self, model: str, name: str, description: str, read_me: str, delay: float = 1.5) \
             -> Union[str, None]:
