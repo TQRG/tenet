@@ -52,12 +52,12 @@ class OpenAIHandler(HandlersInterface, Handler):
             completion = openai.chat.completions.create(model=model, max_tokens=max_tokens, n=1, messages=messages,
                                                         **kwargs)
         except openai.RateLimitError as e:
-            self.app.log.erro(f"Rate limit error: {e}")
+            self.app.log.error(f"Rate limit error: {e}")
             self.handle_rate_limit_error()
         except openai.OpenAIError as e:
-            self.app.log.erro(f"Error while generating text: {e}")
+            self.app.log.error(f"Error while generating text: {e}")
         except ValueError as e:
-            self.app.log.erro(f"Error while generating text: {e}")
+            self.app.log.error(f"Error while generating text: {e}")
 
         if delay:
             time.sleep(delay)
