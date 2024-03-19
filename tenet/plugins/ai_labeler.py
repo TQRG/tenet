@@ -127,7 +127,7 @@ class AILabeler(PluginHandler):
     def save_completion(self, completion: openai.ChatCompletion) -> CompletionModel:
         session = self.app.db.get_session()
         completion_model = CompletionModel(id=completion.id, model=completion.model, object=completion.object,
-                                           created=completion.created, prompt=str(completion.messages),
+                                           created=completion.created, prompt=str(completion.message),
                                            completion=completion.completion, finish_reason=completion.finish_reason,
                                            prompt_tokens=completion.usage["prompt_tokens"],
                                            total_tokens=completion.usage["total_tokens"],
