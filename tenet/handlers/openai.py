@@ -53,7 +53,7 @@ class OpenAIHandler(HandlersInterface, Handler):
                                                         **kwargs)
         except openai.RateLimitError as e:
             self.app.log.error(f"Rate limit error: {e}")
-            self.handle_rate_limit_error()
+            self.handle_rate_limit_error(delay)
         except openai.OpenAIError as e:
             self.app.log.error(f"Error while generating text: {e}")
         except ValueError as e:
