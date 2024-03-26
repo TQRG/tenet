@@ -53,7 +53,20 @@ class JSCodeShiftHandler(PluginHandler):
 
                 for cf in c.files:
                     if len(cf.functions) > 0:
-                        self.app.log.warning(f"File {cf.filename} already has function boundaries")
+                        self.app.log.warning(f"File {cf.filename} in commit {c.id} already has function boundaries")
+
+                        for f in cf.functions:
+                            all_fn_bounds.append({
+                                'project': c.repository.name,
+                                'fpath': cf.filename,
+                                'func_id': f.id,
+                                'start_line': f.start_line,
+                                'start_col': f.start_col,
+                                'end_line': f.end_line,
+                                'end_col': f.end_col,
+                                'size': f.size
+                            })
+
                         continue
 
                     repo_path = f"{c.repository.owner}/{c.repository.name}"
@@ -97,7 +110,8 @@ class JSCodeShiftHandler(PluginHandler):
                     session = self.app.db.get_session()
 
                     for fn in fn_bounds:
-                        start_line, start_col, end_line, end_col = fn.split(',')
+                        # TODO: fix the parsing of the output
+                        start_line, start_col, end_line, end_col = [int(el) for el in fn.split(',')]
                         url_path = f"{repo_path}/blob/{c.sha}/{cf.filename}#L{start_line}-L{end_line}"
                         fn_id = get_digest(url_path)
 
@@ -107,11 +121,11 @@ class JSCodeShiftHandler(PluginHandler):
                             self.app.log.warning(f"Function {fn_id} already exists")
                             continue
 
-                        # TODO: fix the parsing of the output
-                        size = int(end_line) - int(start_line)
-                        name = file_content_lines[int(start_line) - 1][:int(start_col)].strip()
-                        fn_model = FunctionModel(id=fn_id, name=name, start_line=int(start_line), end_line=int(end_line),
-                                                 start_col=int(start_col), end_col=int(end_col), size=size,
+                        size = end_line - start_line
+                        name = file_content_lines[start_line - 1][:start_col].strip()
+                        content = '\n'.join(file_content_lines[start_line - 1:end_line])
+                        fn_model = FunctionModel(id=fn_id, name=name, start_line=start_line, end_line=end_line,
+                                                 start_col=start_col, end_col=end_col, size=size, content=content,
                                                  commit_file_id=cf.id)
                         session.add(fn_model)
                         session.commit()
