@@ -5,7 +5,7 @@ from typing import Union, Tuple
 from cement import Handler
 
 from tenet.core.interfaces import HandlersInterface
-from tenet.core.openai.prompts import get_repository_software_type, label_patch_root_cause
+from tenet.core.openai.prompts import get_repository_software_type, label_patch_root_cause, label_patch_root_cause_changes
 from tenet.core.openai.helpers import extract_dictionary
 
 
@@ -78,6 +78,14 @@ class OpenAIHandler(HandlersInterface, Handler):
             -> Union[Tuple[str, openai.ChatCompletion], Tuple[str, None]]:
         messages = label_patch_root_cause(diff=diff, cwe_id=cwe_id)
         return messages, self.create_chat_completion(model=model, messages=messages, max_tokens=100, delay=delay, **kwargs)
+
+    def label_changes(self, model: str, additions:list, deletions:list, cwe_id: str, delay: float = 1.5, **kwargs) \
+            -> Union[Tuple[str, openai.ChatCompletion], Tuple[str, None]]:
+        
+        messages = label_patch_root_cause_changes(additions = additions, deletions = deletions, cwe_id=cwe_id)
+        return messages, self.create_chat_completion(model=model, messages=messages, max_tokens=100, delay=delay, **kwargs)
+
+
 
     def generate_software_type(self, model: str, name: str, description: str, read_me: str, delay: float = 1.5) \
             -> Union[str, None]:

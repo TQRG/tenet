@@ -37,6 +37,27 @@ LABEL_PATCH_ROOT_CAUSE = [{"role": "system",
                                       " ..., '{operand_n}') "
                            }]
 
+# todo: make the prompt label with dif changes and return operation, sink, improper operand
+# try defining what operation, sink, improper operand are 
+# understand how to make the instruction to focus on the vulnerable code/deletions and how to use 
+# the additions/fix to capture what is wrong in the vulnerable code, fix contains the edit operations,
+# for example, method replacement/operation (html() -> text()), this tells that html should not be used with unsanitized
+# user input/ improper operand.
+ 
+ # todo: provide additions and deletions and make the LLM reason about it.
+LABEL_PATCH_ROOT_CAUSE_CHANGES = [{"role": "system",
+                           "content": "Your goal is to identify the operation, sink, and source. "
+                                      "operation is the action that inserts/appends the source to the sink, which can bring vulnerability to the sink. "
+                                      "sink is the DOM element where the vulnerability manifests."
+                                      "source is the tainted variable that can have dangerous element, "
+                                      "and if these are rendered into the sink by the means of the operation, " 
+                                      "it can enable the vulnerability. "
+                                      "The text below shows the deletions and additions. "
+                                      "deletions are vulnerable code that were deleted and replaced with the code in the additions to fix the vulnerability. "
+                                      "The response must be formatted into a concise tuple structure of code in the, "
+                                      "This format would be: (operation, sink, source ). Note that operation, sink, source are all code in the deletions. "
+                           }]
+
 
 def get_repository_software_type(name: str, description: str, read_me: str, margin: int = 5, prompt: bool = False,
                                  description_size_limit: int = 450, max_allowed_size: int = 450) \
@@ -87,7 +108,33 @@ def label_patch_root_cause(diff: str, cwe_id: str, margin: int = 5, prompt: bool
         raise ValueError(f"Request size exceeds the maximum allowed size of {REQUEST_TOKENS_LIMIT} characters")
 
     messages.append({"role": "user", "content": content})
+    print("messages")
+    print(messages)
+    if not prompt:
+        return messages
 
+    return "\n".join([f"{m['content']}" for m in messages])
+
+
+# todo: 
+# make this work with changes and new prompt
+def label_patch_root_cause_changes(additions: list, deletions: list, cwe_id: str, margin: int = 5, prompt: bool = False, max_allowed_size: int = 1000):
+    messages = LABEL_PATCH_ROOT_CAUSE_CHANGES.copy()
+    task_msg = f"This task entails examining the code patch for a {cwe_id} vulnerability."
+    messages[0]['content'] = task_msg + " " + messages[0]['content']
+    changes =  "**Deletions**:" + " ".join([line for line in deletions]) + "\n**Additions**:\n" + " ".join([line for line in additions])
+    content = f"The additions and deletions are:\n`{changes}`\nRespond only with the tuple in the specified format."
+    
+    
+    prompt_size = len(messages[0]['content']) + len(content)
+    max_completion_size = 100
+
+    allowed_size = REQUEST_TOKENS_LIMIT - prompt_size - max_completion_size - len(changes) - margin
+
+    if allowed_size > max_allowed_size:
+        raise ValueError(f"Request size exceeds the maximum allowed size of {REQUEST_TOKENS_LIMIT} characters")
+
+    messages.append({"role": "user", "content": content})
     if not prompt:
         return messages
 
