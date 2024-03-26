@@ -3,12 +3,12 @@ import pandas as pd
 
 from pathlib import Path
 from typing import Union
-from tqdm import tqdm
 
-from tenet.core.exc import TenetError
-from tenet.data.diff import FunctionBoundary, InlineDiff
 from tenet.data.schema import ContainerCommand
 from tenet.handlers.plugin import PluginHandler
+from arepo.models.data import DatasetModel
+from arepo.models.vcs.symbol import FunctionModel
+from arepo.utils import get_digest
 
 
 class JSCodeShiftHandler(PluginHandler):
@@ -21,127 +21,120 @@ class JSCodeShiftHandler(PluginHandler):
 
     def __init__(self, **kw):
         super().__init__(**kw)
-        self.fn_boundaries = None
-        self.add_labelled_nulls = None
 
     def set_sources(self):
         self.set('dataset_path', self.output)
-        self.set('fn_boundaries_file', self.path / 'output.txt')
 
     def get_sinks(self):
         self.get('raw_files_path')
 
-    def run(self, dataset: pd.DataFrame, image_name: str = "jscodeshift", single_unsafe_fn: bool = False,
-            add_labelled_nulls: str = None, **kwargs) -> Union[pd.DataFrame, None]:
+    def run(self, dataset: DatasetModel, image_name: str = "epicosy/securityaware:jscodeshift",
+            **kwargs) -> Union[pd.DataFrame, None]:
         """
             runs the plugin
         """
-        self.add_labelled_nulls = add_labelled_nulls
+        workdir = Path('/tmp/jscodeshift')
+        workdir.mkdir(parents=True, exist_ok=True)
+        self.path = workdir
+        self.app.extend('workdir', workdir)
+        self.app.extend('bind', workdir)
+        container = self.container_handler.run(image_name=image_name)
+        all_fn_bounds = []
 
-        raw_files_path = Path(str(self.sinks['raw_files_path']).replace(str(self.app.workdir), str(self.app.bind)))
+        for v in dataset.vulnerabilities:
+            for c in v.commits:
+                if c.kind == 'parent':
+                    self.app.log.warning(f"Commit {c.sha} is a parent commit")
+                    continue
 
-        if not self.sources['fn_boundaries_file'].exists():
-            # TODO: fix the node name
-            container = self.container_handler.run(image_name=image_name)
-            cmd = ContainerCommand(org=f"jscodeshift -p -s -d -t /js-fn-rearrange/transforms/outputFnBoundary.js {raw_files_path}")
-            self.container_handler.run_cmds(container.id, [cmd])
-            self.container_handler.stop(container)
+                if len(c.parents) == 0:
+                    self.app.log.warning(f"Commit {c.sha} has no parent")
+                    continue
 
-        try:
-            if not self.sources['fn_boundaries_file'].exists():
-                raise TenetError(f"jscodeshift output file {self.sources['fn_boundaries_file']} not found")
+                for cf in c.files:
+                    if len(cf.functions) > 0:
+                        self.app.log.warning(f"File {cf.filename} already has function boundaries")
+                        continue
 
-            if not self.sources['fn_boundaries_file'].stat().st_size > 0:
-                raise TenetError(f"jscodeshift output file {self.sources['fn_boundaries_file']} is empty")
+                    repo_path = f"{c.repository.owner}/{c.repository.name}"
+                    output_path = workdir / repo_path / c.sha / cf.filename
+                    file_content, _ = self.github_handler.get_file_from_raw_url(cf.raw_url, output_path)
+                    file_content_lines = file_content.splitlines()
 
-        except TypeError as te:
-            self.app.log.error(te)
-            self.app.log.warning(f"jscodeshift output file not instantiated.")
-            return None
+                    if not output_path.exists():
+                        self.app.log.error(f"File {cf.filename} not found in {output_path}")
+                        continue
 
-        outputs = self.sources['fn_boundaries_file'].open(mode='r').readlines()
-        self.fn_boundaries = {}
-        raw_files_path = str(raw_files_path).replace(str(self.app.workdir), str(self.app.bind))
+                    fn_boundaries_file = output_path.parent / 'output.txt'
 
-        for line in outputs:
-            clean_line = line.replace("'", '')
-            fn_dict = ast.literal_eval(clean_line)
-            fn_path = fn_dict['path'].replace(raw_files_path + '/', '')
-            del fn_dict['path']
-            self.fn_boundaries[fn_path] = fn_dict
+                    # TODO: fix the node name
+                    if not fn_boundaries_file.exists():
+                        cmd = ContainerCommand(org=f"jscodeshift -p -s -d -t /js-fn-rearrange/transforms/outputFnBoundary.js {output_path.parent}")
+                        # TODO: fix the working dir
+                        self.container_handler.working_dir = output_path.parent
+                        self.container_handler.run_cmds(container.id, [cmd])
+                        self.container_handler.working_dir = workdir
 
-        # TODO: fix this drop of columns
+                    if not fn_boundaries_file.exists():
+                        self.app.log.error(f"jscodeshift output file {fn_boundaries_file} not found")
+                        continue
 
-        if 'sim_ratio' in dataset.columns:
-            dataset = dataset.drop(columns=['sim_ratio'])
-        if 'rule_id' in dataset.columns:
-            dataset = dataset.drop(columns=['rule_id'])
+                    if not fn_boundaries_file.stat().st_size > 0:
+                        self.app.log.error(f"jscodeshift output file {fn_boundaries_file} is empty")
+                        continue
 
-        for (owner, project, version, fpath), rows in tqdm(dataset.groupby(['owner', 'project', 'version', 'fpath'])):
-            self.multi_task_handler.add(group_inline_diff=rows, path=str(Path(owner, project, version, fpath)),
-                                        owner=owner, project=project, version=version, fpath=fpath)
-        self.multi_task_handler(func=self.convert_bound)
+                    outputs = fn_boundaries_file.open(mode='r').readlines()
+                    fn_bounds = []
 
-        fn_bounds = self.multi_task_handler.results(expand=True)
+                    for line in outputs:
+                        clean_line = line.replace("'", '')
+                        fn_dict = ast.literal_eval(clean_line)
+                        # TODO: change to pass the function type to the function model
+                        fn_bounds.extend(fn_dict['fnExps'])
+                        fn_bounds.extend(fn_dict['fnDec'])
+                        fn_bounds.extend(fn_dict['fnArrow'])
+
+                    session = self.app.db.get_session()
+
+                    for fn in fn_bounds:
+                        start_line, start_col, end_line, end_col = fn.split(',')
+                        url_path = f"{repo_path}/blob/{c.sha}/{cf.filename}#L{start_line}-L{end_line}"
+                        fn_id = get_digest(url_path)
+
+                        has_fn = session.query(FunctionModel).filter_by(id=fn_id).first()
+
+                        if has_fn:
+                            self.app.log.warning(f"Function {fn_id} already exists")
+                            continue
+
+                        # TODO: fix the parsing of the output
+                        size = int(end_line) - int(start_line)
+                        name = file_content_lines[int(start_line) - 1][:int(start_col)].strip()
+                        fn_model = FunctionModel(id=fn_id, name=name, start_line=int(start_line), end_line=int(end_line),
+                                                 start_col=int(start_col), end_col=int(end_col), size=size,
+                                                 commit_file_id=cf.id)
+                        session.add(fn_model)
+                        session.commit()
+                        all_fn_bounds.append({
+                            'project': c.repository.name,
+                            'fpath': cf.filename,
+                            'func_id': fn_id,
+                            'start_line': start_line,
+                            'start_col': start_col,
+                            'end_line': end_line,
+                            'end_col': end_col,
+                            'size': size
+                        })
+
+        self.container_handler.stop(container)
 
         # TODO: refactor the code in the if block
-        if fn_bounds:
-            df = pd.DataFrame(fn_bounds)
-
-            # Remove duplicates
-            df = df.drop_duplicates(ignore_index=True)
-            df = df.reset_index().rename(columns={'index': 'func_id'})
-            # df["n_mut"] = [0] * df.shape[0]
-
-            if single_unsafe_fn:
-                safe = df[df['label'] == 'safe']
-                unsafe = df[df['label'] == 'unsafe'].groupby(['project', 'fpath', 'label']).filter(lambda x: len(x) < 2)
-
-                return pd.concat([safe, unsafe]).sort_values(by=['func_id'])
+        if all_fn_bounds:
+            df = pd.DataFrame(all_fn_bounds)
 
             return df
 
         return None
-
-    def convert_bound(self, group_inline_diff: pd.Series, path: str, owner: str, version: str, project: str, fpath: str):
-        """
-            Finds the function boundaries for the code snippet.
-        """
-        fn_bounds = []
-
-        if path not in self.fn_boundaries:
-            self.app.log.error(f"file {path} not found in jscodeshift output")
-            return None
-
-        fn_boundaries = self.fn_boundaries[path]
-        fn_decs, fn_exps = FunctionBoundary.parse_fn_inline_diffs(fn_boundaries, owner=owner, project=project,
-                                                                  version=version, fpath=fpath)
-
-        for index, row in group_inline_diff.to_dict('index').items():
-            inline_diff = InlineDiff(**row)
-            fn_bound = None
-            self.app.log.info(f'Matching inline diff {inline_diff} with {len(fn_decs)} fn decs and {len(fn_exps)} fn exps')
-
-            for fn_dec in fn_decs:
-                if fn_dec.is_contained(inline_diff):
-                    fn_dec.label = inline_diff.label
-                    fn_dec.pair_hash = inline_diff.pair_hash
-                    fn_bound = fn_dec
-
-            if fn_bound:
-                fn_bounds.append(fn_bound.to_dict(ftype='fn_dec'))
-                continue
-
-            for fn_exp in fn_exps:
-                if fn_exp.is_contained(inline_diff):
-                    fn_exp.label = inline_diff.label
-                    fn_exp.pair_hash = inline_diff.pair_hash
-                    fn_bound = fn_exp
-
-            if fn_bound:
-                fn_bounds.append(fn_bound.to_dict(ftype='fn_exp'))
-
-        return fn_bounds
 
 
 def load(app):

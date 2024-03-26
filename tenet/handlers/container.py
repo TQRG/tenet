@@ -94,8 +94,9 @@ class ContainerHandler(HandlersInterface, Handler):
             return False, cmds_data
 
         for cmd in cmds:
-            if self.output and self.output.exists() and cmd.placeholders and self.execute_cmd(cmd) and cmd.skip:
-                continue
+            # TODO: remove old code that is buggy and not used anymore
+            #if self.output and self.output.exists() and cmd.placeholders and self.execute_cmd(cmd) and cmd.skip:
+            #    continue
 
             cmd_data = self.__call__(container_id, cmd_str=str(cmd), cmd_cwd=self.working_dir, raise_err=False,
                                      tag=cmd.tag)

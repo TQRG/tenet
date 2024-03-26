@@ -341,6 +341,28 @@ class GithubHandler(HandlersInterface, Handler):
 
         return f_str, None
 
+    def get_file_from_raw_url(self, url: str, output_path: Path = None):
+        if output_path and output_path.exists() and output_path.stat().st_size != 0:
+            self.app.log.info(f"{output_path} exists, reading...")
+
+            with output_path.open(mode='r') as f:
+                f_str = f.read()
+        else:
+            self.app.log.info(f"Requesting {url}")
+            f_str = requests.get(url).text
+
+            if output_path:
+                self.app.log.info(f"Writing {output_path}")
+                output_path.parent.mkdir(exist_ok=True, parents=True)
+
+                with output_path.open(mode="w") as f:
+                    f.write(f_str)
+
+        if output_path:
+            return f_str, output_path.stat().st_size
+
+        return f_str, None
+
     def get_blocks_from_diff(self, diff_text: str, extensions: list = None) -> List[DiffBlock]:
         """
         Parses the input diff string and returns a list of result entries.
